@@ -6727,12 +6727,19 @@ static const char *description =
 "                     ;\n"
   ;
 
+#ifdef linux
+#include <unistd.h>
+#endif
+
 main (int argc, char **argv)
 {
   ticker_t t;
   int code, ambiguous_p;
   struct earley_tree_node *root;
   struct grammar *g;
+#ifdef linux
+  char *start = sbrk (0);
+#endif
 
   OS_CREATE (mem_os, 0);
   store_lexs ();
@@ -6770,7 +6777,12 @@ main (int argc, char **argv)
       exit (1);
     }
   earley_free_grammar (g);
+#ifdef linux
+  printf ("all time %.2f, memory=%.1fkB\n", active_time (t),
+          ((char *) sbrk (0) - start) / 1024.);
+#else
   printf ("all time %.2f\n", active_time (t));
+#endif
   OS_DELETE (mem_os);
   exit (0);
 }
