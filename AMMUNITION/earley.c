@@ -4884,18 +4884,13 @@ make_parse (int *ambiguous_p)
 	{
 	  sit_ind = core_symb_vect->reduces.els [i];
 	  sit = set_core->sits [sit_ind];
-	  found = FALSE;
 	  if (sit_ind < set_core->n_start_sits)
 	    sit_orig = pl_ind - set->dists [sit_ind];
-	  else 
-	    {
-	      found = TRUE;
-	      if (sit_ind < set_core->n_all_dists)
-		sit_orig = pl_ind - set->dists [set_core->parent_indexes
-					       [sit_ind]];
-	      else
-		sit_orig = pl_ind;
-	    }
+	  else if (sit_ind < set_core->n_all_dists)
+	    sit_orig = pl_ind - set->dists [set_core->parent_indexes
+					   [sit_ind]];
+	  else
+	    sit_orig = pl_ind;
 #if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
 	  if (grammar->debug_level > 3)
 	    {
@@ -4904,36 +4899,33 @@ make_parse (int *ambiguous_p)
 	      fprintf (stderr, ", %d\n", sit_orig);
 	    }
 #endif
-	  if (!found)
+	  check_set = pl [sit_orig];
+	  check_set_core = check_set->core;
+	  check_core_symb_vect  = core_symb_vect_find (check_set_core, symb);
+	  assert (check_core_symb_vect != NULL);
+	  found = FALSE;
+	  for (j = 0; j < check_core_symb_vect->transitions.len; j++)
 	    {
-	      check_set = pl [sit_orig];
-	      check_set_core = check_set->core;
-	      check_core_symb_vect
-		= core_symb_vect_find (check_set_core, symb);
-	      assert (check_core_symb_vect != NULL);
-	      for (j = 0; j < check_core_symb_vect->transitions.len; j++)
+	      check_sit_ind = check_core_symb_vect->transitions.els [j];
+	      check_sit = check_set->core->sits [check_sit_ind];
+	      if (check_sit->rule != rule || check_sit->pos != pos)
+		continue;
+	      check_sit_orig = sit_orig;
+	      if (check_sit_ind < check_set_core->n_all_dists)
 		{
-		  check_sit_ind = check_core_symb_vect->transitions.els [j];
-		  check_sit = check_set->core->sits [check_sit_ind];
-		  if (check_sit->rule != rule || check_sit->pos != pos)
-		    continue;
-		  check_sit_orig = sit_orig;
-		  if (check_sit_ind < check_set_core->n_all_dists)
-		    {
-		      if (check_sit_ind < check_set_core->n_start_sits)
-			check_sit_orig
-			  = sit_orig - check_set->dists [check_sit_ind];
-		      else
-			check_sit_orig
-			  = (sit_orig
-			     - check_set->dists [check_set_core->parent_indexes
-						[check_sit_ind]]);
-		    }
-		  if (check_sit_orig == orig)
-		    {
-		      found = TRUE;
-		      break;
-		    }
+		  if (check_sit_ind < check_set_core->n_start_sits)
+		    check_sit_orig
+		      = sit_orig - check_set->dists [check_sit_ind];
+		  else
+		    check_sit_orig
+		      = (sit_orig
+			 - check_set->dists [check_set_core->parent_indexes
+					    [check_sit_ind]]);
+		}
+	      if (check_sit_orig == orig)
+		{
+		  found = TRUE;
+		  break;
 		}
 	    }
 	  if (!found)

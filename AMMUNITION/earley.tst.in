@@ -7688,6 +7688,152 @@ OUTPUT47
         fi
 fi
 
+# Test 48.
+if test $result = ok -a $start_test_number -le 48; then
+        cat >$test_file <<'TEST48'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+static void *
+test_parse_alloc (int size)
+{
+  return malloc (size);
+}
+
+static void
+test_parse_free (void *mem)
+{
+  free (mem);
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="spc; ";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"P  : 's' sp st sp                 # prog (2)\n"
+"st : 'p' sp p_list sp ';'         # print (2)\n"
+"p_list : 'c' sp p_list      # string (0 2)\n"
+"       |                    # -\n"
+"sp : ' '\n"
+"   |\n"
+  ;
+
+main (int argc, char **argv)
+{
+  struct grammar *g;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  if ((g = earley_create_grammar ()) == NULL)
+    {
+      fprintf (stderr, "earley_create_grammar: No memory\n");
+      exit (1);
+    }
+  ntok = 0;
+  earley_set_one_parse_flag (g, 1);
+  if (argc > 1)
+    earley_set_lookahead_level (g, atoi (argv [1]));
+  if (argc > 2)
+    earley_set_debug_level (g, atoi (argv [2]));
+  else
+    earley_set_debug_level (g, 3);
+  if (argc > 3)
+    earley_set_error_recovery_flag (g, atoi (argv [3]));
+  if (argc > 4)
+    earley_set_one_parse_flag (g, atoi (argv [4]));
+  if (earley_parse_grammar (g, 1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", earley_error_message (g));
+      exit (1);
+    }
+  if (earley_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
+                    test_parse_free, &root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley_parse: %s\n", earley_error_message (g));
+      exit (1);
+    }
+  if (ambiguous_p)
+    {
+      fprintf (stderr, "It should be unambigous grammar\n");
+      exit (1);
+    }
+  earley_free_grammar (g);
+  exit (0);
+}
+TEST48
+
+        echo test 48: ambigous grammar with cost and one parse tree and freeing
+        echo '      ' $CC $CC_options $test_file $addfiles -o $outfile
+        if $CC $CC_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT48' >$temp3_file && $cmp $temp_file $temp3_file; then
+Translation:
+      0: ABSTRACT: prog ( 1 )
+      1: ABSTRACT: print ( 2 )
+      2: ABSTRACT: string ( 3 4 )
+      3: TERMINAL: code=99, repr='c'
+      4: EMPTY
+
+Grammar: #terms = 7, #nonterms = 5, #rules = 8, rules size = 25
+Input: #tokens = 6, #unique situations = 23
+       #terminal sets = 33, their size = 264
+       #unique set cores = 7, #their start situations = 12
+       #parent indexes for some non start situations = 8
+       #unique set dist. vects = 6, their length = 11
+       #pairs(set core, symb) = 25, their trans+reduce vects length = 34
+       #unique transition vectors = 11, their length = 13
+       #unique reduce vectors = 8, their length = 9
+       #term nodes = 1, #abstract nodes = 3
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT48
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
 # Final message
 
 if test $result = ok; then
