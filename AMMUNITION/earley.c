@@ -4865,7 +4865,7 @@ make_parse (int *ambiguous_p)
 	      /* Change NULLs into empty nodes.  We can not make it
                  the first time because when building several parses
                  the NULL means flag of absence of translations (see
-                 function `place_transaltion'). */
+                 function `place_translation'). */
 	      for (i = 0; i < rule->trans_len; i++)
 		if (anode ->val.anode.children [i] == NULL)
 		  anode->val.anode.children [i] = empty_node;
@@ -5038,7 +5038,7 @@ make_parse (int *ambiguous_p)
 		      curr_state = state;
 		      anode = state->anode;
 		    }
-		}
+		} /* if (n_candidates != 0) */
 	      if (sit_rule->anode != NULL)
 		{
 		  /* This rule creates abstract node. */
@@ -5077,34 +5077,27 @@ make_parse (int *ambiguous_p)
 			   ((char *) node + sizeof (struct earley_tree_node)));
 		      for (k = 0; k <= sit_rule->trans_len; k++)
 			node->val.anode.children [k] = NULL;
-		      if (sit->pos != 0)
+		      VLO_EXPAND (stack, sizeof (struct parse_state *));
+		      ((struct parse_state **) VLO_BOUND (stack)) [-1] = state;
+		      if (anode == NULL)
 			{
-			  /* Add state to get a translation. */
-			  VLO_EXPAND (stack, sizeof (struct parse_state *));
-			  ((struct parse_state **) VLO_BOUND (stack)) [-1]
-			    = state;
-			  if (anode == NULL)
-			    {
-			      state->parent_anode_state
-				= curr_state->parent_anode_state;
-			      state->parent_disp = parent_disp;
-			    }
-			  else
-			    {
-			      state->parent_anode_state = curr_state;
-			      state->parent_disp = disp;
-			    }
-#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
-			  if (grammar->debug_level > 3)
-			    {
-			      fprintf (stderr,
-				       "Adding set = %d, sit = ", pl_ind);
-			      sit_print (stderr, sit,
-					 grammar->debug_level > 5);
-			      fprintf (stderr, ", %d\n", sit_orig);
-			    }
-#endif
+			  state->parent_anode_state
+			    = curr_state->parent_anode_state;
+			  state->parent_disp = parent_disp;
 			}
+		      else
+			{
+			  state->parent_anode_state = curr_state;
+			  state->parent_disp = disp;
+			}
+#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
+		      if (grammar->debug_level > 3)
+			{
+			  fprintf (stderr, "Adding set = %d, sit = ", pl_ind);
+			  sit_print (stderr, sit, grammar->debug_level > 5);
+			  fprintf (stderr, ", %d\n", sit_orig);
+			}
+#endif
 		    }
 		  else
 		    {
@@ -5130,7 +5123,7 @@ make_parse (int *ambiguous_p)
 				     + parent_disp
 				     : anode->val.anode.children + disp,
 				     node);
-		}
+		} /* if (sit_rule->anode != NULL) */
 	      else if (sit->pos != 0)
 		{
 		  /* We should generate and use the translation of the
@@ -5164,7 +5157,7 @@ make_parse (int *ambiguous_p)
 				   + parent_disp
 				   : anode->val.anode.children + disp,
 				   empty_node);
-	    }
+	    } /* if (parent_anode != NULL && disp >= 0) */
 	  n_candidates++;
 	} /* For all reduces of the nonterminal. */
       /* We should have a parse. */
