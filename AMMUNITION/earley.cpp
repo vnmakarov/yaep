@@ -64,7 +64,7 @@ earley::read_grammar (int strict_p,
 		      const char *(*read_terminal) (int *code),
 		      const char *(*read_rule) (const char ***rhs,
 						const char **abs_node,
-						int **transl))
+						int *anode_cost, int **transl))
 {
   return earley_read_grammar (this->grammar, strict_p,
 			      read_terminal, read_rule);
@@ -92,6 +92,11 @@ int earley::set_one_parse_flag (int flag)
   return earley_set_one_parse_flag (this->grammar, flag);
 }
 
+int earley::set_cost_flag (int flag)
+{
+  return earley_set_cost_flag (this->grammar, flag);
+}
+
 int earley::set_error_recovery_flag (int flag)
 {
   return earley_set_error_recovery_flag (this->grammar, flag);
@@ -110,12 +115,13 @@ earley::parse (int (*read_token) (void **attr),
 				     void *start_ignored_tok_attr,
 				     int start_recovered_tok_num,
 				     void *start_recovered_tok_attr),
-		     void *(*parse_alloc) (int nmemb),
+	       void *(*parse_alloc) (int nmemb),
+	       void (*parse_free) (void *mem),
 	       struct earley_tree_node **root,
 	       int *ambiguous_p)
 {
-  return earley_parse (this->grammar, read_token,
-		       syntax_error, parse_alloc, root, ambiguous_p);
+  return earley_parse (this->grammar, read_token, syntax_error,
+		       parse_alloc, parse_free, root, ambiguous_p);
 }
 
 
@@ -158,7 +164,7 @@ use_functions (int argc, char **argv)
       exit (1);
     }
   ntok = 0;
-  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		    &root, &ambiguous_p))
     fprintf (stderr, "earley::parse: %s\n", e->error_message ());
   delete e;
@@ -198,7 +204,7 @@ use_description (int argc, char **argv)
       OS_DELETE (mem_os);
       exit (1);
     }
-  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     fprintf (stderr, "earley::parse: %s\n", e->error_message ());
   delete e;

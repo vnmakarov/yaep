@@ -130,6 +130,10 @@ struct grammar
   /* The following value is TRUE if we need only one parse. */
   int one_parse_p;
   
+  /* The following value is TRUE if we need parse(s) with minimal
+     costs. */
+  int cost_p;
+  
   /* The following value is TRUE if we need to make error recovery. */
   int error_recovery_p;
 
@@ -159,6 +163,7 @@ static void (*syntax_error) (int err_tok_num,
 			     int start_recovered_tok_num,
 			     void *start_recovered_tok_attr);
 static void *(*parse_alloc) (int nmemb);
+static void (*parse_free) (void *mem);
 
 /* Forward decrlarations: */
 static void earley_error (int code, const char *format, ...);
@@ -824,6 +829,7 @@ struct rule
   struct symb **rhs;
   /* The following three members define rule translation. */
   const char *anode; /* abstract node name if any. */
+  int anode_cost; /* the cost of the abstract node if any, otherwise 0. */
   int trans_len; /* number of symbol translations in the rule translation. */
   /* The following array elements correspond to element of rhs with
      the same index.  The element value is order number of the
@@ -878,7 +884,7 @@ rule_init (void)
 
 /* Create new rule with LHS empty rhs. */
 static struct rule *
-rule_new_start (struct symb *lhs, const char *anode)
+rule_new_start (struct symb *lhs, const char *anode, int anode_cost)
 {
   struct rule *rule;
   struct symb *empty;
@@ -889,12 +895,16 @@ rule_new_start (struct symb *lhs, const char *anode)
   OS_TOP_FINISH (rules_ptr->rules_os);
   rule->lhs = lhs;
   if (anode == NULL)
-    rule->anode = NULL;
+    {
+      rule->anode = NULL;
+      rule->anode_cost = 0;
+    }
   else
     {
       OS_TOP_ADD_STRING (rules_ptr->rules_os, anode);
       rule->anode = (char *) OS_TOP_BEGIN (rules_ptr->rules_os);
       OS_TOP_FINISH (rules_ptr->rules_os);
+      rule->anode_cost = anode_cost;
     }
   rule->trans_len = 0;
   rule->order = NULL;
@@ -968,12 +978,17 @@ rule_print (FILE *f, struct rule *rule, int trans_p)
       if (rule->anode != NULL)
 	fprintf (f, "%s (", rule->anode);
       for (i = 0; i < rule->trans_len; i++)
-	for (j = 0; j < rule->rhs_len; j++)
-	  if (rule->order [j] == i)
-	    {
-	      fprintf (f, " %d:", j);
-	      symb_print (f, rule->rhs [j], FALSE);
-	    }
+	{
+	  for (j = 0; j < rule->rhs_len; j++)
+	    if (rule->order [j] == i)
+	      {
+		fprintf (f, " %d:", j);
+		symb_print (f, rule->rhs [j], FALSE);
+		break;
+	      }
+	  if (j >= rule->rhs_len)
+	    fprintf (f, " nil");
+	}
       if (rule->anode != NULL)
 	fprintf (f, " )");
     }
@@ -2844,11 +2859,13 @@ earley_read_grammar (struct grammar *g, int strict_p,
 		     const char *(*read_terminal) (int *code),
 		     const char *(*read_rule) (const char ***rhs,
 					       const char **abs_node,
+					       int *anode_cost,
 					       int **transl))
 {
   const char *name, *lhs, **rhs, *anode;
   struct symb *symb, *start;
   struct rule *rule;
+  int anode_cost;
   int *transl;
   int i, el, code;
 
@@ -2891,7 +2908,7 @@ earley_read_grammar (struct grammar *g, int strict_p,
   grammar->term_error = symb_add_term (TERM_ERROR_NAME, TERM_ERROR_CODE);
   grammar->term_error_num = grammar->term_error->u.term.term_num;
   grammar->axiom = grammar->end_marker = NULL;
-  while ((lhs = (*read_rule) (&rhs, &anode, &transl)) != NULL)
+  while ((lhs = (*read_rule) (&rhs, &anode, &anode_cost, &transl)) != NULL)
     {
       symb = symb_find_by_repr (lhs);
       if (symb == NULL)
@@ -2903,6 +2920,9 @@ earley_read_grammar (struct grammar *g, int strict_p,
 	  && transl != NULL && *transl >= 0 && transl [1] >= 0)
 	earley_error (EARLEY_INCORRECT_TRANSLATION,
 		      "rule for `%s' has incorrect translation", lhs);
+      if (anode != NULL && anode_cost < 0)
+	earley_error (EARLEY_NEGATIVE_COST,
+		      "translation for `%s' has negative cost", lhs);
       if (grammar->axiom == NULL)
 	{
 	  /* We made this here becuase we want that the start rule has
@@ -2923,14 +2943,14 @@ earley_read_grammar (struct grammar *g, int strict_p,
 	  grammar->end_marker = symb_add_term (END_MARKER_NAME,
 					       END_MARKER_CODE);
 	  /* Add rules for start */
-	  rule = rule_new_start (grammar->axiom, NULL);
+	  rule = rule_new_start (grammar->axiom, NULL, 0);
 	  rule_new_symb_add (symb);
 	  rule_new_symb_add (grammar->end_marker);
 	  rule_new_stop ();
 	  rule->order [0] = 0;
 	  rule->trans_len = 1;
 	}
-      rule = rule_new_start (symb, anode);
+      rule = rule_new_start (symb, anode, (anode != NULL ? anode_cost : 0));
       while (*rhs != NULL)
 	{
 	  symb = symb_find_by_repr (*rhs);
@@ -2942,12 +2962,17 @@ earley_read_grammar (struct grammar *g, int strict_p,
       rule_new_stop ();
       if (transl != NULL)
 	{
-	  for (i = 0; i < rule->rhs_len && (el = transl [i]) >= 0; i++)
+	  for (i = 0; (el = transl [i]) >= 0; i++)
 	    if (el >= rule->rhs_len)
-	      earley_error
-		(EARLEY_INCORRECT_SYMBOL_NUMBER,
-		 "translation symbol number %d in rule for `%s' is out of range",
-		 el, lhs);
+	      {
+		if (el != EARLEY_NIL_TRANSLATION_NUMBER)
+		  earley_error
+		    (EARLEY_INCORRECT_SYMBOL_NUMBER,
+		     "translation symbol number %d in rule for `%s' is out of range",
+		     el, lhs);
+		else
+		  rule->trans_len++;
+	      }
 	    else if (rule->order [el] >= 0)
 	      earley_error
 		(EARLEY_REPEATED_SYMBOL_NUMBER,
@@ -2970,7 +2995,7 @@ earley_read_grammar (struct grammar *g, int strict_p,
       break;
   if (rule == NULL)
     {
-      rule = rule_new_start (grammar->axiom, NULL);
+      rule = rule_new_start (grammar->axiom, NULL, 0);
       rule_new_symb_add (grammar->term_error);
       rule_new_symb_add (grammar->end_marker);
       rule_new_stop ();
@@ -3055,6 +3080,20 @@ earley_set_one_parse_flag (struct grammar *grammar, int flag)
   assert (grammar != NULL);
   old = grammar->one_parse_p;
   grammar->one_parse_p = flag;
+  return old;
+}
+
+#ifdef __cplusplus
+static
+#endif
+int
+earley_set_cost_flag (struct grammar *grammar, int flag)
+{
+  int old;
+
+  assert (grammar != NULL);
+  old = grammar->cost_p;
+  grammar->cost_p = flag;
   return old;
 }
 
@@ -4192,76 +4231,76 @@ parse_state_fin (void)
 
 #ifndef NO_EARLEY_DEBUG_PRINT
 
-/* This page conatins code to print translation. */
+/* This page conatins code to traverse translation. */
 
-/* To make better printing format and don't waist tree parse memory,
+/* To make better traversing and don't waist tree parse memory,
    we use the following structures to enumerate the tree node. */
-struct trans_print_node
+struct trans_visit_node
 {
   /* The following member is order number of the node.  This value is
-     negative if we did not print the node yet. */
+     negative if we did not visit the node yet. */
   int num;
   /* The tree node itself. */
   struct earley_tree_node *node;
 };
 
 /* The key of the following table is node itself. */
-static hash_table_t trans_print_nodes_tab;
+static hash_table_t trans_visit_nodes_tab;
 
-/* All translation print nodes are placed in the following stack.  All
+/* All translation visit nodes are placed in the following stack.  All
    the nodes are in the table. */
 #ifndef __cplusplus
-static os_t trans_print_nodes_os;
+static os_t trans_visit_nodes_os;
 #else
-static os_t *trans_print_nodes_os;
+static os_t *trans_visit_nodes_os;
 #endif
 
-/* The following value is number of translation print nodes. */
-static int n_trans_print_nodes;
+/* The following value is number of translation visit nodes. */
+static int n_trans_visit_nodes;
 
-/* Hash of translation print node. */
+/* Hash of translation visit node. */
 static unsigned
-trans_print_node_hash (hash_table_entry_t n)
+trans_visit_node_hash (hash_table_entry_t n)
 {
-  return (unsigned) ((struct trans_print_node *) n)->node;
+  return (unsigned) ((struct trans_visit_node *) n)->node;
 }
 
-/* Equality of translation print nodes. */
+/* Equality of translation visit nodes. */
 static int
-trans_print_node_eq (hash_table_entry_t n1, hash_table_entry_t n2)
+trans_visit_node_eq (hash_table_entry_t n1, hash_table_entry_t n2)
 {
-  return (((struct trans_print_node *) n1)->node
-	  == ((struct trans_print_node *) n2)->node);
+  return (((struct trans_visit_node *) n1)->node
+	  == ((struct trans_visit_node *) n2)->node);
 }
 
-/* The following function checks presence translation print node with
+/* The following function checks presence translation visit node with
    given NODE in the table and if it is not present in the table, the
-   function creates the translation print node and inserts it into
+   function creates the translation visit node and inserts it into
    the table. */
-static struct trans_print_node *
+static struct trans_visit_node *
 visit_node (struct earley_tree_node *node)
 {
-  struct trans_print_node trans_print_node;
+  struct trans_visit_node trans_visit_node;
   hash_table_entry_t *entry;
 
-  trans_print_node.node = node;
+  trans_visit_node.node = node;
 #ifndef __cplusplus
-  entry = find_hash_table_entry (trans_print_nodes_tab,
-				 &trans_print_node, TRUE);
+  entry = find_hash_table_entry (trans_visit_nodes_tab,
+				 &trans_visit_node, TRUE);
 #else
-  entry = trans_print_nodes_tab->find_entry (&trans_print_node, TRUE);
+  entry = trans_visit_nodes_tab->find_entry (&trans_visit_node, TRUE);
 #endif
   if (*entry == NULL)
     {
-      /* If it is the new node, we did not print it yet. */
-      trans_print_node.num = -1 - n_trans_print_nodes;
-      n_trans_print_nodes++;
-      OS_TOP_ADD_MEMORY (trans_print_nodes_os,
-			 &trans_print_node, sizeof (trans_print_node));
-      *entry = (hash_table_entry_t) OS_TOP_BEGIN (trans_print_nodes_os);
-      OS_TOP_FINISH (trans_print_nodes_os);
+      /* If it is the new node, we did not visit it yet. */
+      trans_visit_node.num = -1 - n_trans_visit_nodes;
+      n_trans_visit_nodes++;
+      OS_TOP_ADD_MEMORY (trans_visit_nodes_os,
+			 &trans_visit_node, sizeof (trans_visit_node));
+      *entry = (hash_table_entry_t) OS_TOP_BEGIN (trans_visit_nodes_os);
+      OS_TOP_FINISH (trans_visit_nodes_os);
     }
-  return (struct trans_print_node *) *entry;
+  return (struct trans_visit_node *) *entry;
 }
 
 /* The following function returns the positive order number of node
@@ -4281,16 +4320,17 @@ canon_node_num (int num)
 static void
 print_node (FILE *f, struct earley_tree_node *node)
 {
-  struct trans_print_node *trans_print_node;
+  struct trans_visit_node *trans_visit_node;
   struct earley_tree_node *child;
   int i;
 
-  trans_print_node = visit_node (node);
-  if (trans_print_node->num >= 0)
+  assert (node != NULL);
+  trans_visit_node = visit_node (node);
+  if (trans_visit_node->num >= 0)
     return;
-  trans_print_node->num = -trans_print_node->num - 1;
+  trans_visit_node->num = -trans_visit_node->num - 1;
   if (grammar->debug_level > 0)
-    fprintf (f, "%7d: ", trans_print_node->num);
+    fprintf (f, "%7d: ", trans_visit_node->num);
   switch (node->type)
     {
     case EARLEY_NIL:
@@ -4318,7 +4358,7 @@ print_node (FILE *f, struct earley_tree_node *node)
 	{
 	  for (i = 0; (child = node->val.anode.children [i]) != NULL; i++)
 	    {
-	      fprintf (f, "  \"%d: %s\" -> \"%d: ", trans_print_node->num,
+	      fprintf (f, "  \"%d: %s\" -> \"%d: ", trans_visit_node->num,
 		       node->val.anode.name,
 		       canon_node_num (visit_node (child)->num));
 	      switch (child->type)
@@ -4358,7 +4398,7 @@ print_node (FILE *f, struct earley_tree_node *node)
 	}
       else
 	{
-	  fprintf (f, "  \"%d: ALT\" -> \"%d: ", trans_print_node->num,
+	  fprintf (f, "  \"%d: ALT\" -> \"%d: ", trans_visit_node->num,
 		   canon_node_num (visit_node (node->val.alt.node)->num));
 	  switch (node->val.alt.node->type)
 	    {
@@ -4382,7 +4422,7 @@ print_node (FILE *f, struct earley_tree_node *node)
 	  fprintf (f, "\";\n");
 	  if (node->val.alt.next != NULL)
 	    fprintf (f, "  \"%d: ALT\" -> \"%d: ALT\";\n",
-		     trans_print_node->num,
+		     trans_visit_node->num,
 		     canon_node_num (visit_node (node->val.alt.next)->num));
 	}
       print_node (f, node->val.alt.node);
@@ -4399,21 +4439,21 @@ static void
 print_parse (FILE *f, struct earley_tree_node *root)
 {
 #ifndef __cplusplus
-  trans_print_nodes_tab = create_hash_table (toks_len * 2,
-					     trans_print_node_hash,
-					     trans_print_node_eq);
+  trans_visit_nodes_tab = create_hash_table (toks_len * 2,
+					     trans_visit_node_hash,
+					     trans_visit_node_eq);
 #else
-  trans_print_nodes_tab = new hash_table (toks_len * 2, trans_print_node_hash,
-					  trans_print_node_eq);
+  trans_visit_nodes_tab = new hash_table (toks_len * 2, trans_visit_node_hash,
+					  trans_visit_node_eq);
 #endif
-  n_trans_print_nodes = 0;
-  OS_CREATE (trans_print_nodes_os, 0);
+  n_trans_visit_nodes = 0;
+  OS_CREATE (trans_visit_nodes_os, 0);
   print_node (f, root);
-  OS_DELETE (trans_print_nodes_os);
+  OS_DELETE (trans_visit_nodes_os);
 #ifndef __cplusplus
-  delete_hash_table (trans_print_nodes_tab);
+  delete_hash_table (trans_visit_nodes_tab);
 #else
-  delete trans_print_nodes_tab;
+  delete trans_visit_nodes_tab;
 #endif
 }
 
@@ -4487,6 +4527,186 @@ copy_anode (struct earley_tree_node **place, struct earley_tree_node *anode,
   return node;
 }
 
+/* The following table is used to find allocated memory which should
+   not be freed. */
+static hash_table_t reserv_mem_tab;
+
+/* The hash of the memory reference. */
+static unsigned
+reserv_mem_hash (hash_table_entry_t m)
+{
+  return (unsigned) m;
+}
+
+/* The equity of the memory reference. */
+static int
+reserv_mem_eq (hash_table_entry_t m1, hash_table_entry_t m2)
+{
+  return m1 == m2;
+}
+
+/* The following vlo will contain references to memory which should be
+   freed.  The same reference can be represented more on time. */
+#ifndef __cplusplus
+static vlo_t tnodes_vlo;
+#else  
+static vlo_t *tnodes_vlo;
+#endif
+
+/* The following function sets up minimal cost for each abstract node.
+   The function returns minimal translation corresponding to NODE.
+   The function also collects references to memory which can be
+   freed. Remeber that the translation is DAG, altenatives form lists
+   (alt node may not refer for another alternative). */
+static struct earley_tree_node *
+prune_to_minimal (struct earley_tree_node *node, int *cost)
+{
+  struct earley_tree_node *child, *alt, *next_alt, *result;
+  int i, min_cost;
+
+  assert (node != NULL);
+  switch (node->type)
+    {
+    case EARLEY_NIL:
+    case EARLEY_ERROR:
+    case EARLEY_TERM:
+      if (parse_free != NULL)
+	VLO_ADD_MEMORY (tnodes_vlo, &node, sizeof (node));
+      *cost = 0;
+      return node;
+    case EARLEY_ANODE:
+      if (node->val.anode.cost >= 0)
+	 {
+	   if (parse_free != NULL)
+	     VLO_ADD_MEMORY (tnodes_vlo, &node, sizeof (node));
+	   for (i = 0; (child = node->val.anode.children [i]) != NULL; i++)
+	     {
+	       node->val.anode.children [i] = prune_to_minimal (child, cost);
+	       node->val.anode.cost += *cost;
+	     }
+	   *cost = node->val.anode.cost;
+	 }
+      node->val.anode.cost = -node->val.anode.cost - 1; /* flag of visit */
+      return node;
+    case EARLEY_ALT:
+      for (alt = node; alt != NULL; alt = next_alt)
+	 {
+	   if (parse_free != NULL)
+	     VLO_ADD_MEMORY (tnodes_vlo, &alt, sizeof (alt));
+	   next_alt = alt->val.alt.next;
+	   alt->val.alt.node = prune_to_minimal (alt->val.alt.node, cost);
+	   if (alt == node || min_cost > *cost)
+	     {
+	       min_cost = *cost;
+	       alt->val.alt.next = NULL;
+	       result = alt;
+	     }
+	   else if (min_cost == *cost && !grammar->one_parse_p)
+	     {
+	       alt->val.alt.next = result;
+	       result = alt;
+	     }
+	 }
+      *cost = min_cost;
+      return (result->val.alt.next == NULL ? result->val.alt.node : result);
+    default:
+      assert (FALSE);
+    }
+  *cost = 0;
+  return NULL;
+}
+
+/* The following function traverses the translation collecting
+   reference to memory which may not be freed. */
+static void
+traverse_pruned_translation (struct earley_tree_node *node)
+{
+  struct earley_tree_node *child, *alt;
+  hash_table_entry_t *entry;
+  int i;
+  
+  assert (node != NULL);
+  if (parse_free != NULL
+      && *(entry = find_hash_table_entry (reserv_mem_tab, node, TRUE)) == NULL)
+    *entry = (hash_table_entry_t) node;
+  switch (node->type)
+    {
+    case EARLEY_NIL:
+    case EARLEY_ERROR:
+    case EARLEY_TERM:
+      break;
+    case EARLEY_ANODE:
+      if (parse_free != NULL
+	  && *(entry = find_hash_table_entry (reserv_mem_tab,
+					       node->val.anode.name,
+					       TRUE)) == NULL)
+	*entry = (hash_table_entry_t) node->val.anode.name;
+      for (i = 0; (child = node->val.anode.children [i]) != NULL; i++)
+	traverse_pruned_translation (child);
+      assert (node->val.anode.cost < 0);
+      node->val.anode.cost = -node->val.anode.cost - 1;
+      break;
+    case EARLEY_ALT:
+      for (alt = node; alt != NULL; alt = alt->val.alt.next)
+	traverse_pruned_translation (alt->val.alt.node);
+      break;
+    default:
+      assert (FALSE);
+    }
+  return;
+}
+
+/* The function finds and returns a minimal cost parse(s). */
+static struct earley_tree_node *
+find_minimal_translation (struct earley_tree_node *root)
+{
+  struct earley_tree_node **node_ptr;
+  hash_table_entry_t *entry, *entry_1;
+  int cost;
+  
+  if (parse_free != NULL)
+    {
+#ifndef __cplusplus
+      reserv_mem_tab = create_hash_table (toks_len * 4, reserv_mem_hash,
+					  reserv_mem_eq);
+#else
+      reserv_mem_tab = new hash_table (toks_len * 4, reserv_mem_hash,
+				       reserv_mem_eq);
+#endif
+      VLO_CREATE (tnodes_vlo, toks_len * 4 * sizeof (void *));
+    }
+  root = prune_to_minimal (root, &cost);
+  traverse_pruned_translation (root);
+  if (parse_free != NULL)
+    {
+      for (node_ptr = (struct earley_tree_node **) VLO_BEGIN (tnodes_vlo);
+	   node_ptr < (struct earley_tree_node **) VLO_BOUND (tnodes_vlo);
+	   node_ptr++)
+	if (*(entry = find_hash_table_entry (reserv_mem_tab, *node_ptr, TRUE))
+	     == NULL)
+	   {
+	     if ((*node_ptr)->type == EARLEY_ANODE
+		 && *(entry_1
+		      = find_hash_table_entry (reserv_mem_tab,
+					       (*node_ptr)->val.anode.name,
+					       TRUE)) == NULL)
+	       {
+		 *entry_1 = (hash_table_entry_t) (*node_ptr)->val.anode.name;
+		(*parse_free) ((void *) (*node_ptr)->val.anode.name);
+	       }
+	     (*parse_free) (*node_ptr);
+	     *entry = (hash_table_entry_t) (*node_ptr)->val.anode.name;
+	   }
+      VLO_DELETE (tnodes_vlo);
+#ifndef __cplusplus
+      delete_hash_table (reserv_mem_tab);
+#else
+      delete reserv_mem_tab;
+#endif
+    }
+  return root;
+}
+
 /* The following function finds parse tree of parsed input.  The
    function sets up *AMBIGUOUS_P if we found that the grammer is
    ambigous (it works even we asked only one parse tree without
@@ -4505,9 +4725,10 @@ make_parse (int *ambiguous_p)
   struct parse_state *state, *orig_state, *curr_state;
   struct parse_state *table_state, *parent_anode_state;
   struct parse_state root_state;
-  struct earley_tree_node *result, *node, *empty_node, *error_node;
+  struct earley_tree_node *result, *empty_node, *node, *error_node;
   struct earley_tree_node *parent_anode, *anode, root_anode;
   int parent_disp;
+  int saved_one_parse_p;
   struct earley_tree_node **term_node_array;
 #ifndef __cplusplus
   vlo_t stack, orig_states;
@@ -4527,6 +4748,10 @@ make_parse (int *ambiguous_p)
       assert (!grammar->error_recovery_p);
       return NULL;
     }
+  saved_one_parse_p = grammar->one_parse_p;
+  if (grammar->cost_p)
+    /* We need all parses to choose the minimal one */
+    grammar->one_parse_p = FALSE;
   sit = set->core->sits [0];
   parse_state_init ();
   if (!grammar->one_parse_p)
@@ -4586,6 +4811,7 @@ make_parse (int *ambiguous_p)
       orig = state->orig;
       if (pos < 0)
 	{
+	  /* We've processed all rhs of the rule. */
 	  parse_state_free (state);
 	  VLO_SHORTEN (stack, sizeof (struct parse_state *));
 	  state = ((struct parse_state **) VLO_BOUND (stack)) [-1];
@@ -4594,6 +4820,16 @@ make_parse (int *ambiguous_p)
                node. */
 	    place_translation (parent_anode->val.anode.children + parent_disp,
 			       empty_node);
+	  else if (anode != NULL)
+	    {
+	      /* Change NULLs into empty nodes.  We can not make it
+                 the first time because when building several parses
+                 the NULL means flag of absence of translations (see
+                 function `place_transaltion'). */
+	      for (i = 0; i < rule->trans_len; i++)
+		if (anode ->val.anode.children [i] == NULL)
+		  anode->val.anode.children [i] = empty_node;
+	    }
 	  continue;
 	}
       assert (pos >= 0);
@@ -4608,7 +4844,8 @@ make_parse (int *ambiguous_p)
 #endif
 	  if (parent_anode != NULL && disp >= 0)
 	    {
-	      /* Add reference to the current node. */
+	      /* We should generate and use the translation of the
+                 terminal.  Add reference to the current node. */
 	      if (symb == grammar->term_error)
 		node = error_node;
 	      else if (!grammar->one_parse_p
@@ -4708,76 +4945,68 @@ make_parse (int *ambiguous_p)
 		break;
 	    }
 	  sit_rule = sit->rule;
+	  if (n_candidates == 0)
+	    orig_state->pl_ind = sit_orig;
 	  if (parent_anode != NULL && disp >= 0)
 	    {
+	      /* We should generate and use the translation of the
+                 nonterminal. */
 	      curr_state = orig_state;
 	      anode = orig_state->anode;
 	      /* We need translation of the rule. */
-#if 0
-	      if (pos != 0)
+	      if (n_candidates != 0)
 		{
-#endif
-		  if (n_candidates == 0)
-		    orig_state->pl_ind = sit_orig;
+		  assert (!grammar->one_parse_p);
+		  if (n_candidates == 1)
+		    {
+		      VLO_EXPAND (orig_states, sizeof (struct parse_state *));
+		      ((struct parse_state **) VLO_BOUND (orig_states)) [-1]
+			= orig_state;
+		    }
+		  for (j = (VLO_LENGTH (orig_states)
+			    / sizeof (struct parse_state *) - 1);
+		       j >= 0;
+		       j--)
+		    if (((struct parse_state **)
+			 VLO_BEGIN (orig_states)) [j]->pl_ind == sit_orig)
+		      break;
+		  if (j >= 0)
+		    {
+		      /* [A -> x., n] & [A -> y., n] */
+		      curr_state = ((struct parse_state **)
+				    VLO_BEGIN (orig_states)) [j];
+		      anode = curr_state->anode;
+		    }
 		  else
 		    {
-		      assert (!grammar->one_parse_p);
-		      if (n_candidates == 1)
-			{
-			  VLO_EXPAND (orig_states,
-				      sizeof (struct parse_state *));
-			  ((struct parse_state **) VLO_BOUND (orig_states))
-			    [-1] = orig_state;
-			}
-		      for (j = (VLO_LENGTH (orig_states)
-				/ sizeof (struct parse_state *) - 1);
-			   j >= 0;
-			   j--)
-			if (((struct parse_state **)
-			     VLO_BEGIN (orig_states)) [j]->pl_ind == sit_orig)
-			  break;
-		      if (j >= 0)
-			{
-			  curr_state = ((struct parse_state **)
-					VLO_BEGIN (orig_states)) [j];
-			  anode = curr_state->anode;
-			}
-		      else
-			{
-			  /* It is different from the previous ones so
-			     add it to process. */
-			  state = parse_state_alloc ();
-			  VLO_EXPAND (stack, sizeof (struct parse_state *));
-			  ((struct parse_state **) VLO_BOUND (stack)) [-1]
-			    = state;
-			  *state = *orig_state;
-			  state->pl_ind = sit_orig;
-			  if (anode != NULL)
-			    state->anode
-			      = copy_anode (parent_anode->val.anode.children
-					    + parent_disp,
-					    anode, rule, disp);
-			  VLO_EXPAND (orig_states,
-				      sizeof (struct parse_state *));
-			  ((struct parse_state **) VLO_BOUND (orig_states))
-			    [-1] = state;
+		      /* [A -> x., n] & [A -> y., m] where n != m. */
+		      /* It is different from the previous ones so add
+			 it to process. */
+		      state = parse_state_alloc ();
+		      VLO_EXPAND (stack, sizeof (struct parse_state *));
+		      ((struct parse_state **) VLO_BOUND (stack)) [-1] = state;
+		      *state = *orig_state;
+		      state->pl_ind = sit_orig;
+		      if (anode != NULL)
+			state->anode
+			  = copy_anode (parent_anode->val.anode.children
+					+ parent_disp, anode, rule, disp);
+		      VLO_EXPAND (orig_states, sizeof (struct parse_state *));
+		      ((struct parse_state **) VLO_BOUND (orig_states))	[-1]
+			= state;
 #if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
-			  if (grammar->debug_level > 3)
-			    {
-			      fprintf (stderr,
-				       "Adding set = %d, modified sit = ",
-				       sit_orig);
-			      rule_dot_print (stderr, state->rule, state->pos);
-			      fprintf (stderr, ", %d\n", state->orig);
-			    }
-#endif
-			  curr_state = state;
-			  anode = state->anode;
+		      if (grammar->debug_level > 3)
+			{
+			  fprintf (stderr, "Adding set = %d, modified sit = ",
+				   sit_orig);
+			  rule_dot_print (stderr, state->rule, state->pos);
+			  fprintf (stderr, ", %d\n", state->orig);
 			}
-		    }
-#if 0
-		}
 #endif
+		      curr_state = state;
+		      anode = state->anode;
+		    }
+		}
 	      if (sit_rule->anode != NULL)
 		{
 		  /* This rule creates abstract node. */
@@ -4810,6 +5039,7 @@ make_parse (int *ambiguous_p)
 			  strcpy (sit_rule->caller_anode, sit_rule->anode);
 			}
 		      node->val.anode.name = sit_rule->caller_anode;
+		      node->val.anode.cost = sit_rule->anode_cost;
 		      node->val.anode.children
 			= ((struct earley_tree_node **)
 			   ((char *) node + sizeof (struct earley_tree_node)));
@@ -4851,6 +5081,7 @@ make_parse (int *ambiguous_p)
 		      parse_state_free (state);
 		      state = ((struct parse_state **) VLO_BOUND (stack)) [-1];
 		      node = table_state->anode;
+		      assert (node != NULL);
 #if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
 		      if (grammar->debug_level > 3)
 			{
@@ -4870,7 +5101,8 @@ make_parse (int *ambiguous_p)
 		}
 	      else if (sit->pos != 0)
 		{
-		  /* Add state to get a translation. */
+		  /* We should generate and use the translation of the
+                     nonterminal.  Add state to get a translation. */
 		  state = parse_state_alloc ();
 		  VLO_EXPAND (stack, sizeof (struct parse_state *));
 		  ((struct parse_state **) VLO_BOUND (stack)) [-1] = state;
@@ -4878,7 +5110,9 @@ make_parse (int *ambiguous_p)
 		  state->pos = sit->pos;
 		  state->orig = sit_orig;
 		  state->pl_ind = pl_ind;
-		  state->parent_anode_state = anode == NULL ? curr_state->parent_anode_state : curr_state;
+		  state->parent_anode_state = (anode == NULL
+					       ? curr_state->parent_anode_state
+					       : curr_state);
 		  state->parent_disp = anode == NULL ? parent_disp : disp;
 		  state->anode = NULL;
 #if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
@@ -4900,11 +5134,11 @@ make_parse (int *ambiguous_p)
 				   empty_node);
 	    }
 	  n_candidates++;
-	}
+	} /* For all reduces of the nonterminal. */
       /* We should have a parse. */
       assert (n_candidates != 0
 	      && (!grammar->one_parse_p || n_candidates == 1));
-    }
+    } /* For all parser states. */
   VLO_DELETE (stack);
   if (!grammar->one_parse_p)
     {
@@ -4912,6 +5146,13 @@ make_parse (int *ambiguous_p)
       FREE (term_node_array);
     }
   parse_state_fin ();
+  grammar->one_parse_p = saved_one_parse_p;
+  if (grammar->cost_p && *ambiguous_p)
+    /* We can not build minimal tree during building parsing list
+       because we have not the translation yet.  We can not make it
+       during parsing because the abstract nodes are created before
+       their children. */
+    result = find_minimal_translation (result);
 #ifndef NO_EARLEY_DEBUG_PRINT
   if (grammar->debug_level > 1)
     {
@@ -4959,6 +5200,7 @@ earley_parse (struct grammar *g,
 			     int start_recovered_tok_num,
 			     void *start_recovered_tok_attr),
 	      void *(*alloc) (int nmemb),
+	      void (*free) (void *mem),
 	      struct earley_tree_node **root, int *ambiguous_p)
 {
   int code, parse_init_p;
@@ -4971,6 +5213,7 @@ earley_parse (struct grammar *g,
   read_token = read;
   syntax_error = error;
   parse_alloc = alloc;
+  parse_free = free;
   init_error_func_for_allocate
     = change_allocation_error_function (error_func_for_allocate);
   *root = NULL;
@@ -5109,7 +5352,7 @@ static int nrule;
 /* The following function imported by Earley's algorithm (see comments
    in the interface file). */
 const char *
-read_rule (const char ***rhs, const char **anode, int **transl)
+read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
   static const char *rhs_1 [] = {"T", NULL};
   static int tr_1 [] = {0, -1};
@@ -5127,12 +5370,18 @@ read_rule (const char ***rhs, const char **anode, int **transl)
   nrule++;
   switch (nrule)
     {
-    case 1: *rhs = rhs_1; *anode = NULL; *transl = tr_1; return "E";
-    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2; return "E";
-    case 3: *rhs = rhs_3; *anode = NULL; *transl = tr_3; return "T";
-    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4; return "T";
-    case 5: *rhs = rhs_5; *anode = NULL; *transl = tr_5; return "F";
-    case 6: *rhs = rhs_6; *anode = NULL; *transl = tr_6; return "F";
+    case 1: *rhs = rhs_1; *anode = NULL; *anode_cost = 0; *transl = tr_1;
+      return "E";
+    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2;
+      return "E";
+    case 3: *rhs = rhs_3; *anode = NULL; *anode_cost = 0; *transl = tr_3;
+      return "T";
+    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4;
+      return "T";
+    case 5: *rhs = rhs_5; *anode = NULL; *anode_cost = 0; *transl = tr_5;
+      return "F";
+    case 6: *rhs = rhs_6; *anode = NULL; *anode_cost = 0; *transl = tr_6;
+      return "F";
     default: return NULL;
     }
 }
@@ -5210,7 +5459,7 @@ use_functions (int argc, char **argv)
     }
   ntok = 0;
   if (earley_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
-		    &root, &ambiguous_p))
+		    NULL, &root, &ambiguous_p))
     fprintf (stderr, "earley_parse: %s\n", earley_error_message (g));
   earley_free_grammar (g);
   OS_DELETE (mem_os);
@@ -5265,7 +5514,7 @@ use_description (int argc, char **argv)
       exit (1);
     }
   if (earley_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
-		    &root, &ambiguous_p))
+		    NULL, &root, &ambiguous_p))
     fprintf (stderr, "earley_parse: %s\n", earley_error_message (g));
   earley_free_grammar (g);
   OS_DELETE (mem_os);

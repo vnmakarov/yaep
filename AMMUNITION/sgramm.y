@@ -55,6 +55,9 @@ struct srule
   /* The following members are left hand side nonterminal
      representation and abstract node name (if any) for the rule. */
   char *lhs, *anode;
+  /* The following is the cost of given anode if it is defined.
+     Otherwise, the value is zero. */
+  int anode_cost;
   /* The following is length of right hand side of the rule. */
   int rhs_len;
   /* Terminal/nonterminal representations in RHS of the rule.  The
@@ -80,6 +83,10 @@ static os_t srhs, strans;
 static os_t *srhs, *strans; 
 #endif
 
+/* The following is cost of the last translation which contains an
+   abstract node. */
+static int anode_cost;
+
 /* This variable is used in yacc action to process alternatives. */
 static char *slhs;
 
@@ -96,7 +103,7 @@ extern int yyparse (void);
     int num;
   }
 
-%token <ref> IDENT SEM_IDENT  CHAR
+%token <ref> IDENT SEM_IDENT CHAR
 %token <num> NUMBER
 %token TERM
 
@@ -146,6 +153,7 @@ alt : seq trans
 	OS_TOP_ADD_MEMORY (strans, &end_marker, sizeof (int));
 	rule.lhs = slhs;
 	rule.anode = (char *) $2;
+	rule.anode_cost = (rule.anode == NULL ? 0 : anode_cost);
 	rule.rhs_len = OS_TOP_LENGTH (srhs) / sizeof (char *);
 	OS_TOP_EXPAND (srhs, sizeof (char *));
 	rule.rhs = (char **) OS_TOP_BEGIN (srhs);
@@ -185,7 +193,18 @@ trans :     {$$ = NULL;}
   	  $$ = NULL;
 	  OS_TOP_ADD_MEMORY (strans, &symb_num, sizeof (int));
         }
-      | '#' IDENT '(' numbers ')'
+      | '#' '-'
+        {
+	  int symb_num = EARLEY_NIL_TRANSLATION_NUMBER;
+
+  	  $$ = NULL;
+	  OS_TOP_ADD_MEMORY (strans, &symb_num, sizeof (int));
+        }
+      | '#' IDENT cost '(' numbers ')'
+        {
+	  $$ = $2;
+	}
+      | '#' IDENT cost
         {
 	  $$ = $2;
 	}
@@ -198,7 +217,17 @@ numbers :
 	    
 	    OS_TOP_ADD_MEMORY (strans, &symb_num, sizeof (int));
           }
+        | numbers '-'
+          {
+	    int symb_num = EARLEY_NIL_TRANSLATION_NUMBER;
+	    
+	    OS_TOP_ADD_MEMORY (strans, &symb_num, sizeof (int));
+          }
         ;
+
+cost :         { anode_cost = 1;}
+     | NUMBER  { anode_cost = $1; }
+     ;
 %%
 
 /* The following is current input character of the grammar
@@ -266,6 +295,7 @@ yylex (void)
 	case '#':
 	case '|':
 	case ';':
+	case '-':
 	case '(':
 	case ')':
 	  return c;
@@ -459,7 +489,8 @@ sread_terminal (int *code)
 }
 
 static const char *
-sread_rule (const char ***rhs, const char **abs_node, int **transl)
+sread_rule (const char ***rhs, const char **abs_node, int *anode_cost,
+	    int **transl)
 {
   struct srule *rule;
   const char *lhs;
@@ -470,6 +501,7 @@ sread_rule (const char ***rhs, const char **abs_node, int **transl)
   lhs = rule->lhs;
   *rhs = (const char **) rule->rhs;
   *abs_node = rule->anode;
+  *anode_cost = rule->anode_cost;
   *transl = rule->trans;
   nsrule++;
   return lhs;

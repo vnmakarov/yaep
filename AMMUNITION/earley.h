@@ -20,11 +20,24 @@
 #endif
 #endif /* #ifdef HAVE_CONFIG_H */
 
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#else
+#ifndef INT_MAX
+#define INT_MAX 2147483647
+#endif  
+#endif
+ 
 #include "allocate.h"
 
 /* The following is a forward descration of grammar formed by function
    earley_read_grammar. */
 struct grammar;
+
+/* The following value is reserved to be designation of empty node for
+   translation.  It should be positive number which is not intersected
+   with symbol numbers. */
+#define EARLEY_NIL_TRANSLATION_NUMBER       INT_MAX
 
 /* The following values are earley parser error codes. */
 
@@ -38,12 +51,13 @@ struct grammar;
 #define EARLEY_NO_RULES                      8
 #define EARLEY_TERM_IN_RULE_LHS              9
 #define EARLEY_INCORRECT_TRANSLATION         10
-#define EARLEY_INCORRECT_SYMBOL_NUMBER       11
-#define EARLEY_REPEATED_SYMBOL_NUMBER        12
-#define EARLEY_UNACCESSIBLE_NONTERM          13
-#define EARLEY_NONTERM_DERIVATION            14
-#define EARLEY_LOOP_NONTERM                  15
-#define EARLEY_INVALID_TOKEN_CODE            16
+#define EARLEY_NEGATIVE_COST                 11
+#define EARLEY_INCORRECT_SYMBOL_NUMBER       12
+#define EARLEY_REPEATED_SYMBOL_NUMBER        13
+#define EARLEY_UNACCESSIBLE_NONTERM          14
+#define EARLEY_NONTERM_DERIVATION            15
+#define EARLEY_LOOP_NONTERM                  16
+#define EARLEY_INVALID_TOKEN_CODE            17
 
 /* The following describes the type of parse tree node. */
 enum earley_tree_node_type
@@ -86,6 +100,10 @@ struct earley_anode
 {
   /* The abstract node name. */
   const char *name;
+  /* The following value is cost of the node plus costs of all
+     children if the cost flag is set up.  Otherwise, the value is cost
+     of the abstract node itself. */
+  int cost;
   /* References for nodes for which the abstract node refers.  The end
      marker of the array is value NULL. */
   struct earley_tree_node **children;
@@ -156,17 +174,22 @@ extern const char *earley_error_message (struct grammar *g);
    given in array *TRANSL) in the RHS of the rule.  All indexes in
    TRANSL should be different (so the translation of a symbol can not
    be represented twice).  The end marker of the array should be a
-   negative value.  If *TRANSL is NULL or contains only the end
-   marker, translations of the rule will be value NULL.  If abs_node
-   is NULL, abstract node is not created.  In this case *TRANSL should
-   be NULL or contain at most one element which means that the
-   translation of the rule will be special nil node or the translation
-   of the symbol in RHS given by the single array element.  */
+   negative value.  There is a reserved value of the translation
+   symbol number denoting empty node.  It is value defined by macro
+   EARLEY_NIL_TRANSLATION_NUMBER.  If *TRANSL is NULL or contains only
+   the end marker, translations of the rule will be nil node.  If
+   ABS_NODE is NULL, abstract node is not created.  In this case
+   *TRANSL should be NULL or contain at most one element which means
+   that the translation of the rule will be nil node or the
+   translation of the symbol in RHS given by the single array element.
+   The cost of the abstract node if given is passed through
+   ANODE_COST. */
 extern int
 earley_read_grammar (struct grammar *g, int strict_p,
 		     const char *(*read_terminal) (int *code),
 		     const char *(*read_rule) (const char ***rhs,
 					       const char **abs_node,
+                                               int *anode_cost,
 					       int **transl));
 
 /* The following function is analogous to the previous one but it
@@ -192,6 +215,11 @@ earley_parse_grammar (struct grammar *g, int strict_p,
      unambiguous grammar the flag does not affect the result.  The
      default value is 1.
 
+   o cost_flag means usage costs to build tree (trees if
+     one_parse_flag is not set up) with minimal cost.  For unambiguous
+     grammar the flag does not affect the result.  The default value
+     is 0.
+
    o error_recovery_flag means making error recovery if syntax error
      occurred.  Otherwise, syntax error results in finishing parsing
      (although syntax_error is called once).  The default value is 1.
@@ -202,17 +230,17 @@ earley_parse_grammar (struct grammar *g, int strict_p,
 extern int earley_set_lookahead_level (struct grammar *grammar, int level);
 extern int earley_set_debug_level (struct grammar *grammar, int level);
 extern int earley_set_one_parse_flag (struct grammar *grammar, int flag);
+extern int earley_set_cost_flag (struct grammar *grammar, int flag);
 extern int earley_set_error_recovery_flag (struct grammar *grammar, int flag);
 extern int earley_set_recovery_match (struct grammar *grammar, int n_toks);
 
 /* The following function parses input according read grammar.  The
    function returns the error code (which will be also in
    earley_error_code).  If the code is zero, the function will also
-   return root of the parse tree through *ROOT.  The *root will be
-   NULL only if syntax error was occurred and error recovery was
-   switched off).  The function sets up *AMBIGOUS_P if we found that
-   the grammer is ambigous (it works even we asked only one parse tree
-   without alternatives).
+   The *root will be NULL only if syntax error was occurred and error
+   recovery was switched off).  The function sets up *AMBIGOUS_P if we
+   found that the grammer is ambigous (it works even we asked only one
+   parse tree without alternatives).
 
    The function READ_TOKEN provides input tokens.  It returns code the
    next input token and its attribute.  If the function returns
@@ -238,7 +266,9 @@ extern int earley_set_recovery_match (struct grammar *grammar, int n_toks);
    allocate and free memory for parse tree representation.  But the
    caller should not free the memory until earley_fin is called.  The
    function may be called even during reading the grammar not only
-   during the parsing.  */
+   during the parsing.  Function PARSE_FREE is used by the parser to
+   free memory allocated by PARSE_ALLOC.  If it is NULL, the memory is
+   not freed. */
 extern int earley_parse (struct grammar *grammar,
 			 int (*read_token) (void **attr),
 			 void (*syntax_error) (int err_tok_num,
@@ -248,6 +278,7 @@ extern int earley_parse (struct grammar *grammar,
 					       int start_recovered_tok_num,
 					       void *start_recovered_tok_attr),
 			 void *(*parse_alloc) (int nmemb),
+			 void (*parse_free) (void *mem),
 			 struct earley_tree_node **root,
 			 int *ambiguous_p);
 
@@ -305,6 +336,7 @@ public:
 			   const char *(*read_terminal) (int *code),
 			   const char *(*read_rule) (const char ***rhs,
 						     const char **abs_node,
+						     int *anode_cost,
 						     int **transl));
 
   /* See comments for function earley_parse_grammar. */
@@ -314,6 +346,7 @@ public:
   int set_lookahead_level (int level);
   int set_debug_level (int level);
   int set_one_parse_flag (int flag);
+  int set_cost_flag (int flag);
   int set_error_recovery_flag (int flag);
   int set_recovery_match (int n_toks);
 
@@ -326,6 +359,7 @@ public:
 				   int start_recovered_tok_num,
 				   void *start_recovered_tok_attr),
 	     void *(*parse_alloc) (int nmemb),
+	     void (*parse_free) (void *mem),
 	     struct earley_tree_node **root,
 	     int *ambiguous_p);
 };
