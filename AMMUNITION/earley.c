@@ -2576,6 +2576,7 @@ earley_create_grammar (void)
   grammar->debug_level = 0;
   grammar->lookahead_level = 1;
   grammar->one_parse_p = 1;
+  grammar->cost_p = 0;
   grammar->error_recovery_p = 1;
   grammar->recovery_token_matches = DEFAULT_RECOVERY_TOKEN_MATCHES;
   grammar->symbs_ptr = NULL;
