@@ -4,7 +4,7 @@
 # Script to test of allocation package (files `earley.h', `earley.c',
 #`sgramm.y').
 #
-#   Copyright (C) 1997-2002 Vladimir Makarov.
+#   Copyright (C) 1997-2005 Vladimir Makarov.
 #
 #   Written by Vladimir Makarov <vmakarov@users.sourceforge.net>
 #
@@ -5832,10 +5832,7 @@ int check_type (void);
 {L}({L}|{D})*		{ count(); return(check_type()); }
 
 0[xX]{H}+{IS}?		{ count(); return(CONSTANT); }
-0[xX]{H}+{IS}?		{ count(); return(CONSTANT); }
 0{D}+{IS}?		{ count(); return(CONSTANT); }
-0{D}+{IS}?		{ count(); return(CONSTANT); }
-{D}+{IS}?		{ count(); return(CONSTANT); }
 {D}+{IS}?		{ count(); return(CONSTANT); }
 '(\\.|[^\\'])+'		{ count(); return(CONSTANT); }
 
