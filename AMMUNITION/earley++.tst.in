@@ -1,0 +1,6753 @@
+#!/bin/sh
+# @configure_input@
+
+# Script to test of allocation package (files `earley.h', `earley.c',
+#`sgramm.y').
+
+#
+# Usage: earley.tst [start_test_number]
+#
+# The script outputs self-explanatory messages and returns zero exit code if 
+# it is all ok.
+#
+
+script_file=$0
+
+CC='@CC@'
+CC_options='@CFLAGS@ @DEFS@ -I. -I@srcdir@/'
+CXX='@CXX@'
+YACC='@YACC@'
+CXX_options='@CFLAGS@ @DEFS@ -I. -I@srcdir@/'
+source_earley=@srcdir@/earley.cpp
+source_addfiles1='@srcdir@/allocate.cpp @srcdir@/vlobject.cpp @srcdir@/hashtab.cpp @srcdir@/objstack.cpp @srcdir@/ticker.cpp'
+source_addfiles="$source_addfiles1 $source_earley"
+
+GCC=gcc
+LEX=@LEX@
+
+source_addfiles="$source_addfiles1 $source_earley"
+temp_file=_temp.out
+temp3_file=_temp3.out
+cmp=cmp
+
+sgramm=sgramm
+addfiles1='allocate.o vlobject.o hashtab.o objstack.o ticker.o'
+addfiles="$addfiles1 earley.o"
+test_file=tearley.cpp
+outfile=./a.out
+
+CTEST=__test.c
+TEST=__test
+
+if test x$1 = x
+then
+    start_test_number=1
+else
+    if expr $1 + 0 >/dev/null
+    then
+        start_test_number=`expr $1 + 0`
+    else
+        echo $script_file:invalid argument $1 2>&1
+        exit 1
+    fi
+fi
+
+# Compilation of addfiles
+
+echo '      ' $YACC $sgramm.y '&' mv y.tab.c $sgramm.c  
+if $YACC $sgramm.y && mv y.tab.c $sgramm.c; then
+        result=ok
+else
+        echo '***' $script_file: test is failed see file $test_file
+        exit 1
+fi
+
+echo '      ' $CXX $CXX_options -c $source_addfiles1
+if $CXX $CXX_options -c $source_addfiles1; then
+	result=ok
+else
+	echo '***' $script_file: test is failed see file $test_file
+        exit 1
+fi
+
+
+if test $start_test_number -le 5;then
+	echo '      ' $CXX $CXX_options -DEARLEY_TEST $source_earley $addfiles1 -o $outfile
+	if $CXX $CXX_options -DEARLEY_TEST -DEARLEY_DEBUG $source_earley $addfiles1 -o $outfile; then
+	      result=ok
+	else
+	      echo '***' $script_file: test is failed see file $test_file
+	      exit 1
+	fi
+fi
+
+# Test 1.
+if test $result = ok -a $start_test_number -le 1; then
+    echo test 1: No statistics
+    echo '      ' $outfile 1 1 0 "2>$temp_file"
+    if $outfile 1 1 0 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT1' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use description
+OUTPUT1
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 1a.
+if test $result = ok -a $start_test_number -le 1; then
+    echo test 1a: No statistics
+    echo '      ' $outfile 0 1 0 "2>$temp_file"
+    if $outfile 0 1 0 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT1a' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use functions
+OUTPUT1a
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 2.
+if test $result = ok -a $start_test_number -le 2; then
+    echo test 2: Static lookahead
+    echo '      ' $outfile 1 1 1 "2>$temp_file"
+    if $outfile 1 1 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT2' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use description
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 22
+       #terminal sets = 30, their size = 240
+       #unique set cores = 10, #their start situations = 25
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 10, their length = 25
+       #pairs(set core, symb) = 38, their trans+reduce vects length = 43
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT2
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 2a.
+if test $result = ok -a $start_test_number -le 2; then
+    echo test 2a: Static lookahead
+    echo '      ' $outfile 0 1 1 "2>$temp_file"
+    if $outfile 0 1 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT2a' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use functions
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 22
+       #terminal sets = 30, their size = 240
+       #unique set cores = 10, #their start situations = 25
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 10, their length = 25
+       #pairs(set core, symb) = 38, their trans+reduce vects length = 43
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT2a
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 3.
+if test $result = ok -a $start_test_number -le 3; then
+    echo test 3: No lookahead
+    echo '      ' $outfile 1 0 1 "2>$temp_file"
+    if $outfile 1 0 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT3' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use description
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 22
+       #terminal sets = 8, their size = 64
+       #unique set cores = 11, #their start situations = 42
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 11, their length = 42
+       #pairs(set core, symb) = 55, their trans+reduce vects length = 60
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 6, their length = 6
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT3
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 3a.
+if test $result = ok -a $start_test_number -le 3; then
+    echo test 3a: No lookahead
+    echo '      ' $outfile 0 0 1 "2>$temp_file"
+    if $outfile 0 0 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT3a' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use functions
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 22
+       #terminal sets = 8, their size = 64
+       #unique set cores = 11, #their start situations = 42
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 11, their length = 42
+       #pairs(set core, symb) = 55, their trans+reduce vects length = 60
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 6, their length = 6
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT3a
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 4.
+if test $result = ok -a $start_test_number -le 4; then
+    echo test 4: Dynamic lookahead
+    echo '      ' $outfile 1 2 1 "2>$temp_file"
+    if $outfile 1 2 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT4' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use description
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 45
+       #terminal sets = 71, their size = 568
+       #unique set cores = 13, #their start situations = 30
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 10, their length = 25
+       #pairs(set core, symb) = 48, their trans+reduce vects length = 54
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT4
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 4a.
+if test $result = ok -a $start_test_number -le 4; then
+    echo test 4a: Dynamic lookahead
+    echo '      ' $outfile 0 2 1 "2>$temp_file"
+    if $outfile 0 2 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT4a' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use functions
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 45
+       #terminal sets = 71, their size = 568
+       #unique set cores = 13, #their start situations = 30
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 10, their length = 25
+       #pairs(set core, symb) = 48, their trans+reduce vects length = 54
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT4a
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 5.
+if test $result = ok -a $start_test_number -le 5; then
+    echo test 5: Debugging level 2 -- printing translation.
+    echo '      ' $outfile 1 1 2 "2>$temp_file"
+    if $outfile 1 1 2 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT5' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use description
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ABSTRACT: plus ( 5 6 )
+      5: ABSTRACT: mult ( 7 8 )
+      7: TERMINAL: code=97, repr='a'
+      8: TERMINAL: code=97, repr='a'
+      6: TERMINAL: code=97, repr='a'
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 22
+       #terminal sets = 30, their size = 240
+       #unique set cores = 10, #their start situations = 25
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 10, their length = 25
+       #pairs(set core, symb) = 38, their trans+reduce vects length = 43
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT5
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 5a.
+if test $result = ok -a $start_test_number -le 5; then
+    echo test 5a: Debugging level 2 -- printing translation.
+    echo '      ' $outfile 0 1 2 "2>$temp_file"
+    if $outfile 0 1 2 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT5a' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use functions
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr=a
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr=a
+      4: ABSTRACT: plus ( 5 6 )
+      5: ABSTRACT: mult ( 7 8 )
+      7: TERMINAL: code=97, repr=a
+      8: TERMINAL: code=97, repr=a
+      6: TERMINAL: code=97, repr=a
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 22
+       #terminal sets = 30, their size = 240
+       #unique set cores = 10, #their start situations = 25
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 10, their length = 25
+       #pairs(set core, symb) = 38, their trans+reduce vects length = 43
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT5a
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+if test $result = ok;then
+  echo '      ' $CXX $CXX_options -c $source_earley
+  if $CXX $CXX_options -c $source_earley; then
+        result=ok
+  else
+        echo '***' $script_file: test is failed see file $test_file
+        exit 1
+  fi
+fi
+
+# Test 6.
+if test $result = ok -a $start_test_number -le 6; then
+        cat >$test_file <<'TEST6'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM;\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST6
+
+        echo test 6: Undefined or bad grammar.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT6' >$temp3_file && $cmp $temp_file $temp3_file; then
+earley::parse: undefined or bad grammar
+OUTPUT6
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 7.
+if test $result = ok -a $start_test_number -le 7; then
+        cat >$test_file <<'TEST7'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM;\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (0, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST7
+
+        echo test 7: Already defined grammar.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT7' >$temp3_file && $cmp $temp_file $temp3_file; then
+OUTPUT7
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+	        result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 8.
+if test $result = ok -a $start_test_number -le 8; then
+        cat >$test_file <<'TEST8'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM 1\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST8
+
+        echo test 8: Description syntax error.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT8' >$temp3_file && $cmp $temp_file $temp3_file; then
+description syntax error on ln 2
+OUTPUT8
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 9.
+if test $result = ok -a $start_test_number -le 9; then
+        cat >$test_file <<'TEST9'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM;\n"
+"error : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST9
+
+        echo test 9: error in the left side of the rule.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT9' >$temp3_file && $cmp $temp_file $temp3_file; then
+term `error' in the left hand side of rule
+OUTPUT9
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 10.
+if test $result = ok -a $start_test_number -le 10; then
+        cat >$test_file <<'TEST10'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM ident=11 ident=10;\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST10
+
+        echo test 10: Different codes for one terminal.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT10' >$temp3_file && $cmp $temp_file $temp3_file; then
+term ident described repeatedly with different code
+OUTPUT10
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 11.
+if test $result = ok -a $start_test_number -le 11; then
+        cat >$test_file <<'TEST11'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM ident=10 i=10;\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST11
+
+        echo test 11: the same code for terminals.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT11' >$temp3_file && $cmp $temp_file $temp3_file; then
+repeated code 10 in term `i'
+OUTPUT11
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 12.
+if test $result = ok -a $start_test_number -le 12; then
+        cat >$test_file <<'TEST12'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description = "TERM;\n";
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST12
+
+        echo test 12: no rules.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT12' >$temp3_file && $cmp $temp_file $temp3_file; then
+grammar does not contains rules
+OUTPUT12
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 13.
+if test $result = ok -a $start_test_number -le 13; then
+        cat >$test_file <<'TEST13'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description = "TERM ident; ident : ;\n";
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST13
+
+        echo test 13: term in the left hand side of rule.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT13' >$temp3_file && $cmp $temp_file $temp3_file; then
+term `ident' in the left hand side of rule
+OUTPUT13
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 14.
+if test $result = ok -a $start_test_number -le 14; then
+        cat >$test_file <<'TEST14'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM;\n"
+"E : T         # 1\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST14
+
+        echo test 14: incorrect translation number.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT14' >$temp3_file && $cmp $temp_file $temp3_file; then
+translation symbol number 1 in rule for `E' is out of range
+OUTPUT14
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 15.
+if test $result = ok -a $start_test_number -le 15; then
+        cat >$test_file <<'TEST15'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM;\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 0)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST15
+
+        echo test 15: repeated translation symbol number.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT15' >$temp3_file && $cmp $temp_file $temp3_file; then
+repeated translation symbol number 0 in rule for `E'
+OUTPUT15
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 16.
+if test $result = ok -a $start_test_number -le 16; then
+        cat >$test_file <<'TEST16'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 0)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST16
+
+        echo test 16: repeated translation symbol number.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT16' >$temp3_file && $cmp $temp_file $temp3_file; then
+repeated translation symbol number 0 in rule for `E'
+OUTPUT16
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 17.
+if test $result = ok -a $start_test_number -le 17; then
+        cat >$test_file <<'TEST17'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : 'a' E\n"
+"  | E '+'\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  e->set_one_parse_flag (0);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST17
+
+        echo test 17: No derivations.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT17' >$temp3_file && $cmp $temp_file $temp3_file; then
+nonterm `E' does not derive any term string
+OUTPUT17
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 18.
+if test $result = ok -a $start_test_number -le 18; then
+        cat >$test_file <<'TEST18'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"E : A O O\n"
+"  | E 'a'\n"
+"  | 'b'\n"
+"  |\n"
+"  ;\n"
+"\n"
+"A : O O N\n"
+"  ;\n"
+"\n"
+"N : O E E O\n"
+"  ;\n"
+"\n"
+"O :\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST18
+
+        echo test 18: grammar loops.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT18' >$temp3_file && $cmp $temp_file $temp3_file; then
+nonterm `E' can derive only itself (grammar with loops)
+OUTPUT18
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 19.
+if test $result = ok -a $start_test_number -le 19; then
+        cat >$test_file <<'TEST19'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+b)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"TERM;\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST19
+
+        echo test 19: invalid token code.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT19' >$temp3_file && $cmp $temp_file $temp3_file; then
+earley::parse: invalid token code 98
+OUTPUT19
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 20.
+if test $result = ok -a $start_test_number -le 20; then
+        cat >$test_file <<'TEST20'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+"G : 'a'       # 0\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST20
+
+        echo test 20: unaccessible nonterm.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT20' >$temp3_file && $cmp $temp_file $temp3_file; then
+nonterm `G' is not accessible from axiom
+OUTPUT20
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 21.
+if test $result = ok -a $start_test_number -le 21; then
+        cat >$test_file <<'TEST21'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input grammar
+   terminal. */
+static int nterm;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_terminal (int *code)
+{
+  nterm++;
+  switch (nterm)
+    {
+    case 1: *code = 'a'; return "a";
+    case 2: *code = '+'; return "+";
+    case 3: *code = '*'; return "*";
+    case 4: *code = '('; return "(";
+    case 5: *code = ')'; return ")";
+    case 6: *code = 'e'; return "error";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next rule grammar
+   terminal. */
+static int nrule;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_rule (const char ***rhs, const char **anode, int **transl)
+{
+  static const char *rhs_1 [] = {"T", NULL};
+  static int tr_1 [] = {0, -1};
+  static const char *rhs_2 [] = {"E", "+", "T", NULL};
+  static int tr_2 [] = {0, 2, -1};
+  static const char *rhs_3 [] = {"F", NULL};
+  static int tr_3 [] = {0, -1};
+  static const char *rhs_4 [] = {"T", "*", "F", NULL};
+  static int tr_4 [] = {0, 2, -1};
+  static const char *rhs_5 [] = {"a", NULL};
+  static int tr_5 [] = {0, -1};
+  static const char *rhs_6 [] = {"(", "E", ")", NULL};
+  static int tr_6 [] = {1, -1};
+
+  nrule++;
+  switch (nrule)
+    {
+    case 1: *rhs = rhs_1; *anode = NULL; *transl = tr_1; return "E";
+    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2; return "E";
+    case 3: *rhs = rhs_3; *anode = NULL; *transl = tr_3; return "T";
+    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4; return "T";
+    case 5: *rhs = rhs_5; *anode = NULL; *transl = tr_5; return "F";
+    case 6: *rhs = rhs_6; *anode = NULL; *transl = tr_6; return "F";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->read_grammar (1, read_terminal, read_rule) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST21
+
+        echo test 21: fixed name error.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT21' >$temp3_file && $cmp $temp_file $temp3_file; then
+do not use fixed name `error'
+OUTPUT21
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 22.
+if test $result = ok -a $start_test_number -le 22; then
+        cat >$test_file <<'TEST22'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input grammar
+   terminal. */
+static int nterm;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_terminal (int *code)
+{
+  nterm++;
+  switch (nterm)
+    {
+    case 1: *code = 'a'; return "a";
+    case 2: *code = '+'; return "+";
+    case 3: *code = '*'; return "*";
+    case 4: *code = '('; return "(";
+    case 5: *code = ')'; return ")";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next rule grammar
+   terminal. */
+static int nrule;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_rule (const char ***rhs, const char **anode, int **transl)
+{
+  static const char *rhs_1 [] = {"T", NULL};
+  static int tr_1 [] = {0, -1};
+  static const char *rhs_2 [] = {"E", "+", "T", NULL};
+  static int tr_2 [] = {0, 2, -1};
+  static const char *rhs_3 [] = {"F", NULL};
+  static int tr_3 [] = {0, -1};
+  static const char *rhs_4 [] = {"T", "*", "F", NULL};
+  static int tr_4 [] = {0, 2, -1};
+  static const char *rhs_5 [] = {"a", NULL};
+  static int tr_5 [] = {0, -1};
+  static const char *rhs_6 [] = {"(", "E", ")", NULL};
+  static int tr_6 [] = {1, -1};
+
+  nrule++;
+  switch (nrule)
+    {
+    case 1: *rhs = rhs_1; *anode = NULL; *transl = tr_1; return "$S";
+    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2; return "E";
+    case 3: *rhs = rhs_3; *anode = NULL; *transl = tr_3; return "T";
+    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4; return "T";
+    case 5: *rhs = rhs_5; *anode = NULL; *transl = tr_5; return "F";
+    case 6: *rhs = rhs_6; *anode = NULL; *transl = tr_6; return "F";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->read_grammar (1, read_terminal, read_rule) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST22
+
+        echo test 22: fixed name '$S'.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT22' >$temp3_file && $cmp $temp_file $temp3_file; then
+do not use fixed name `$S'
+OUTPUT22
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 23.
+if test $result = ok -a $start_test_number -le 23; then
+        cat >$test_file <<'TEST23'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input grammar
+   terminal. */
+static int nterm;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_terminal (int *code)
+{
+  nterm++;
+  switch (nterm)
+    {
+    case 1: *code = 'a'; return "a";
+    case 2: *code = '+'; return "+";
+    case 3: *code = '*'; return "*";
+    case 4: *code = '('; return "(";
+    case 5: *code = ')'; return ")";
+    case 6: *code = 'e'; return "$eof";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next rule grammar
+   terminal. */
+static int nrule;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_rule (const char ***rhs, const char **anode, int **transl)
+{
+  static const char *rhs_1 [] = {"T", NULL};
+  static int tr_1 [] = {0, -1};
+  static const char *rhs_2 [] = {"E", "+", "T", NULL};
+  static int tr_2 [] = {0, 2, -1};
+  static const char *rhs_3 [] = {"F", NULL};
+  static int tr_3 [] = {0, -1};
+  static const char *rhs_4 [] = {"T", "*", "F", NULL};
+  static int tr_4 [] = {0, 2, -1};
+  static const char *rhs_5 [] = {"a", NULL};
+  static int tr_5 [] = {0, -1};
+  static const char *rhs_6 [] = {"(", "E", ")", NULL};
+  static int tr_6 [] = {1, -1};
+
+  nrule++;
+  switch (nrule)
+    {
+    case 1: *rhs = rhs_1; *anode = NULL; *transl = tr_1; return "E";
+    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2; return "E";
+    case 3: *rhs = rhs_3; *anode = NULL; *transl = tr_3; return "T";
+    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4; return "T";
+    case 5: *rhs = rhs_5; *anode = NULL; *transl = tr_5; return "F";
+    case 6: *rhs = rhs_6; *anode = NULL; *transl = tr_6; return "F";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->read_grammar (1, read_terminal, read_rule) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST23
+
+        echo test 23: fixed name '$S'.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT23' >$temp3_file && $cmp $temp_file $temp3_file; then
+do not use fixed name `$eof'
+OUTPUT23
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 24.
+if test $result = ok -a $start_test_number -le 24; then
+        cat >$test_file <<'TEST24'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input grammar
+   terminal. */
+static int nterm;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_terminal (int *code)
+{
+  nterm++;
+  switch (nterm)
+    {
+    case 1: *code = 'a'; return "a";
+    case 2: *code = '+'; return "+";
+    case 3: *code = '*'; return "*";
+    case 4: *code = '('; return "(";
+    case 5: *code = ')'; return ")";
+    case 6: *code = 'a'; return "a";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next rule grammar
+   terminal. */
+static int nrule;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_rule (const char ***rhs, const char **anode, int **transl)
+{
+  static const char *rhs_1 [] = {"T", NULL};
+  static int tr_1 [] = {0, -1};
+  static const char *rhs_2 [] = {"E", "+", "T", NULL};
+  static int tr_2 [] = {0, 2, -1};
+  static const char *rhs_3 [] = {"F", NULL};
+  static int tr_3 [] = {0, -1};
+  static const char *rhs_4 [] = {"T", "*", "F", NULL};
+  static int tr_4 [] = {0, 2, -1};
+  static const char *rhs_5 [] = {"a", NULL};
+  static int tr_5 [] = {0, -1};
+  static const char *rhs_6 [] = {"(", "E", ")", NULL};
+  static int tr_6 [] = {1, -1};
+
+  nrule++;
+  switch (nrule)
+    {
+    case 1: *rhs = rhs_1; *anode = NULL; *transl = tr_1; return "E";
+    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2; return "E";
+    case 3: *rhs = rhs_3; *anode = NULL; *transl = tr_3; return "T";
+    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4; return "T";
+    case 5: *rhs = rhs_5; *anode = NULL; *transl = tr_5; return "F";
+    case 6: *rhs = rhs_6; *anode = NULL; *transl = tr_6; return "F";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->read_grammar (1, read_terminal, read_rule) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST24
+
+        echo test 24: repeated term declaration.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT24' >$temp3_file && $cmp $temp_file $temp3_file; then
+repeated declaration of term `a'
+OUTPUT24
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 25.
+if test $result = ok -a $start_test_number -le 25; then
+        cat >$test_file <<'TEST25'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input grammar
+   terminal. */
+static int nterm;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_terminal (int *code)
+{
+  nterm++;
+  switch (nterm)
+    {
+    case 1: *code = -2; return "a";
+    case 2: *code = '+'; return "+";
+    case 3: *code = '*'; return "*";
+    case 4: *code = '('; return "(";
+    case 5: *code = ')'; return ")";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next rule grammar
+   terminal. */
+static int nrule;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_rule (const char ***rhs, const char **anode, int **transl)
+{
+  static const char *rhs_1 [] = {"T", NULL};
+  static int tr_1 [] = {0, -1};
+  static const char *rhs_2 [] = {"E", "+", "T", NULL};
+  static int tr_2 [] = {0, 2, -1};
+  static const char *rhs_3 [] = {"F", NULL};
+  static int tr_3 [] = {0, -1};
+  static const char *rhs_4 [] = {"T", "*", "F", NULL};
+  static int tr_4 [] = {0, 2, -1};
+  static const char *rhs_5 [] = {"a", NULL};
+  static int tr_5 [] = {0, -1};
+  static const char *rhs_6 [] = {"(", "E", ")", NULL};
+  static int tr_6 [] = {1, -1};
+
+  nrule++;
+  switch (nrule)
+    {
+    case 1: *rhs = rhs_1; *anode = NULL; *transl = tr_1; return "E";
+    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2; return "E";
+    case 3: *rhs = rhs_3; *anode = NULL; *transl = tr_3; return "T";
+    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4; return "T";
+    case 5: *rhs = rhs_5; *anode = NULL; *transl = tr_5; return "F";
+    case 6: *rhs = rhs_6; *anode = NULL; *transl = tr_6; return "F";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->read_grammar (1, read_terminal, read_rule) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST25
+
+        echo test 25: negative code.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT25' >$temp3_file && $cmp $temp_file $temp3_file; then
+term `a' has negative code
+OUTPUT25
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 26.
+if test $result = ok -a $start_test_number -le 26; then
+        cat >$test_file <<'TEST26'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input grammar
+   terminal. */
+static int nterm;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_terminal (int *code)
+{
+  nterm++;
+  switch (nterm)
+    {
+    case 1: *code = 'a'; return "a";
+    case 2: *code = '+'; return "+";
+    case 3: *code = '*'; return "*";
+    case 4: *code = '('; return "(";
+    case 5: *code = ')'; return ")";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next rule grammar
+   terminal. */
+static int nrule;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+const char *
+read_rule (const char ***rhs, const char **anode, int **transl)
+{
+  static const char *rhs_1 [] = {"T", NULL};
+  static int tr_1 [] = {0, 0, -1};
+  static const char *rhs_2 [] = {"E", "+", "T", NULL};
+  static int tr_2 [] = {0, 2, -1};
+  static const char *rhs_3 [] = {"F", NULL};
+  static int tr_3 [] = {0, -1};
+  static const char *rhs_4 [] = {"T", "*", "F", NULL};
+  static int tr_4 [] = {0, 2, -1};
+  static const char *rhs_5 [] = {"a", NULL};
+  static int tr_5 [] = {0, -1};
+  static const char *rhs_6 [] = {"(", "E", ")", NULL};
+  static int tr_6 [] = {1, -1};
+
+  nrule++;
+  switch (nrule)
+    {
+    case 1: *rhs = rhs_1; *anode = NULL; *transl = tr_1; return "E";
+    case 2: *rhs = rhs_2; *anode = "plus"; *transl = tr_2; return "E";
+    case 3: *rhs = rhs_3; *anode = NULL; *transl = tr_3; return "T";
+    case 4: *rhs = rhs_4; *anode = "mult"; *transl = tr_4; return "T";
+    case 5: *rhs = rhs_5; *anode = NULL; *transl = tr_5; return "F";
+    case 6: *rhs = rhs_6; *anode = NULL; *transl = tr_6; return "F";
+    default: return NULL;
+    }
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->read_grammar (1, read_terminal, read_rule) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST26
+
+        echo test 26: incorrect translation.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        result=fail
+	    else
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT26' >$temp3_file && $cmp $temp_file $temp3_file; then
+rule for `E' has incorrect translation
+OUTPUT26
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 27.
+if test $result = ok -a $start_test_number -le 27; then
+        cat >$test_file <<'TEST27'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main ()
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST27
+
+        echo test 27: error recovery.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 0 "2>$temp_file"
+	    if $outfile 1 0 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT27' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 10 tokens starting with token = 0
+OUTPUT27
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 28.
+if test $result = ok -a $start_test_number -le 28; then
+        cat >$test_file <<'TEST28'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  | '(' error ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (1);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST28
+
+        echo test 28: more error recovery.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT28' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 11, #unique situations = 25
+       #terminal sets = 33, their size = 264
+       #unique set cores = 11, #their start situations = 20
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 18
+       #pairs(set core, symb) = 33, their trans+reduce vects length = 42
+       #unique transition vectors = 9, their length = 13
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 2, #abstract nodes = 2
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT28
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+	    if test $result = ok; then
+		echo '      ' $outfile 0 2 "2>$temp_file"
+		if $outfile 0 2 2>$temp_file; then
+		    echo '      ' $cmp $temp_file $temp3_file
+		    if cat <<'OUTPUT28-1' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 11, #unique situations = 26
+       #terminal sets = 8, their size = 64
+       #unique set cores = 11, #their start situations = 33
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 31
+       #pairs(set core, symb) = 46, their trans+reduce vects length = 55
+       #unique transition vectors = 11, their length = 15
+       #unique reduce vectors = 6, their length = 6
+       #term nodes = 2, #abstract nodes = 2
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT28-1
+			    result=ok
+		    else
+			    result=fail
+		    fi
+		else
+		    result=fail
+		fi
+	   fi
+	   if test $result = ok; then
+		echo '      ' $outfile 2 2 "2>$temp_file"
+		if $outfile 2 2 2>$temp_file; then
+		    echo '      ' $cmp $temp_file $temp3_file
+		    if cat <<'OUTPUT28-2' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 11, #unique situations = 48
+       #terminal sets = 73, their size = 584
+       #unique set cores = 12, #their start situations = 23
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 18
+       #pairs(set core, symb) = 36, their trans+reduce vects length = 45
+       #unique transition vectors = 9, their length = 13
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 2, #abstract nodes = 2
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT28-2
+			    result=ok
+		    else
+			    result=fail
+		    fi
+		else
+		    result=fail
+		fi
+	   fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 29.
+if test $result = ok -a $start_test_number -le 29; then
+        cat >$test_file <<'TEST29'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  | '(' error ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (1);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST29
+
+        echo test 29: more error recovery.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT29' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 5:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 11, #unique situations = 25
+       #terminal sets = 33, their size = 264
+       #unique set cores = 10, #their start situations = 19
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 7, their length = 16
+       #pairs(set core, symb) = 28, their trans+reduce vects length = 34
+       #unique transition vectors = 9, their length = 13
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 2, #abstract nodes = 2
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT29
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+	    if test $result = ok; then
+		echo '      ' $outfile 0 2 "2>$temp_file"
+		if $outfile 0 2 2>$temp_file; then
+		    echo '      ' $cmp $temp_file $temp3_file
+		    if cat <<'OUTPUT29-1' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 5:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 11, #unique situations = 25
+       #terminal sets = 8, their size = 64
+       #unique set cores = 10, #their start situations = 27
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 8, their length = 25
+       #pairs(set core, symb) = 40, their trans+reduce vects length = 49
+       #unique transition vectors = 11, their length = 15
+       #unique reduce vectors = 6, their length = 6
+       #term nodes = 2, #abstract nodes = 2
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT29-1
+			    result=ok
+		    else
+			    result=fail
+		    fi
+		else
+		    result=fail
+		fi
+	   fi
+	   if test $result = ok; then
+		echo '      ' $outfile 2 2 "2>$temp_file"
+		if $outfile 2 2 2>$temp_file; then
+		    echo '      ' $cmp $temp_file $temp3_file
+		    if cat <<'OUTPUT29-2' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 5:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 11, #unique situations = 34
+       #terminal sets = 55, their size = 440
+       #unique set cores = 10, #their start situations = 19
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 7, their length = 16
+       #pairs(set core, symb) = 28, their trans+reduce vects length = 34
+       #unique transition vectors = 9, their length = 13
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 2, #abstract nodes = 2
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT29-2
+			    result=ok
+		    else
+			    result=fail
+		    fi
+		else
+		    result=fail
+		fi
+	   fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 30.
+if test $result = ok -a $start_test_number -le 30; then
+        cat >$test_file <<'TEST30'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : E '+' E   # plus (0 2)\n"
+"  | E '*' E   # mult (0 2)\n"
+"  | 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (1);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (!ambiguous_p)
+    {
+      fprintf (stderr, "It should be ambigous grammar\n");
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST30
+
+        echo test 30: ambigous grammar.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT30' >$temp3_file && $cmp $temp_file $temp3_file; then
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ABSTRACT: plus ( 5 6 )
+      5: ABSTRACT: mult ( 7 8 )
+      7: TERMINAL: code=97, repr='a'
+      8: TERMINAL: code=97, repr='a'
+      6: TERMINAL: code=97, repr='a'
+
+AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 6, rules size = 20
+Input: #tokens = 12, #unique situations = 18
+       #terminal sets = 22, their size = 176
+       #unique set cores = 13, #their start situations = 32
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 23
+       #pairs(set core, symb) = 32, their trans+reduce vects length = 56
+       #unique transition vectors = 8, their length = 16
+       #unique reduce vectors = 4, their length = 11
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT30
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 31.
+if test $result = ok -a $start_test_number -le 31; then
+        cat >$test_file <<'TEST31'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : E '+' E   # plus (0 2)\n"
+"  | E '*' E   # mult (0 2)\n"
+"  | 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (0);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (!ambiguous_p)
+    {
+      fprintf (stderr, "It should be ambigous grammar\n");
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST31
+
+        echo test 31: more ambigous grammar.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT31' >$temp3_file && $cmp $temp_file $temp3_file; then
+Translation:
+      0: ALTERNATIVE: node=1, next=2
+      1: ABSTRACT: mult ( 3 4 )
+      3: ABSTRACT: plus ( 5 6 )
+      5: TERMINAL: code=97, repr='a'
+      6: TERMINAL: code=97, repr='a'
+      4: ALTERNATIVE: node=7, next=8
+      7: ABSTRACT: mult ( 9 10 )
+      9: TERMINAL: code=97, repr='a'
+     10: ABSTRACT: plus ( 11 12 )
+     11: TERMINAL: code=97, repr='a'
+     12: TERMINAL: code=97, repr='a'
+      8: ALTERNATIVE: node=13, next=nil
+     13: ABSTRACT: plus ( 14 12 )
+     14: ABSTRACT: mult ( 9 11 )
+      2: ALTERNATIVE: node=15, next=nil
+     15: ABSTRACT: plus ( 5 16 )
+     16: ABSTRACT: mult ( 6 17 )
+     17: ALTERNATIVE: node=7, next=18
+     18: ALTERNATIVE: node=13, next=nil
+
+AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 6, rules size = 20
+Input: #tokens = 12, #unique situations = 18
+       #terminal sets = 22, their size = 176
+       #unique set cores = 13, #their start situations = 32
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 23
+       #pairs(set core, symb) = 32, their trans+reduce vects length = 56
+       #unique transition vectors = 8, their length = 16
+       #unique reduce vectors = 4, their length = 11
+       #term nodes = 5, #abstract nodes = 8
+       #alternative nodes = 6, #all nodes = 19
+OUTPUT31
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 32.
+if test $result = ok -a $start_test_number -le 32; then
+        cat >$test_file <<'TEST32'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(*a+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : E '+' E   # plus (0 2)\n"
+"  | E '*' E   # mult (0 2)\n"
+"  | 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  | '(' error ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (1);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (!ambiguous_p)
+    {
+      fprintf (stderr, "It should be ambigous grammar\n");
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST32
+
+        echo test 32: ambigous grammar with error recovery.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT32' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 5:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: mult ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ERROR
+
+AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 7, rules size = 24
+Input: #tokens = 11, #unique situations = 21
+       #terminal sets = 25, their size = 200
+       #unique set cores = 10, #their start situations = 20
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 8, their length = 18
+       #pairs(set core, symb) = 20, their trans+reduce vects length = 35
+       #unique transition vectors = 9, their length = 18
+       #unique reduce vectors = 3, their length = 7
+       #term nodes = 2, #abstract nodes = 2
+       #alternative nodes = 0, #all nodes = 4
+OUTPUT32
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 33.
+if test $result = ok -a $start_test_number -le 33; then
+        cat >$test_file <<'TEST33'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : E '+' E   # plus (0 2)\n"
+"  | E '*' E   # mult (0 2)\n"
+"  | 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (0);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (ambiguous_p)
+    {
+      fprintf (stderr, "It is ambiguous grammar but we should not figure out it\n");
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST33
+
+        echo test 33: more ambigous grammar with error recovery.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT33' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 10 tokens starting with token = 0
+Translation:
+      0: EMPTY
+
+Grammar: #terms = 7, #nonterms = 2, #rules = 6, rules size = 20
+Input: #tokens = 11, #unique situations = 17
+       #terminal sets = 21, their size = 168
+       #unique set cores = 10, #their start situations = 16
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 7, their length = 12
+       #pairs(set core, symb) = 21, their trans+reduce vects length = 32
+       #unique transition vectors = 8, their length = 16
+       #unique reduce vectors = 2, their length = 3
+       #term nodes = 0, #abstract nodes = 0
+       #alternative nodes = 0, #all nodes = 0
+OUTPUT33
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 34.
+if test $result = ok -a $start_test_number -le 34; then
+        cat >$test_file <<'TEST34'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : E '+' E   # plus (0 2)\n"
+"  | E '*' E   # mult (0 2)\n"
+"  | 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  | '(' error ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (0);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (!ambiguous_p)
+    {
+      fprintf (stderr, "It should be ambigous grammar\n");
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST34
+
+        echo test 34: more ambigous grammar with error recovery.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT34' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 4 tokens starting with token = 5
+Translation:
+      0: ALTERNATIVE: node=1, next=2
+      1: ABSTRACT: mult ( 3 4 )
+      3: ABSTRACT: plus ( 5 6 )
+      5: TERMINAL: code=97, repr='a'
+      6: TERMINAL: code=97, repr='a'
+      4: ERROR
+      2: ALTERNATIVE: node=7, next=nil
+      7: ABSTRACT: plus ( 5 8 )
+      8: ABSTRACT: mult ( 6 4 )
+
+AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 7, rules size = 24
+Input: #tokens = 11, #unique situations = 22
+       #terminal sets = 26, their size = 208
+       #unique set cores = 12, #their start situations = 23
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 18
+       #pairs(set core, symb) = 25, their trans+reduce vects length = 43
+       #unique transition vectors = 9, their length = 18
+       #unique reduce vectors = 3, their length = 7
+       #term nodes = 2, #abstract nodes = 4
+       #alternative nodes = 2, #all nodes = 8
+OUTPUT34
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 35.
+if test $result = ok -a $start_test_number -le 35; then
+        cat >$test_file <<'TEST35'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*+a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST35
+
+        echo test 35: error without error recovery.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 0 "2>$temp_file"
+	    if $outfile 1 2 0 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT35' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 11, #unique situations = 18
+       #terminal sets = 26, their size = 208
+       #unique set cores = 7, #their start situations = 12
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 6, their length = 11
+       #pairs(set core, symb) = 25, their trans+reduce vects length = 30
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 3, their length = 3
+       #term nodes = 0, #abstract nodes = 0
+       #alternative nodes = 0, #all nodes = 0
+OUTPUT35
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 36.
+if test $result = ok -a $start_test_number -le 36; then
+        cat >$test_file <<'TEST36'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*)+(*a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  | '(' error ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST36
+
+        echo test 36: error recovery with 2 errors.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT36' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 2 tokens starting with token = 5
+Syntax error on token 10:ignore 2 tokens starting with token = 10
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: ABSTRACT: plus ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ABSTRACT: mult ( 5 2 )
+      5: TERMINAL: code=97, repr='a'
+      2: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 14, #unique situations = 25
+       #terminal sets = 33, their size = 264
+       #unique set cores = 13, #their start situations = 25
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 11, their length = 23
+       #pairs(set core, symb) = 38, their trans+reduce vects length = 47
+       #unique transition vectors = 10, their length = 14
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 2, #abstract nodes = 3
+       #alternative nodes = 0, #all nodes = 5
+OUTPUT36
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 37.
+if test $result = ok -a $start_test_number -le 37; then
+        cat >$test_file <<'TEST37'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*)+(*a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"  ;\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"  ;\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  | '(' error ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+
+  e->set_recovery_match (4);
+
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST37
+
+        echo test 37: more error recovery with 2 errors.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT37' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: ABSTRACT: plus ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ABSTRACT: mult ( 5 2 )
+      5: TERMINAL: code=97, repr='a'
+      2: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 14, #unique situations = 25
+       #terminal sets = 33, their size = 264
+       #unique set cores = 13, #their start situations = 25
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 11, their length = 23
+       #pairs(set core, symb) = 38, their trans+reduce vects length = 47
+       #unique transition vectors = 10, their length = 14
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 2, #abstract nodes = 3
+       #alternative nodes = 0, #all nodes = 5
+OUTPUT37
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 38.
+if test $result = ok -a $start_test_number -le 38; then
+        cat >$test_file <<'TEST38'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+a*(a*)+(*a)";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : T         # 0\n"
+"  | E '+' T   # plus (0 2)\n"
+"T : F         # 0\n"
+"  | T '*' F   # mult (0 2)\n"
+"F : 'a'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  | '(' error ')' # 1\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+
+  e->set_recovery_match (4);
+
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST38
+
+        echo test 38: more error recovery with 2 errors, another descr syntax.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT38' >$temp3_file && $cmp $temp_file $temp3_file; then
+Syntax error on token 7:ignore 4 tokens starting with token = 5
+Translation:
+      0: ABSTRACT: plus ( 1 2 )
+      1: ABSTRACT: plus ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ABSTRACT: mult ( 5 2 )
+      5: TERMINAL: code=97, repr='a'
+      2: ERROR
+
+Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
+Input: #tokens = 14, #unique situations = 25
+       #terminal sets = 33, their size = 264
+       #unique set cores = 13, #their start situations = 25
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 11, their length = 23
+       #pairs(set core, symb) = 38, their trans+reduce vects length = 47
+       #unique transition vectors = 10, their length = 14
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 2, #abstract nodes = 3
+       #alternative nodes = 0, #all nodes = 5
+OUTPUT38
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 39.
+if test $result = ok -a $start_test_number -le 39; then
+        cat >$test_file <<'TEST39'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+b*c+d";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : E '+' E   # plus (0 2)\n"
+"  | E '*' E   # mult (0 2)\n"
+"  | 'a'       # 0\n"
+"  | 'b'       # 0\n"
+"  | 'c'       # 0\n"
+"  | 'd'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (0);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (!ambiguous_p)
+    {
+      fprintf (stderr, "It should be ambigous grammar\n");
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST39
+
+        echo test 39: more ambigous grammar.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT39' >$temp3_file && $cmp $temp_file $temp3_file; then
+Translation:
+      0: ALTERNATIVE: node=1, next=2
+      1: ABSTRACT: plus ( 3 4 )
+      3: ALTERNATIVE: node=5, next=6
+      5: ABSTRACT: mult ( 7 8 )
+      7: ABSTRACT: plus ( 9 10 )
+      9: TERMINAL: code=97, repr='a'
+     10: TERMINAL: code=98, repr='b'
+      8: TERMINAL: code=99, repr='c'
+      6: ALTERNATIVE: node=11, next=nil
+     11: ABSTRACT: plus ( 9 12 )
+     12: ABSTRACT: mult ( 10 8 )
+      4: TERMINAL: code=100, repr='d'
+      2: ALTERNATIVE: node=13, next=14
+     13: ABSTRACT: mult ( 7 15 )
+     15: ABSTRACT: plus ( 8 4 )
+     14: ALTERNATIVE: node=16, next=nil
+     16: ABSTRACT: plus ( 9 17 )
+     17: ALTERNATIVE: node=18, next=19
+     18: ABSTRACT: mult ( 10 15 )
+     19: ALTERNATIVE: node=20, next=nil
+     20: ABSTRACT: plus ( 12 4 )
+
+AMBIGUOUS Grammar: #terms = 10, #nonterms = 2, #rules = 9, rules size = 26
+Input: #tokens = 8, #unique situations = 21
+       #terminal sets = 25, their size = 200
+       #unique set cores = 9, #their start situations = 29
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 29
+       #pairs(set core, symb) = 34, their trans+reduce vects length = 57
+       #unique transition vectors = 14, their length = 28
+       #unique reduce vectors = 4, their length = 13
+       #term nodes = 4, #abstract nodes = 9
+       #alternative nodes = 7, #all nodes = 20
+OUTPUT39
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 40.
+if test $result = ok -a $start_test_number -le 40; then
+        cat >$test_file <<'TEST40'
+#include <stdlib.h>
+#include "objstack.h"
+#include "earley.h"
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d:ignore %d tokens starting with token = %d\n",
+       err_tok_num, start_recovered_tok_num - start_ignored_tok_num,
+       start_ignored_tok_num);
+}
+
+/* The following variable is the current number of next input
+   token. */
+static int ntok;
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  const char input [] ="a+b*c+a";
+
+  ntok++;
+  *attr = NULL;
+  if (ntok < sizeof (input))
+    return input [ntok - 1];
+  else
+    return -1;
+}
+
+static const char *description =
+"\n"
+"E : E '+' E   # plus (0 2)\n"
+"  | E '*' E   # mult (0 2)\n"
+"  | 'a'       # 0\n"
+"  | 'b'       # 0\n"
+"  | 'c'       # 0\n"
+"  | 'd'       # 0\n"
+"  | '(' E ')' # 1\n"
+"  ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  earley *e;
+  struct earley_tree_node *root;
+  int ambiguous_p;
+
+  mem_os = new os (0);
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  ntok = 0;
+  e->set_one_parse_flag (0);
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (!ambiguous_p)
+    {
+      fprintf (stderr, "It should be ambigous grammar\n");
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  delete mem_os;
+  exit (0);
+}
+TEST40
+
+        echo test 40: more ambigous grammar.
+        echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
+        if $CXX $CXX_options $test_file $addfiles -o $outfile; then
+	    echo '      ' $outfile 1 2 "2>$temp_file"
+	    if $outfile 1 2 2>$temp_file; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT40' >$temp3_file && $cmp $temp_file $temp3_file; then
+Translation:
+      0: ALTERNATIVE: node=1, next=2
+      1: ABSTRACT: plus ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ALTERNATIVE: node=5, next=6
+      5: ABSTRACT: mult ( 7 8 )
+      7: TERMINAL: code=98, repr='b'
+      8: ABSTRACT: plus ( 9 10 )
+      9: TERMINAL: code=99, repr='c'
+     10: TERMINAL: code=97, repr='a'
+      6: ALTERNATIVE: node=11, next=nil
+     11: ABSTRACT: plus ( 12 10 )
+     12: ABSTRACT: mult ( 7 9 )
+      2: ALTERNATIVE: node=13, next=14
+     13: ABSTRACT: mult ( 15 8 )
+     15: ABSTRACT: plus ( 3 7 )
+     14: ALTERNATIVE: node=16, next=nil
+     16: ABSTRACT: plus ( 17 10 )
+     17: ALTERNATIVE: node=18, next=19
+     18: ABSTRACT: mult ( 15 9 )
+     19: ALTERNATIVE: node=20, next=nil
+     20: ABSTRACT: plus ( 3 12 )
+
+AMBIGUOUS Grammar: #terms = 10, #nonterms = 2, #rules = 9, rules size = 26
+Input: #tokens = 8, #unique situations = 20
+       #terminal sets = 24, their size = 192
+       #unique set cores = 9, #their start situations = 29
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 9, their length = 29
+       #pairs(set core, symb) = 34, their trans+reduce vects length = 57
+       #unique transition vectors = 14, their length = 28
+       #unique reduce vectors = 4, their length = 13
+       #term nodes = 4, #abstract nodes = 9
+       #alternative nodes = 7, #all nodes = 20
+OUTPUT40
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Test 41.
+if test $result = ok -a $start_test_number -le 41; then
+    echo test 41: very big test: ANSI C grammar and big C program.
+    result=ok
+    cat >ansic.h <<'EOF'
+#define IDENTIFIER 1000
+#define SIGNED     2000
+#define CONST      3000
+#define INLINE     4000
+#define AUTO       5000
+#define BREAK      6000
+#define CASE       7000
+#define CHAR       8000
+#define CONTINUE   9000
+#define DEFAULT    1001
+#define DO	   2001
+#define DOUBLE	   3001
+#define ELSE	   4001
+#define ENUM	   5001
+#define EXTERN	   6001
+#define FLOAT	   7001
+#define FOR	   8001
+#define GOTO	   9001
+#define IF         1002
+#define INT	   2002
+#define LONG	   3002
+#define REGISTER   4002
+#define RETURN	   5002
+#define SHORT	   6002
+#define SIZEOF	   7002
+#define STATIC	   8002
+#define STRUCT	   9002
+#define SWITCH     1003
+#define TYPEDEF	   2003
+#define UNION	   3003
+#define UNSIGNED   4003
+#define VOID	   5003
+#define VOLATILE   6003
+#define WHILE	   7003
+#define CONSTANT   8003
+#define STRING_LITERAL 9003
+#define RIGHT_ASSIGN  1004
+#define LEFT_ASSIGN   2004
+#define ADD_ASSIGN    3004
+#define SUB_ASSIGN    4004
+#define MUL_ASSIGN    5004
+#define DIV_ASSIGN    6004
+#define MOD_ASSIGN    7004
+#define AND_ASSIGN    8004
+#define XOR_ASSIGN    9004
+#define OR_ASSIGN     1005
+#define RIGHT_OP      2005
+#define LEFT_OP	      3005
+#define INC_OP	      4005
+#define DEC_OP	      5005
+#define PTR_OP	      6005
+#define AND_OP	      7005
+#define OR_OP	      8005
+#define LE_OP	      9005
+#define GE_OP         1006
+#define EQ_OP	      2006
+#define NE_OP	      3006
+#define ELIPSIS	      4006
+#define RESTRICT      5006
+#define _BOOL         6006
+#define _COMPLEX      7006
+#define _IMAGINARY    8006
+		   
+struct lex {	   
+  short code;	   
+  short column;	   
+  int line;	   
+  const char *id;
+  struct lex *next;
+};
+
+extern int column;
+extern int line;
+
+extern int yylex (void);
+extern char *get_yytext (void);
+EOF
+    cat >ansic.l <<'EOF'
+D			[0-9]
+L			[a-zA-Z_]
+H			[a-fA-F0-9]
+E			[Ee][+-]?{D}+
+FS			(f|F|l|L)
+IS			(u|U|l|L)*
+
+%{
+#include <stdio.h>
+#include "ansic.h"
+
+#ifdef ECHO
+#undef ECHO
+#endif
+
+#define ECHO
+
+#ifdef __cplusplus
+static int yyinput();
+#define input yyinput
+#endif
+int yywrap ();
+int comment (void);
+void count (void);
+int check_type (void);
+
+%}
+
+%%
+"/*"			{ comment(); }
+
+"__signed__"          	{ count(); return(SIGNED); }
+"__signed"          	{ count(); return(SIGNED); }
+"__const"        	{ count(); return(CONST); }
+"__const__"        	{ count(); return(CONST); }
+"__inline"        	{ count(); return(INLINE); }
+"__inline__"        	{ count(); return(INLINE); }
+
+"auto"			{ count(); return(AUTO); }
+"break"			{ count(); return(BREAK); }
+"case"			{ count(); return(CASE); }
+"char"			{ count(); return(CHAR); }
+"const"			{ count(); return(CONST); }
+"continue"		{ count(); return(CONTINUE); }
+"default"		{ count(); return(DEFAULT); }
+"do"			{ count(); return(DO); }
+"double"		{ count(); return(DOUBLE); }
+"else"			{ count(); return(ELSE); }
+"enum"			{ count(); return(ENUM); }
+"extern"		{ count(); return(EXTERN); }
+"float"			{ count(); return(FLOAT); }
+"for"			{ count(); return(FOR); }
+"goto"			{ count(); return(GOTO); }
+"if"			{ count(); return(IF); }
+"int"			{ count(); return(INT); }
+"long"			{ count(); return(LONG); }
+"register"		{ count(); return(REGISTER); }
+"return"		{ count(); return(RETURN); }
+"short"			{ count(); return(SHORT); }
+"signed"		{ count(); return(SIGNED); }
+"sizeof"		{ count(); return(SIZEOF); }
+"static"		{ count(); return(STATIC); }
+"struct"		{ count(); return(STRUCT); }
+"switch"		{ count(); return(SWITCH); }
+"typedef"		{ count(); return(TYPEDEF); }
+"union"			{ count(); return(UNION); }
+"unsigned"		{ count(); return(UNSIGNED); }
+"void"			{ count(); return(VOID); }
+"volatile"		{ count(); return(VOLATILE); }
+"while"			{ count(); return(WHILE); }
+
+{L}({L}|{D})*		{ count(); return(check_type()); }
+
+0[xX]{H}+{IS}?		{ count(); return(CONSTANT); }
+0[xX]{H}+{IS}?		{ count(); return(CONSTANT); }
+0{D}+{IS}?		{ count(); return(CONSTANT); }
+0{D}+{IS}?		{ count(); return(CONSTANT); }
+{D}+{IS}?		{ count(); return(CONSTANT); }
+{D}+{IS}?		{ count(); return(CONSTANT); }
+'(\\.|[^\\'])+'		{ count(); return(CONSTANT); }
+
+{D}+{E}{FS}?		{ count(); return(CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	{ count(); return(CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
+
+\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
+
+">>="			{ count(); return(RIGHT_ASSIGN); }
+"<<="			{ count(); return(LEFT_ASSIGN); }
+"+="			{ count(); return(ADD_ASSIGN); }
+"-="			{ count(); return(SUB_ASSIGN); }
+"*="			{ count(); return(MUL_ASSIGN); }
+"/="			{ count(); return(DIV_ASSIGN); }
+"%="			{ count(); return(MOD_ASSIGN); }
+"&="			{ count(); return(AND_ASSIGN); }
+"^="			{ count(); return(XOR_ASSIGN); }
+"|="			{ count(); return(OR_ASSIGN); }
+">>"			{ count(); return(RIGHT_OP); }
+"<<"			{ count(); return(LEFT_OP); }
+"++"			{ count(); return(INC_OP); }
+"--"			{ count(); return(DEC_OP); }
+"->"			{ count(); return(PTR_OP); }
+"&&"			{ count(); return(AND_OP); }
+"||"			{ count(); return(OR_OP); }
+"<="			{ count(); return(LE_OP); }
+">="			{ count(); return(GE_OP); }
+"=="			{ count(); return(EQ_OP); }
+"!="			{ count(); return(NE_OP); }
+";"			{ count(); return(';'); }
+"{"			{ count(); return('{'); }
+"}"			{ count(); return('}'); }
+","			{ count(); return(','); }
+":"			{ count(); return(':'); }
+"="			{ count(); return('='); }
+"("			{ count(); return('('); }
+")"			{ count(); return(')'); }
+"["			{ count(); return('['); }
+"]"			{ count(); return(']'); }
+"..."			{ count(); return(ELIPSIS); }
+"."			{ count(); return('.'); }
+"&"			{ count(); return('&'); }
+"!"			{ count(); return('!'); }
+"~"			{ count(); return('~'); }
+"-"			{ count(); return('-'); }
+"+"			{ count(); return('+'); }
+"*"			{ count(); return('*'); }
+"/"			{ count(); return('/'); }
+"%"			{ count(); return('%'); }
+"<"			{ count(); return('<'); }
+">"			{ count(); return('>'); }
+"^"			{ count(); return('^'); }
+"|"			{ count(); return('|'); }
+"?"			{ count(); return('?'); }
+
+[ \t\v\n\f]		{ count(); }
+.			{ /* ignore bad characters */ }
+
+%%
+
+char *
+get_yytext (void)
+{
+  return yytext;
+}
+
+int
+yywrap()
+{
+	return(1);
+}
+
+int
+comment(void)
+{
+	char c, c1;
+
+loop:
+	while ((c = input()) != '*' && c != 0)
+		/*putchar(c)*/;
+
+	if ((c1 = input()) != '/' && c != 0)
+	{
+		unput(c1);
+		goto loop;
+	}
+
+	if (c != 0)
+		/*putchar(c1)*/;
+}
+
+void
+count(void)
+{
+	int i;
+
+	for (i = 0; yytext[i] != '\0'; i++)
+		if (yytext[i] == '\n')
+                  {
+	            column = 0;
+                    line++;
+                  }
+		else if (yytext[i] == '\t')
+			column += 8 - (column % 8);
+		else
+			column++;
+
+	ECHO;
+}
+
+int
+check_type (void)
+{
+/*
+* pseudo code --- this is what it should check
+*
+*	if (yytext == type_name)
+*		return(TYPE_NAME);
+*
+*	return(IDENTIFIER);
+*/
+
+/*
+*	it actually will only return IDENTIFIER
+*/
+
+	return(IDENTIFIER);
+}
+EOF
+
+    echo Now test file preparation
+
+    # For removing gcc dialect features.
+    echo "#define __attribute__(v)" >$CTEST
+    echo "#define __extension__" >>$CTEST
+#   cat @srcdir@/IEEE.c >>$CTEST
+#   $GCC -I@srcdir@ -I. -I@srcdir@/../AMMUNITION -U__GNUC__ -E -P $CTEST | sed 's/^#pragma.*$//' | sed 's/^#ident.*$//' >$TEST
+
+    cat ./IEEE.c >>$CTEST
+    $GCC -I. -I. -I./../AMMUNITION -U__GNUC__ -E -P $CTEST | sed 's/^#pragma.*$//' | sed 's/^#ident.*$//' >$TEST
+
+    # Scanner Generation
+    if $LEX -t ansic.l >ansic.c; then
+	echo Scanner generation
+    else
+	echo Failure in scanner generation
+        result=fail
+    fi
+
+        cat >$test_file <<'TEST41'
+#include <limits.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include "objstack.h"
+#include "hashtab.h"
+#include "ticker.h"
+
+#include "earley.h"
+
+extern "C" {
+#include "ansic.h"
+}
+
+static os_t *lexs;
+static struct lex *list;
+static struct lex *curr = NULL;
+
+int column = 0;
+int line = 1;
+
+static hash_table_t table;
+
+static unsigned
+hash (hash_table_entry_t el)
+{
+  const char *id = (char *) el;
+  unsigned result, i;
+
+  for (result = i = 0;*id++ != '\0'; i++)
+    result += ((unsigned char) *id << (i % CHAR_BIT));
+  return result;
+}
+
+static int
+eq (hash_table_entry_t el1, hash_table_entry_t el2)
+{
+  return strcmp ((char *) el1, (char *) el2) == 0;
+}
+
+static void
+initiate_typedefs (void)
+{
+  table = new hash_table (50000, hash, eq);
+}
+
+/* Now we ignore level */
+static
+void add_typedef (const char *id, int level)
+{
+  hash_table_entry_t *entry_ptr;
+
+  assert (level == 0);
+  entry_ptr = table->find_entry (id, 1);
+  if (*entry_ptr == NULL)
+    *entry_ptr = (hash_table_entry_t) id;
+  else
+    assert (strcmp (id, (char *) *entry_ptr) == 0);
+#ifdef DEBUG
+  fprintf (stderr, "add typedef %s\n", id);
+#endif
+}
+
+#ifdef __GNUC__
+inline
+#endif
+static
+int find_typedef (const char *id, int level)
+{
+  hash_table_entry_t *entry_ptr;
+
+  entry_ptr = table->find_entry (id, 0);
+#ifdef DEBUG
+  if (*entry_ptr != NULL)
+    fprintf (stderr, "found typedef %s\n", id);
+#endif
+  return *entry_ptr != NULL;
+}
+
+int
+get_lex (void)
+{
+  if (curr == NULL)
+    curr = list;
+  else
+    curr = curr->next;
+  if (curr == NULL)
+    return 0;
+  line = curr->line;
+  column = curr->column;
+  if (curr->code == IDENTIFIER)
+    return IDENTIFIER;
+  else
+    return curr->code;
+}
+
+static void
+store_lexs (void)
+{
+  struct lex lex, *prev;
+  int code;
+#ifdef DEBUG
+  int nt = 0;
+#endif
+
+  lexs = new os (0);
+  list = NULL;
+  prev = NULL;
+  while ((code = yylex ()) > 0) {
+#ifdef DEBUG
+    nt++;
+#endif
+    if (code == IDENTIFIER)
+      {
+        lexs->top_add_memory (get_yytext (), strlen (get_yytext ()) + 1);
+        lex.id = (char *) lexs->top_begin ();
+        lexs->top_finish ();
+      }
+    else
+      lex.id = NULL;
+    lex.code = code;
+    lex.line = line;
+    lex.column = column;
+    lex.next = NULL;
+    lexs->top_add_memory (&lex, sizeof (lex));
+    if (prev == NULL)
+      prev = list = (struct lex *) lexs->top_begin ();
+    else {
+      prev = prev->next = (struct lex *) lexs->top_begin ();
+    }
+    lexs->top_finish ();
+  }
+#ifdef DEBUG
+  fprintf (stderr, "%d tokens\n", nt);
+#endif
+}
+
+/* All parse_alloc memory is contained here. */
+static os_t *mem_os;
+
+static void *
+test_parse_alloc (int size)
+{
+  void *result;
+
+  mem_os->top_expand (size);
+  result = mem_os->top_begin ();
+  mem_os->top_finish ();
+  return result;
+}
+
+/* Printing syntax error. */
+static void
+test_syntax_error (int err_tok_num, void *err_tok_attr,
+		   int start_ignored_tok_num, void *start_ignored_tok_attr,
+		   int start_recovered_tok_num, void *start_recovered_tok_attr)
+{
+  if (start_ignored_tok_num < 0)
+    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
+  else
+    fprintf
+      (stderr,
+       "Syntax error on token %d(ln %d):ignore %d tokens starting with token = %d\n",
+       err_tok_num, (int) err_tok_attr,
+       start_recovered_tok_num - start_ignored_tok_num, start_ignored_tok_num);
+}
+
+/* The following function imported by Earley's algorithm (see comments
+   in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  int code;
+
+  *attr = (void *) line;
+  code = get_lex ();
+  if (code <= 0)
+    return -1;
+  return code;
+}
+
+static const char *description =
+"TERM\n"
+"IDENTIFIER = 1000\n"
+"SIGNED = 2000\n"
+"CONST = 3000\n"
+"INLINE = 4000\n"
+"AUTO = 5000\n"
+"BREAK = 6000\n"
+"CASE = 7000\n"
+"CHAR = 8000\n"
+"CONTINUE = 9000\n"
+"DEFAULT = 1001\n"
+"DO	 = 2001\n"
+"DOUBLE	 = 3001\n"
+"ELSE	 = 4001\n"
+"ENUM	 = 5001\n"
+"EXTERN	 = 6001\n"
+"FLOAT	 = 7001\n"
+"FOR	 = 8001\n"
+"GOTO	 = 9001\n"
+"IF = 1002\n"
+"INT	 = 2002\n"
+"LONG	 = 3002\n"
+"REGISTER = 4002\n"
+"RETURN	 = 5002\n"
+"SHORT	 = 6002\n"
+"SIZEOF	 = 7002\n"
+"STATIC	 = 8002\n"
+"STRUCT	 = 9002\n"
+"SWITCH = 1003\n"
+"TYPEDEF	 = 2003\n"
+"UNION	 = 3003\n"
+"UNSIGNED = 4003\n"
+"VOID	 = 5003\n"
+"VOLATILE = 6003\n"
+"WHILE	 = 7003\n"
+"CONSTANT = 8003\n"
+"STRING_LITERAL = 9003\n"
+"RIGHT_ASSIGN = 1004\n"
+"LEFT_ASSIGN = 2004\n"
+"ADD_ASSIGN = 3004\n"
+"SUB_ASSIGN = 4004\n"
+"MUL_ASSIGN = 5004\n"
+"DIV_ASSIGN = 6004\n"
+"MOD_ASSIGN = 7004\n"
+"AND_ASSIGN = 8004\n"
+"XOR_ASSIGN = 9004\n"
+"OR_ASSIGN = 1005\n"
+"RIGHT_OP = 2005\n"
+"LEFT_OP	 = 3005\n"
+"INC_OP	 = 4005\n"
+"DEC_OP	 = 5005\n"
+"PTR_OP	 = 6005\n"
+"AND_OP	 = 7005\n"
+"OR_OP	 = 8005\n"
+"LE_OP	 = 9005\n"
+"GE_OP = 1006\n"
+"EQ_OP	 = 2006\n"
+"NE_OP	 = 3006\n"
+"ELIPSIS	 = 4006\n"
+"RESTRICT = 5006\n"
+"_BOOL = 6006\n"
+"_COMPLEX = 7006\n"
+"_IMAGINARY = 8006;\n"
+"\n"
+"/* Additional rules: */\n"
+"\n"
+"start : translation_unit\n"
+"      ;\n"
+"\n"
+"identifier : IDENTIFIER\n"
+"           ;\n"
+"\n"
+"constant : CONSTANT\n"
+"         ;\n"
+"\n"
+"string_literal : STRING_LITERAL\n"
+"               ;\n"
+"\n"
+"/* A.2  Phrase structure grammar: */\n"
+"/* A.2.1  Expressions: */\n"
+"/* (6.5.1): */\n"
+"primary_expression : identifier\n"
+"                   | constant\n"
+"                   | string_literal\n"
+"                   | '(' expression ')'\n"
+"                   ;\n"
+"/* (6.5.2): */\n"
+"/* postfix_expression : primary_expression\n"
+"                   | postfix_expression '[' expression ']'\n"
+"                   | postfix_expression '(' [argument_expression_list] ')'\n"
+"                   | postfix_expression '.' identifier\n"
+"                   | postfix_expression PTR_OP identifier\n"
+"                   | postfix_expression INC_OP\n"
+"                   | postfix_expression DEC_OP\n"
+"                   | '(' type_name ')' '{' initializer_list '}'\n"
+"                   | '(' type_name ')' '{' initializer_list ',' '}' */\n"
+"\n"
+"postfix_expression : primary_expression\n"
+"                   | postfix_expression '[' expression ']'\n"
+"                   | postfix_expression '(' argument_expression_list_opt ')'\n"
+"                   | postfix_expression '.' identifier\n"
+"                   | postfix_expression PTR_OP identifier\n"
+"                   | postfix_expression INC_OP\n"
+"                   | postfix_expression DEC_OP\n"
+"                   | '(' type_name ')' '{' initializer_list '}'\n"
+"                   | '(' type_name ')' '{' initializer_list ',' '}'\n"
+"                   ;\n"
+"\n"
+"argument_expression_list_opt :\n"
+"                             | argument_expression_list\n"
+"                             ;\n"
+"/* (6.5.2): */\n"
+"argument_expression_list : assignment_expression\n"
+"                         | argument_expression_list ',' assignment_expression\n"
+"                         ;\n"
+"\n"
+"/* (6.5.3): */\n"
+"unary_expression : postfix_expression\n"
+"                 | INC_OP unary_expression\n"
+"                 | DEC_OP unary_expression\n"
+"                 | unary_operator  cast_expression\n"
+"                 | SIZEOF unary_expression\n"
+"                 | SIZEOF '(' type_name ')'\n"
+"                 ;\n"
+"\n"
+"/* (6.5.3): */\n"
+"unary_operator : '&'\n"
+"               | '*'\n"
+"               | '+'\n"
+"               | '-'\n"
+"               | '~'\n"
+"               | '!'\n"
+"               ;\n"
+"\n"
+"/* (6.5.4): */\n"
+"cast_expression : unary_expression\n"
+"                | '(' type_name ')' cast_expression\n"
+"                ;\n"
+"\n"
+"/* (6.5.5): */\n"
+"multiplicative_expression : cast_expression\n"
+"                          | multiplicative_expression '*' cast_expression\n"
+"                          | multiplicative_expression '/' cast_expression\n"
+"                          | multiplicative_expression '%' cast_expression\n"
+"                          ;\n"
+"\n"
+"/* (6.5.6): */\n"
+"additive_expression : multiplicative_expression\n"
+"                    | additive_expression '+' multiplicative_expression\n"
+"                    | additive_expression '-' multiplicative_expression\n"
+"                    ;\n"
+"\n"
+"/* (6.5.7): */\n"
+"shift_expression : additive_expression\n"
+"                 | shift_expression LEFT_OP additive_expression\n"
+"                 | shift_expression RIGHT_OP additive_expression\n"
+"                 ;\n"
+"\n"
+"/* (6.5.8): */\n"
+"relational_expression : shift_expression\n"
+"                      | relational_expression '<' shift_expression\n"
+"                      | relational_expression '>' shift_expression\n"
+"                      | relational_expression LE_OP shift_expression\n"
+"                      | relational_expression GE_OP shift_expression\n"
+"                      ;\n"
+"\n"
+"/* (6.5.9): */\n"
+"equality_expression : relational_expression\n"
+"                    | equality_expression EQ_OP relational_expression\n"
+"                    | equality_expression NE_OP relational_expression\n"
+"                    ;\n"
+"\n"
+"/* (6.5.10): */\n"
+"AND_expression : equality_expression\n"
+"               | AND_expression '&' equality_expression\n"
+"               ;\n"
+"\n"
+"/* (6.5.11): */\n"
+"exclusive_OR_expression : AND_expression\n"
+"                        | exclusive_OR_expression '^' AND_expression\n"
+"                        ;\n"
+"\n"
+"/* (6.5.12): */\n"
+"inclusive_OR_expression : exclusive_OR_expression\n"
+"                        | inclusive_OR_expression '|' exclusive_OR_expression\n"
+"                        ;\n"
+"\n"
+"/* (6.5.13): */\n"
+"logical_AND_expression : inclusive_OR_expression\n"
+"                       | logical_AND_expression AND_OP inclusive_OR_expression\n"
+"                       ;\n"
+"\n"
+"/* (6.5.14): */\n"
+"logical_OR_expression : logical_AND_expression\n"
+"                      | logical_OR_expression OR_OP logical_AND_expression\n"
+"                      ;\n"
+"\n"
+"/* (6.5.15): */\n"
+"conditional_expression : logical_OR_expression\n"
+"                       | logical_OR_expression '?' expression ':' conditional_expression\n"
+"                       ;\n"
+"\n"
+"/* (6.5.16): */\n"
+"assignment_expression : conditional_expression\n"
+"                      | unary_expression  assignment_operator  assignment_expression\n"
+"                      ;\n"
+"\n"
+"/* (6.5.16): */\n"
+"assignment_operator :  '='\n"
+"                    |  MUL_ASSIGN\n"
+"                    |  DIV_ASSIGN\n"
+"                    |  MOD_ASSIGN\n"
+"                    |  ADD_ASSIGN\n"
+"                    |  SUB_ASSIGN\n"
+"                    |  LEFT_ASSIGN\n"
+"                    |  RIGHT_ASSIGN\n"
+"                    |  AND_ASSIGN\n"
+"                    |  XOR_ASSIGN\n"
+"                    |  OR_ASSIGN\n"
+"                    ;\n"
+"\n"
+"/* (6.5.17): */\n"
+"expression : assignment_expression\n"
+"           | expression ',' assignment_expression\n"
+"           | error\n"
+"           ;\n"
+"\n"
+"/* (6.6): */\n"
+"constant_expression : conditional_expression\n"
+"                    ;\n"
+"\n"
+"/* A.2.2  Declarations: */\n"
+"/* (6.7): */\n"
+"/* declaration : declaration_specifiers [init_declarator_list] ';' */\n"
+"               \n"
+"declaration : declaration_specifiers init_declarator_list_opt ';'\n"
+"            | error\n"
+"            ;\n"
+"\n"
+"init_declarator_list_opt :\n"
+"                         | init_declarator_list\n"
+"                         ;\n"
+"\n"
+"/* (6.7): */\n"
+"/* declaration_specifiers : storage_class_specifier  [declaration_specifiers]\n"
+"   	               | type_specifier  [declaration_specifiers]\n"
+"                       | type_qualifier  [declaration_specifiers]\n"
+"                       | function_specifier  [declaration_specifiers] */\n"
+"\n"
+"declaration_specifiers : storage_class_specifier  declaration_specifiers_opt\n"
+"   	               | type_specifier  declaration_specifiers_opt\n"
+"                       | type_qualifier  declaration_specifiers_opt\n"
+"                       | function_specifier  declaration_specifiers_opt\n"
+"                       ;\n"
+"\n"
+"declaration_specifiers_opt :\n"
+"                           | declaration_specifiers\n"
+"                           ;\n"
+"\n"
+"/* (6.7): */\n"
+"init_declarator_list : init_declarator\n"
+"                     | init_declarator_list ',' init_declarator\n"
+"                     ;\n"
+"\n"
+"/* (6.7): */\n"
+"init_declarator : declarator\n"
+"                | declarator '=' initializer\n"
+"                ;\n"
+"/* (6.7.1): */\n"
+"storage_class_specifier : TYPEDEF\n"
+"                        | EXTERN\n"
+"                        | STATIC\n"
+"                        | AUTO\n"
+"	                | REGISTER\n"
+"                        ;\n"
+"\n"
+"/* (6.7.2): */\n"
+"type_specifier : VOID\n"
+"               | CHAR\n"
+"               | SHORT\n"
+"               | INT\n"
+"               | LONG\n"
+"               | FLOAT\n"
+"               | DOUBLE\n"
+"               | SIGNED\n"
+"               | UNSIGNED\n"
+"               | _BOOL\n"
+"               | _COMPLEX\n"
+"               | _IMAGINARY\n"
+"               | struct_or_union_specifier\n"
+"               | enum_specifier\n"
+"               | typedef_name\n"
+"               ;\n"
+"\n"
+"/* (6.7.2.1): */\n"
+"/* struct_or_union_specifier : struct_or_union  [identifier]\n"
+"                                 '{' struct_declaration_list '}'\n"
+"                          | struct_or_union  identifier */\n"
+"\n"
+"struct_or_union_specifier : struct_or_union  identifier_opt\n"
+"                                 '{' struct_declaration_list '}'\n"
+"                          | struct_or_union  identifier\n"
+"                          ;\n"
+"\n"
+"identifier_opt :\n"
+"               | identifier\n"
+"               ;\n"
+"\n"
+"/* (6.7.2.1): */\n"
+"struct_or_union : STRUCT\n"
+"                | UNION\n"
+"                ;\n"
+"\n"
+"/* (6.7.2.1): */\n"
+"struct_declaration_list : struct_declaration\n"
+"                        | struct_declaration_list  struct_declaration\n"
+"                        ;\n"
+"\n"
+"/* (6.7.2.1): */\n"
+"struct_declaration : specifier_qualifier_list  struct_declarator_list ';'\n"
+"                   ;\n"
+"\n"
+"/* (6.7.2.1): */\n"
+"/* specifier_qualifier_list : type_specifier  [specifier_qualifier_list]\n"
+"                         | type_qualifier  [specifier_qualifier_list] */\n"
+"\n"
+"specifier_qualifier_list : type_specifier  specifier_qualifier_list_opt\n"
+"                         | type_qualifier  specifier_qualifier_list_opt\n"
+"                         ;\n"
+"\n"
+"specifier_qualifier_list_opt : \n"
+"                             | specifier_qualifier_list\n"
+"                             ;\n"
+"\n"
+"/* (6.7.2.1): */\n"
+"struct_declarator_list : struct_declarator\n"
+"                       | struct_declarator_list ',' struct_declarator\n"
+"                       ;\n"
+"\n"
+"/* (6.7.2.1): */\n"
+"/* struct_declarator : declarator\n"
+"                  | [declarator] ':' constant_expression */\n"
+"\n"
+"struct_declarator : declarator\n"
+"                  | declarator_opt ':' constant_expression\n"
+"                  ;\n"
+"\n"
+"declarator_opt :\n"
+"               | declarator\n"
+"               ;\n"
+"\n"
+"/* (6.7.2.2): */\n"
+"enum_specifier : ENUM identifier_opt '{' enumerator_list '}'\n"
+"               | ENUM identifier_opt '{' enumerator_list ',' '}'\n"
+"               | ENUM identifier\n"
+"               ;\n"
+"\n"
+"/* (6.7.2.2): */\n"
+"enumerator_list : enumerator\n"
+"                | enumerator_list ',' enumerator\n"
+"                ;\n"
+"\n"
+"/* (6.7.2.2): */\n"
+"enumerator : enumeration_constant\n"
+"           | enumeration_constant '=' constant_expression\n"
+"           ;\n"
+"\n"
+"/* (6.7.3): */\n"
+"type_qualifier : CONST\n"
+"               | RESTRICT\n"
+"               | VOLATILE\n"
+"               ;\n"
+"\n"
+"/* (6.7.4): */\n"
+"function_specifier : INLINE\n"
+"                   ;\n"
+"\n"
+"/* (6.7.5): */\n"
+"/* declarator : [pointer] direct_declarator */\n"
+"\n"
+"declarator : pointer_opt direct_declarator\n"
+"           ;\n"
+"\n"
+"pointer_opt :\n"
+"            | pointer\n"
+"            ;\n"
+"/* (6.7.5): */\n"
+"/* direct_declarator : identifier\n"
+"                  | '(' declarator ')'\n"
+"                  | direct_declarator '[' [type_qualifier_list] [assignment_expression] ']'\n"
+"                  | direct_declarator '[' STATIC [type_qualifier_list] assignment_expression ']'\n"
+"                  | direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'\n"
+"                  | direct_declarator '[' [type_qualifier_list] '*' ']'\n"
+"                  | direct_declarator '(' parameter_type_list ')'\n"
+"                  | direct_declarator '(' [identifier_list] ')' */\n"
+"\n"
+"direct_declarator : identifier\n"
+"                  | '(' declarator ')'\n"
+"                  | direct_declarator '[' type_qualifier_list_opt assignment_expression_opt ']'\n"
+"                  | direct_declarator '[' STATIC type_qualifier_list_opt assignment_expression ']'\n"
+"                  | direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'\n"
+"                  | direct_declarator '[' type_qualifier_list_opt '*' ']'\n"
+"                  | direct_declarator '(' parameter_type_list ')'\n"
+"                  | direct_declarator '(' identifier_list_opt ')'\n"
+"                  ;\n"
+"\n"
+"type_qualifier_list_opt :\n"
+"                        | type_qualifier_list\n"
+"                        ;\n"
+"\n"
+"identifier_list_opt :\n"
+"                    | identifier_list\n"
+"                    ;\n"
+"\n"
+"/* (6.7.5): */\n"
+"pointer : '*' type_qualifier_list_opt\n"
+"        | '*' type_qualifier_list_opt pointer\n"
+"        ;\n"
+"\n"
+"/* (6.7.5): */\n"
+"type_qualifier_list : type_qualifier\n"
+"                    | type_qualifier_list  type_qualifier\n"
+"                    ;\n"
+"\n"
+"/* (6.7.5): */\n"
+"parameter_type_list : parameter_list\n"
+"                    | parameter_list ',' ELIPSIS\n"
+"                    ;\n"
+"\n"
+"/* (6.7.5): */\n"
+"parameter_list : parameter_declaration\n"
+"               | parameter_list ',' parameter_declaration\n"
+"               ;\n"
+"\n"
+"/* (6.7.5): */\n"
+"/* parameter_declaration : declaration_specifiers declarator\n"
+"                      | declaration_specifiers [abstract_declarator] */\n"
+"\n"
+"parameter_declaration : declaration_specifiers declarator\n"
+"                      | declaration_specifiers abstract_declarator_opt\n"
+"                      ;\n"
+"\n"
+"abstract_declarator_opt :\n"
+"                        | abstract_declarator\n"
+"                        ;\n"
+"\n"
+"/* (6.7.5): */\n"
+"identifier_list : identifier\n"
+"                | identifier_list ',' identifier\n"
+"                ;\n"
+"\n"
+"/* (6.7.6): */\n"
+"type_name: specifier_qualifier_list  abstract_declarator_opt\n"
+"         ;\n"
+"\n"
+"/* (6.7.6): */\n"
+"abstract_declarator : pointer\n"
+"                    | pointer_opt direct_abstract_declarator\n"
+"                     ;\n"
+"\n"
+"/* (6.7.6): */\n"
+"/* direct_abstract_declarator : '(' abstract_declarator ')'\n"
+"                           | [direct_abstract_declarator] '[' [assignment_expression] ']'\n"
+"                           | [direct_abstract_declarator] '[' '*' ']'\n"
+"                           | [direct_abstract_declarator] '(' [parameter_type_list] ')' */\n"
+"\n"
+"direct_abstract_declarator : '(' abstract_declarator ')'\n"
+"                           | direct_abstract_declarator_opt '[' assignment_expression_opt ']'\n"
+"                           | direct_abstract_declarator_opt '[' '*' ']'\n"
+"                           | direct_abstract_declarator_opt '(' parameter_type_list_opt ')'\n"
+"                           ;\n"
+"\n"
+"direct_abstract_declarator_opt :\n"
+"                               | direct_abstract_declarator\n"
+"                               ;\n"
+"\n"
+"assignment_expression_opt :\n"
+"                          | assignment_expression\n"
+"                          ;\n"
+"\n"
+"parameter_type_list_opt :\n"
+"                        | parameter_type_list\n"
+"                        ;\n"
+"\n"
+"/* (6.7.7): */\n"
+"typedef_name : identifier\n"
+"             ;\n"
+"\n"
+"/* (6.7.8): */\n"
+"initializer : assignment_expression\n"
+"            | '{' initializer_list '}'\n"
+"            | '{' initializer_list ',' '}'\n"
+"            ;\n"
+"\n"
+"/* (6.7.8): */\n"
+"/* initializer_list : [designation] initializer\n"
+"                 | initializer_list ',' [designation] initializer */\n"
+"\n"
+"initializer_list : designation_opt initializer\n"
+"                 | initializer_list ',' designation_opt initializer\n"
+"                 ;\n"
+"\n"
+"designation_opt :\n"
+"                | designation\n"
+"                ;\n"
+"\n"
+"/* (6.7.8): */\n"
+"designation : designator_list '='\n"
+"            ;\n"
+"\n"
+"/* (6.7.8): */\n"
+"designator_list : designator\n"
+"                | designator_list  designator\n"
+"                ;\n"
+"\n"
+"/* (6.7.8): */\n"
+"designator : '[' constant_expression ']'\n"
+"           | '.' identifier\n"
+"           ;\n"
+"\n"
+"/* A.2.3  Statements: */\n"
+"/* (6.8): */\n"
+"statement : labeled_statement\n"
+"          | compound_statement\n"
+"          | expression_statement\n"
+"          | selection_statement\n"
+"          | iteration_statement\n"
+"          | jump_statement\n"
+"          | error\n"
+"          ;\n"
+"\n"
+"/* (6.8.1): */\n"
+"labeled_statement : identifier ':' statement\n"
+"                  | CASE constant_expression ':' statement\n"
+"                  | DEFAULT ':' statement\n"
+"                  ;\n"
+"\n"
+"/* (6.8.2): */\n"
+"/* compound_statement : '{' [block_item_list] '}' */\n"
+"\n"
+"compound_statement : '{' block_item_list_opt '}'\n"
+"                   ;\n"
+"\n"
+"block_item_list_opt :\n"
+"                    | block_item_list\n"
+"                    ;\n"
+"\n"
+"/* (6.8.2): */\n"
+"block_item_list : block_item\n"
+"                | block_item_list  block_item\n"
+"                ;\n"
+"\n"
+"/* (6.8.2): */\n"
+"block_item : declaration\n"
+"           | statement\n"
+"           ;\n"
+"\n"
+"/* (6.8.3): */\n"
+"/* expression_statement : [expression] ';' */\n"
+"\n"
+"expression_statement : expression_opt ';'\n"
+"                     ;\n"
+"expression_opt :\n"
+"               | expression\n"
+"               ;\n"
+"\n"
+"/* (6.8.4): */\n"
+"selection_statement : IF '(' expression ')' statement\n"
+"                    | IF '(' expression ')' statement ELSE statement\n"
+"                    | SWITCH '(' expression ')' statement\n"
+"                    ;\n"
+"\n"
+"/* (6.8.5): */\n"
+"iteration_statement : WHILE '(' expression ')' statement\n"
+"                    | DO statement WHILE '(' expression ')' ';'\n"
+"                    | FOR '(' expression_opt ';' expression_opt ';' expression_opt ')' statement\n"
+"                    | FOR '(' declaration  expression_opt ';' expression_opt ')' statement\n"
+"                    ;\n"
+"\n"
+"/* (6.8.6): */\n"
+"jump_statement : GOTO identifier ';'\n"
+"               | CONTINUE ';'\n"
+"               | BREAK ';'\n"
+"               | RETURN expression_opt ';'\n"
+"               ;\n"
+"\n"
+"/* A.2.4  External definitions: */\n"
+"/* (6.9): */\n"
+"translation_unit : external_declaration\n"
+"                 | translation_unit external_declaration\n"
+"                 ;\n"
+"\n"
+"/* (6.9): */\n"
+"external_declaration : function_definition\n"
+"                     | declaration\n"
+"                     ;\n"
+"\n"
+"/* (6.9.1): */\n"
+"/* function_definition : declaration_specifiers declarator  [declaration_list] compound_statement */\n"
+"\n"
+"function_definition : declaration_specifiers declarator  declaration_list_opt compound_statement\n"
+"                   ;\n"
+"\n"
+"declaration_list_opt :\n"
+"                     | declaration_list\n"
+"                     ;\n"
+"\n"
+"/* (6.9.1): */\n"
+"declaration_list : declaration\n"
+"                 | declaration_list  declaration\n"
+"                 ;\n"
+"\n"
+"/* A.1.5  Constants: */\n"
+"/* (6.4.4.3): */\n"
+"enumeration_constant : identifier\n"
+"                     ;\n"
+  ;
+
+main (int argc, char **argv)
+{
+  ticker_t *t;
+  int code, ambiguous_p;
+  struct earley_tree_node *root;
+  earley *e;
+
+  mem_os = new os (0);
+  store_lexs ();
+  initiate_typedefs ();
+  curr = NULL;
+  t = new ticker ();
+  e = new earley ();
+  if (e == NULL)
+    {
+      fprintf (stderr, "earley::earley: No memory\n");
+      delete mem_os;
+      exit (1);
+    }
+  if (argc > 1)
+    e->set_lookahead_level (atoi (argv [1]));
+  if (argc > 2)
+    e->set_debug_level (atoi (argv [2]));
+  else
+    e->set_debug_level (3);
+  if (argc > 3)
+    e->set_error_recovery_flag (atoi (argv [3]));
+  if (argc > 4)
+    e->set_one_parse_flag (atoi (argv [4]));
+
+  if (e->parse_grammar (1, description) != 0)
+    {
+      fprintf (stderr, "%s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+		&root, &ambiguous_p))
+    {
+      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      delete mem_os;
+      exit (1);
+    }
+  delete e;
+  printf ("all time %.2f\n", t->active_time ());
+  delete mem_os;
+  exit (0);
+}
+TEST41
+
+        echo '      ' $CC $CC_options -c ansic.c
+        echo '      ' $CXX $CXX_options $test_file $addfiles ansic.o -o $outfile
+        if $CC $CC_options -c ansic.c && $CXX $CXX_options $test_file $addfiles ansic.o -o $outfile; then
+	    echo '      ' wc __test
+            wc __test
+	    echo '      ' $outfile 1 0 "2>$temp_file" "<$TEST"
+	    if $outfile 1 0 2>$temp_file <$TEST; then
+	        echo '      ' $cmp $temp_file $temp3_file
+	        if cat <<'OUTPUT41' >$temp3_file && $cmp $temp_file $temp3_file; then
+OUTPUT41
+        	        result=ok
+	        else
+        	        result=fail
+	        fi
+	    else
+        	result=fail
+	    fi
+        else
+                result=fail
+        fi
+fi
+
+# Final message
+
+if test $result = ok; then
+        echo $script_file: it is all ok
+        rm -f $addfiles $test_file $outfile $sgramm.c $temp_file $temp3_file $CTEST $TEST ansic.c ansic.h ansic.l ansic.o
+        exit 0
+else
+        echo '***' $script_file: test is failed see file $test_file
+        exit 1
+fi
