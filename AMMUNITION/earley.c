@@ -1420,7 +1420,7 @@ set_core_hash (hash_table_entry_t s)
   sit_bound = sit_ptr + n_sits;
   result = n_sits << ((sizeof (unsigned) - 1) * CHAR_BIT);
   while (sit_ptr < sit_bound)
-    result += (unsigned) *sit_ptr++;
+    result += (size_t) *sit_ptr++;
   return result;
 }
 
@@ -4119,7 +4119,7 @@ parse_state_hash (hash_table_entry_t s)
 
   /* The table contains only states with dot at the end of rule. */
   assert (state->pos == state->rule->rhs_len);
-  return (unsigned) state->rule + (state->orig << 4) + (state->pl_ind << 6);
+  return (size_t) state->rule + (state->orig << 4) + (state->pl_ind << 6);
 }
 
 /* Equality of parse states. */
@@ -4263,7 +4263,7 @@ static int n_trans_visit_nodes;
 static unsigned
 trans_visit_node_hash (hash_table_entry_t n)
 {
-  return (unsigned) ((struct trans_visit_node *) n)->node;
+  return (size_t) ((struct trans_visit_node *) n)->node;
 }
 
 /* Equality of translation visit nodes. */
@@ -4536,7 +4536,7 @@ static hash_table_t reserv_mem_tab;
 static unsigned
 reserv_mem_hash (hash_table_entry_t m)
 {
-  return (unsigned) m;
+  return (size_t) m;
 }
 
 /* The equity of the memory reference. */
