@@ -54,8 +54,8 @@ fi
 
 # Compilation of addfiles
 
-echo '      ' $YACC $sgramm.y '&' mv y.tab.c $sgramm.c  
-if $YACC $sgramm.y && mv y.tab.c $sgramm.c; then
+echo '      ' $YACC @srcdir@/$sgramm.y '&' mv y.tab.c $sgramm.c  
+if $YACC @srcdir@/$sgramm.y && mv y.tab.c $sgramm.c; then
         result=ok
 else
         echo '***' $script_file: test is failed see file $test_file
@@ -5854,11 +5854,11 @@ EOF
     # For removing gcc dialect features.
     echo "#define __attribute__(v)" >$CTEST
     echo "#define __extension__" >>$CTEST
-#   cat @srcdir@/IEEE.c >>$CTEST
-#   $GCC -I@srcdir@ -I. -I@srcdir@/../AMMUNITION -U__GNUC__ -E -P $CTEST | sed 's/^#pragma.*$//' | sed 's/^#ident.*$//' >$TEST
+   cat @srcdir@/IEEE.c >>$CTEST
+   $GCC -I@srcdir@ -I. -I@srcdir@/../AMMUNITION -U__GNUC__ -E -P $CTEST | sed 's/^#pragma.*$//' | sed 's/^#ident.*$//' >$TEST
 
-    cat ./IEEE.c >>$CTEST
-    $GCC -I. -I. -I./../AMMUNITION -U__GNUC__ -E -P $CTEST | sed 's/^#pragma.*$//' | sed 's/^#ident.*$//' >$TEST
+#    cat ./IEEE.c >>$CTEST
+#    $GCC -I. -I. -I./../AMMUNITION -U__GNUC__ -E -P $CTEST | sed 's/^#pragma.*$//' | sed 's/^#ident.*$//' >$TEST
 
     # Scanner Generation
     if $LEX -t ansic.l >ansic.c; then
