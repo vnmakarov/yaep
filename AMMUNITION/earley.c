@@ -1138,6 +1138,8 @@ struct sit
   struct rule *rule;
   /* The following is position of dot in rhs of the situation rule. */
   short pos;
+  /* unique situation number.  */
+  int sit_number;
   /* The following is number of situation context which is number of
      the corresponding terminal set in the table.  It is really used
      only for dynamic lookahead. */
@@ -1276,6 +1278,7 @@ sit_create (struct rule *rule, int pos, int context)
   n_all_sits++;
   sit->rule = rule;
   sit->pos = pos;
+  sit->sit_number = n_all_sits;
   sit->context = context;
   sit->empty_tail_p = sit_set_lookahead (sit);
   (*context_sit_table_ptr) [rule->rule_start_offset + pos] = sit;
@@ -1289,6 +1292,7 @@ sit_create (struct rule *rule, int pos, int context)
 static void
 sit_print (FILE *f, struct sit *sit, int lookahead_p)
 {
+  fprintf (f, "%3d ", sit->sit_number);
   rule_dot_print (f, sit->rule, sit->pos);
   if (grammar->lookahead_level != 0 && lookahead_p)
     {
@@ -1615,6 +1619,7 @@ set_insert (void)
 {
   int i, j;
   int dist, temp_dist;
+  int sit_number;
   struct sit *sit, *temp_sit;
   hash_table_entry_t *entry;
   int dup_flag;
@@ -1631,14 +1636,15 @@ set_insert (void)
     for (i = h; i < new_n_start_sits; i++)
       {
 	sit = new_sits [i];
+	sit_number = sit->sit_number;
 	dist = new_dists [i];
 	curr_sits = new_sits + i - h;
 	curr_dists = new_dists + i - h;
 	while (curr_sits >= new_sits)
 	  {
-	    if (*curr_sits < sit)
+	    if ((*curr_sits)->sit_number < sit_number)
 	      break;
-	    else if (*curr_sits == sit)
+	    else if ((*curr_sits)->sit_number == sit_number)
 	      {
 		if (*curr_dists < dist)
 		  break;
@@ -3915,6 +3921,15 @@ error_recovery (int *start, int *stop)
 			    : -1);
       build_new_set (new_set, core_symb_vect, lookahead_term_num);
       pl [++pl_curr] = new_set;
+#ifndef NO_EARLEY_DEBUG_PRINT
+      if (grammar->debug_level > 3)
+	{
+	  fprintf (stderr, "++++++++Building new set=%d\n", pl_curr);
+	  if (grammar->debug_level > 3)
+	    set_print (stderr, new_set, grammar->debug_level > 4,
+		       grammar->debug_level > 5);
+	}
+#endif
       n_matched_toks = 0;
       for (;;)
 	{
