@@ -234,6 +234,35 @@ OUTPUT3a
     fi
 fi
 
+# Test 3b.
+if test $result = ok -a $start_test_number -le 3; then
+    echo test 3b: No lookahead
+    echo '      ' $outfile 0 -1 1 "2>$temp_file"
+    if $outfile 0 -1 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT3b' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use functions
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 22
+       #terminal sets = 8, their size = 64
+       #unique set cores = 11, #their start situations = 42
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 11, their length = 42
+       #pairs(set core, symb) = 55, their trans+reduce vects length = 60
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 6, their length = 6
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT3b
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
 # Test 4.
 if test $result = ok -a $start_test_number -le 4; then
     echo test 4: Dynamic lookahead
@@ -283,6 +312,35 @@ Input: #tokens = 12, #unique situations = 45
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT4a
+                result=ok
+        else
+                result=fail
+        fi
+    else
+        result=fail
+    fi
+fi
+
+# Test 4b.
+if test $result = ok -a $start_test_number -le 4; then
+    echo test 4b: lookahead '>' 2
+    echo '      ' $outfile 0 3 1 "2>$temp_file"
+    if $outfile 0 3 1 2>$temp_file; then
+        echo '      ' $cmp $temp_file $temp3_file
+        if cat <<'OUTPUT4b' >$temp3_file && $cmp $temp_file $temp3_file; then
+Use functions
+Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
+Input: #tokens = 12, #unique situations = 45
+       #terminal sets = 71, their size = 568
+       #unique set cores = 13, #their start situations = 30
+       #parent indexes for some non start situations = 0
+       #unique set dist. vects = 10, their length = 25
+       #pairs(set core, symb) = 48, their trans+reduce vects length = 54
+       #unique transition vectors = 12, their length = 16
+       #unique reduce vectors = 4, their length = 4
+       #term nodes = 5, #abstract nodes = 4
+       #alternative nodes = 0, #all nodes = 9
+OUTPUT4b
                 result=ok
         else
                 result=fail

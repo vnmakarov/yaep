@@ -3051,7 +3051,7 @@ earley_set_lookahead_level (struct grammar *grammar, int level)
 
   assert (grammar != NULL);
   old = grammar->lookahead_level;
-  grammar->lookahead_level = level;
+  grammar->lookahead_level = (level < 0 ? 0 : level > 2 ? 2 : level);
   return old;
 }
 
