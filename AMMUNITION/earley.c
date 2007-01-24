@@ -104,6 +104,8 @@
 #define EARLEY_MAX_ERROR_MESSAGE_LENGTH 200
 #endif
 
+/*#define SYMB_CODE_TRANS_VECT*/
+
 /* The following is major structure which stores information about
    grammar. */
 struct grammar
@@ -298,6 +300,13 @@ struct symbs
      its representation. */
   hash_table_t repr_to_symb_tab; /* key is `repr' */
   hash_table_t code_to_symb_tab; /* key is `code' */
+#ifdef SYMB_CODE_TRANS_VECT
+  /* If terminal symbol codes are not spared (in this case the member
+     value is not NULL, we use translation vector instead of hash
+     table.  */
+  struct symb **symb_code_trans_vect;
+  int symb_code_trans_vect_start;
+#endif
 };
 
 /* Hash of symbol representation. */
@@ -361,6 +370,9 @@ symb_init (void)
     = create_hash_table (300, symb_repr_hash, symb_repr_eq);
   result->code_to_symb_tab
     = create_hash_table (200, symb_code_hash, symb_code_eq);
+#ifdef SYMB_CODE_TRANS_VECT
+  result->symb_code_trans_vect = NULL;
+#endif
   result->n_nonterms = result->n_terms = 0;
   return result;
 }
@@ -379,11 +391,20 @@ symb_find_by_repr (const char *repr)
 
 /* Return symbol (or NULL if it does not exist) which is terminal with
    CODE. */
+#if MAKE_INLINE
+INLINE
+#endif
 static struct symb *
 symb_find_by_code (int code)
 {
   struct symb symb;
 
+#ifdef SYMB_CODE_TRANS_VECT
+  if (symbs_ptr->symb_code_trans_vect != NULL)
+    return
+      symbs_ptr->symb_code_trans_vect [code
+				       - symbs_ptr->symb_code_trans_vect_start];
+#endif
   symb.term_p = TRUE;
   symb.u.term.code = code;
   return (struct symb *) *find_hash_table_entry (symbs_ptr->code_to_symb_tab,
@@ -510,12 +531,49 @@ symb_print (FILE *f, struct symb *symb, int code_p)
 
 #endif /* #ifndef NO_EARLEY_DEBUG_PRINT */
 
+#ifdef SYMB_CODE_TRANS_VECT
+
+#define SYMB_CODE_TRANS_VECT_SIZE 10000
+
+static void
+symb_finish_adding_terms (void)
+{
+  int i, max_code, min_code;
+  struct symb *symb;
+  void *mem;
+
+  for (min_code = max_code = i = 0; (symb = term_get (i)) != NULL; i++)
+    {
+      if (i == 0 || min_code > symb->u.term.code)
+	min_code = symb->u.term.code;
+      if (i == 0 || max_code < symb->u.term.code)
+	max_code = symb->u.term.code;
+    }
+  assert (i != 0);
+  if (max_code - min_code < SYMB_CODE_TRANS_VECT_SIZE)
+    {
+      symbs_ptr->symb_code_trans_vect_start = min_code;
+      MALLOC (mem, sizeof (struct symb *) * (max_code - min_code + 1));
+      symbs_ptr->symb_code_trans_vect = (struct symb **) mem;
+      for (i = 0; (symb = term_get (i)) != NULL; i++)
+	symbs_ptr->symb_code_trans_vect [symb->u.term.code - min_code] = symb;
+    }
+}
+#endif
+
 /* Free memory for symbols. */
 static void
 symb_empty (struct symbs *symbs)
 {
   if (symbs == NULL)
     return;
+#ifdef SYMB_CODE_TRANS_VECT
+  if (symbs_ptr->symb_code_trans_vect != NULL)
+    {
+      FREE (symbs_ptr->symb_code_trans_vect);
+      symbs_ptr->symb_code_trans_vect = NULL;
+    }
+#endif
   empty_hash_table (symbs->repr_to_symb_tab);
   empty_hash_table (symbs->code_to_symb_tab);
   VLO_NULLIFY (symbs->nonterms_vlo);
@@ -531,6 +589,10 @@ symb_fin (struct symbs *symbs)
 {
   if (symbs == NULL)
     return;
+#ifdef SYMB_CODE_TRANS_VECT
+  if (symbs_ptr->symb_code_trans_vect != NULL)
+    FREE (symbs_ptr->symb_code_trans_vect);
+#endif
   delete_hash_table (symbs_ptr->repr_to_symb_tab);
   delete_hash_table (symbs_ptr->code_to_symb_tab);
   VLO_DELETE (symbs_ptr->nonterms_vlo);
@@ -1684,6 +1746,7 @@ set_insert (void)
   new_core->n_start_sits = new_n_start_sits;
   new_core->sits = new_sits;
   new_set_ready_p = TRUE;
+#ifdef USE_DIST_HASH_TABLE
   /* Insert dists into table. */
   entry = find_hash_table_entry (set_dists_tab, new_set, TRUE);
   if (*entry != NULL)
@@ -1698,6 +1761,11 @@ set_insert (void)
       n_set_dists++;
       n_set_dists_len += new_n_start_sits;
     }
+#else
+  OS_TOP_FINISH (set_dists_os);
+  n_set_dists++;
+  n_set_dists_len += new_n_start_sits;
+#endif
   /* Insert set core into table. */
   entry = find_hash_table_entry (set_core_tab, new_set, TRUE);
   if (*entry != NULL)
@@ -3033,6 +3101,9 @@ earley_read_grammar (struct grammar *g, int strict_p,
       rule->trans_len = 0;
     }
   check_grammar (strict_p);
+#ifdef SYMB_CODE_TRANS_VECT
+  symb_finish_adding_terms ();
+#endif
 #ifndef NO_EARLEY_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
