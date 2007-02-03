@@ -4,7 +4,7 @@
 # Script to test of allocation package (files `earley.h', `earley.c',
 #`sgramm.y').
 #
-#   Copyright (C) 1997-2005 Vladimir Makarov.
+#   Copyright (C) 1997-2007 Vladimir Makarov.
 #
 #   Written by Vladimir Makarov <vmakarov@users.sourceforge.net>
 #
@@ -5726,7 +5726,7 @@ if test $result = ok -a $start_test_number -le 41; then
 #define AND_ASSIGN    8004
 #define XOR_ASSIGN    9004
 #define OR_ASSIGN     1005
-#define RIGHT_OP      2005
+#define RIGHT_OP      2007
 #define LEFT_OP	      3005
 #define INC_OP	      4005
 #define DEC_OP	      5005
@@ -16412,7 +16412,7 @@ static const char *description =
 "AND_ASSIGN = 8004\n"
 "XOR_ASSIGN = 9004\n"
 "OR_ASSIGN = 1005\n"
-"RIGHT_OP = 2005\n"
+"RIGHT_OP = 2007\n"
 "LEFT_OP	 = 3005\n"
 "INC_OP	 = 4005\n"
 "DEC_OP	 = 5005\n"

@@ -1,6 +1,6 @@
 /* FILE NAME:   objstack.cpp
 
-   Copyright (C) 1997-2005 Vladimir Makarov.
+   Copyright (C) 1997-2007 Vladimir Makarov.
 
    Written by Vladimir Makarov <vmakarov@users.sourceforge.net>
 
