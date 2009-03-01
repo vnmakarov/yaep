@@ -115,7 +115,7 @@ static int anode_cost;
 static char *slhs;
 
 /* Forward declarations. */
-extern int yyerror (char *str);
+extern int yyerror (const char *str);
 extern int yylex (void);
 extern int yyparse (void);
 
@@ -390,7 +390,7 @@ yylex (void)
 /* The following implements syntactic error diagnostic function yacc
    code. */
 int
-yyerror (char *str)
+yyerror (const char *str)
 {
   earley_error (EARLEY_DESCRIPTION_SYNTAX_ERROR_CODE,
 		"description syntax error on ln %d", ln);
