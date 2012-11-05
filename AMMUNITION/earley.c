@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 1997-2007 Vladimir Makarov.
+   Copyright (C) 1997-2012 Vladimir Makarov.
 
    Written by Vladimir Makarov <vmakarov@users.sourceforge.net>
 
@@ -4925,7 +4925,8 @@ make_parse (int *ambiguous_p)
 	  /* We've processed all rhs of the rule. */
 	  parse_state_free (state);
 	  VLO_SHORTEN (stack, sizeof (struct parse_state *));
-	  state = ((struct parse_state **) VLO_BOUND (stack)) [-1];
+	  if (VLO_LENGTH (stack) != 0)
+	    state = ((struct parse_state **) VLO_BOUND (stack)) [-1];
 	  if (parent_anode != NULL && rule->trans_len == 0 && anode == NULL)
 	    /* We do produce nothing but we should.  So write empty
                node. */
