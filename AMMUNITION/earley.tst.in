@@ -37,6 +37,7 @@
 script_file=$0
 
 srcdir=@srcdir@
+prefix=`basename $script_file .tst`
 CC='@CC@'
 YACC='@YACC@'
 CC_options="@CFLAGS@ @DEFS@ -I. -I$srcdir/"
@@ -47,17 +48,17 @@ LEX=@LEX@
 
 
 source_addfiles="$source_addfiles1 $source_earley"
-temp_file=_temp.out
-temp3_file=_temp3.out
+temp_file=_${prefix}_temp.out
+temp3_file=_${prefix}_temp3.out
 cmp=cmp
 
 sgramm=sgramm
-addfiles1='allocate.o vlobject.o hashtab.o objstack.o ticker.o'
-addfiles="$addfiles1 earley.o"
-test_file=tearley.c
-outfile=./a.out
+addfiles1="${prefix}_allocate.o ${prefix}_vlobject.o ${prefix}_hashtab.o ${prefix}_objstack.o ${prefix}_ticker.o"
+addfiles="$addfiles1 ${prefix}_earley.o"
+test_file=${prefix}_tearley.c
+outfile=./${prefix}_a.out
 
-TEST=__test
+TEST=__${prefix}_test
 
 if test x$1 = x
 then
@@ -82,13 +83,15 @@ else
         exit 1
 fi
 
-echo '      ' $CC $CC_options -c $source_addfiles1
-if $CC $CC_options -c $source_addfiles1; then
-	result=ok
-else
-	echo '***' $script_file: test is failed see file $test_file
+for i in $source_addfiles; do
+  echo '      ' $CC $CC_options -c $i -o ${prefix}_`basename $i .c`.o
+  if $CC $CC_options -c $i -o ${prefix}_`basename $i .c`.o; then
+        result=ok
+  else
+        echo '***' $script_file: test is failed see file $test_file
         exit 1
-fi
+  fi
+done
 
 
 if test $start_test_number -le 5;then
@@ -447,16 +450,6 @@ OUTPUT5a
     else
         result=fail
     fi
-fi
-
-if test $result = ok;then
-  echo '      ' $CC $CC_options -c $source_earley
-  if $CC $CC_options -c $source_earley; then
-        result=ok
-  else
-        echo '***' $script_file: test is failed see file $test_file
-        exit 1
-  fi
 fi
 
 # Test 6.

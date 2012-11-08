@@ -37,6 +37,7 @@
 script_file=$0
 
 srcdir=@srcdir@
+prefix=`basename $script_file .tst`
 CC='@CC@'
 CC_options="@CFLAGS@ @DEFS@ -I. -I$srcdir/"
 CXX='@CXX@'
@@ -50,18 +51,18 @@ GCC=gcc
 LEX=@LEX@
 
 source_addfiles="$source_addfiles1 $source_earley"
-temp_file=_temp.out
-temp3_file=_temp3.out
+temp_file=_${prefix}_temp.out
+temp3_file=_${prefix}_temp3.out
 cmp=cmp
 
 sgramm=sgramm
-addfiles1='allocate.o vlobject.o hashtab.o objstack.o ticker.o'
-addfiles="$addfiles1 earley.o"
-test_file=tearley.cpp
-outfile=./a.out
+addfiles1="${prefix}_allocate.o ${prefix}_vlobject.o ${prefix}_hashtab.o ${prefix}_objstack.o ${prefix}_ticker.o"
+addfiles="$addfiles1 ${prefix}_earley.o"
+test_file=${prefix}_tearley.cpp
+outfile=./${prefix}_a.out
 
-CTEST=__test.c
-TEST=__test
+CTEST=__${prefix}_test.c
+TEST=__${prefix}_test
 
 if test x$1 = x
 then
@@ -86,13 +87,15 @@ else
         exit 1
 fi
 
-echo '      ' $CXX $CXX_options -c $source_addfiles1
-if $CXX $CXX_options -c $source_addfiles1; then
-	result=ok
-else
-	echo '***' $script_file: test is failed see file $test_file
+for i in $source_addfiles; do
+  echo '      ' $CXX $CXX_options -c $i -o ${prefix}_`basename $i .cpp`.o
+  if $CXX $CXX_options -c $i -o ${prefix}_`basename $i .cpp`.o; then
+        result=ok
+  else
+        echo '***' $script_file: test is failed see file $test_file
         exit 1
-fi
+  fi
+done
 
 
 if test $start_test_number -le 5;then
@@ -451,16 +454,6 @@ OUTPUT5a
     else
         result=fail
     fi
-fi
-
-if test $result = ok;then
-  echo '      ' $CXX $CXX_options -c $source_earley
-  if $CXX $CXX_options -c $source_earley; then
-        result=ok
-  else
-        echo '***' $script_file: test is failed see file $test_file
-        exit 1
-  fi
 fi
 
 # Test 6.
@@ -17036,8 +17029,8 @@ TEST41
         echo '      ' $CC $CC_options -c ansic.c
         echo '      ' $CXX $CXX_options $test_file $addfiles ansic.o -o $outfile
         if $CC $CC_options -c ansic.c && $CXX $CXX_options $test_file $addfiles ansic.o -o $outfile; then
-	    echo '      ' wc __test
-            wc __test
+	    echo '      ' wc $TEST
+            wc $TEST
 	    echo '      ' $outfile 1 0 "2>$temp_file" "<$TEST"
 	    if $outfile 1 0 2>$temp_file <$TEST; then
 	        echo '      ' $cmp $temp_file $temp3_file
