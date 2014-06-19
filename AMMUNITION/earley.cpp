@@ -55,9 +55,11 @@
 #define delete_hash_table(tab) delete tab
 #define find_hash_table_entry(tab, el, res_p) (tab)->find_entry(el, res_p)
 
+#ifdef EARLEY_TEST
 /* Forward declarations: */
 static void use_functions (int argc, char **argv);
 static void use_description (int argc, char **argv);
+#endif
 
 #include "earley.c"
 
