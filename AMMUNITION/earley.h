@@ -4,9 +4,9 @@
    is sufficiently fast to be used in serious language processors. */
 
 /*
-   Copyright (C) 1997-2007 Vladimir Makarov.
+   Copyright (C) 1997-2015 Vladimir Makarov.
 
-   Written by Vladimir Makarov <vmakarov@users.sourceforge.net>
+   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
 
    This is part of Earley's parser implementation; you can
    redistribute it and/or modify it under the terms of the GNU General

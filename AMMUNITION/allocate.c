@@ -1,8 +1,8 @@
 /* FILE NAME:   allocate.c
 
-   Copyright (C) 1997-2007 Vladimir Makarov.
+   Copyright (C) 1997-2015 Vladimir Makarov.
 
-   Written by Vladimir Makarov <vmakarov@users.sourceforge.net>
+   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
 
    This is part of package allocate; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public License

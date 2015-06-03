@@ -1,7 +1,7 @@
 /*
-   Copyright (C) 1997-2012 Vladimir Makarov.
+   Copyright (C) 1997-2015 Vladimir Makarov.
 
-   Written by Vladimir Makarov <vmakarov@users.sourceforge.net>
+   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
 
    This is part of Earley's parser implementation; you can
    redistribute it and/or modify it under the terms of the GNU General
@@ -32,7 +32,7 @@
    GENERAL PUBLIC LIBRARY LICENSE).  So any program using this code or
    its modifications should be distributed with sources.
 
-   Vladimir Makarov (vmakarov@users.sourceforge.net), 2001. */
+   Vladimir Makarov (vmakarov@gcc.gnu.org), 2001. */
 
 #ifdef HAVE_CONFIG_H
 #include "cocom-config.h"
