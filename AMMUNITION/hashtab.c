@@ -285,32 +285,3 @@ hash_table_elements_number (hash_table_t htab)
   assert (htab != NULL);
   return htab->number_of_elements - htab->number_of_deleted_elements;
 }
-
-/* The following function returns number of percents of fixed
-   collisions during all work with given hash table. */
-
-int
-hash_table_collisions (hash_table_t htab)
-{
-  int searches;
-
-  assert (htab != NULL);
-  searches = htab->searches;
-  if (searches == 0)
-    searches++;
-  return htab->collisions * 100 / searches;
-}
-
-/* The following function returns number of percents of fixed
-   collisions during all work with all hash tables. */
-
-int
-all_hash_table_collisions (void)
-{
-  int searches;
-
-  searches = all_searches;
-  if (searches == 0)
-    searches++;
-  return all_collisions * 100 / searches;
-}

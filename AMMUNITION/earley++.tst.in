@@ -147,8 +147,8 @@ fi
 # Test 2.
 if test $result = ok -a $start_test_number -le 2; then
     echo test 2: Static lookahead
-    echo '      ' $outfile 1 1 1 "2>$temp_file"
-    if $outfile 1 1 1 2>$temp_file; then
+    echo '      ' $outfile 1 1 1 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 1 1 1 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT2' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use description
@@ -157,7 +157,9 @@ Input: #tokens = 12, #unique situations = 22
        #terminal sets = 30, their size = 240
        #unique set cores = 10, #their start situations = 25
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 30
+       #unique set dist. vects = 10, their length = 25
+       #unique sets = 11, #their start situations = 26
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 4, their length = 4
@@ -176,8 +178,8 @@ fi
 # Test 2a.
 if test $result = ok -a $start_test_number -le 2; then
     echo test 2a: Static lookahead
-    echo '      ' $outfile 0 1 1 "2>$temp_file"
-    if $outfile 0 1 1 2>$temp_file; then
+    echo '      ' $outfile 0 1 1 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 0 1 1 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT2a' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use functions
@@ -186,7 +188,9 @@ Input: #tokens = 12, #unique situations = 22
        #terminal sets = 30, their size = 240
        #unique set cores = 10, #their start situations = 25
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 30
+       #unique set dist. vects = 10, their length = 25
+       #unique sets = 11, #their start situations = 26
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 4, their length = 4
@@ -205,8 +209,8 @@ fi
 # Test 3.
 if test $result = ok -a $start_test_number -le 3; then
     echo test 3: No lookahead
-    echo '      ' $outfile 1 0 1 "2>$temp_file"
-    if $outfile 1 0 1 2>$temp_file; then
+    echo '      ' $outfile 1 0 1 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 1 0 1 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT3' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use description
@@ -215,7 +219,9 @@ Input: #tokens = 12, #unique situations = 22
        #terminal sets = 8, their size = 64
        #unique set cores = 11, #their start situations = 42
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 44
+       #unique set dist. vects = 11, their length = 42
+       #unique sets = 12, #their start situations = 43
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 55, their trans+reduce vects length = 60
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 6, their length = 6
@@ -234,8 +240,8 @@ fi
 # Test 3a.
 if test $result = ok -a $start_test_number -le 3; then
     echo test 3a: No lookahead
-    echo '      ' $outfile 0 0 1 "2>$temp_file"
-    if $outfile 0 0 1 2>$temp_file; then
+    echo '      ' $outfile 0 0 1 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 0 0 1 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT3a' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use functions
@@ -244,7 +250,9 @@ Input: #tokens = 12, #unique situations = 22
        #terminal sets = 8, their size = 64
        #unique set cores = 11, #their start situations = 42
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 44
+       #unique set dist. vects = 11, their length = 42
+       #unique sets = 12, #their start situations = 43
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 55, their trans+reduce vects length = 60
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 6, their length = 6
@@ -263,8 +271,8 @@ fi
 # Test 3b.
 if test $result = ok -a $start_test_number -le 3; then
     echo test 3b: No lookahead
-    echo '      ' $outfile 0 -1 1 "2>$temp_file"
-    if $outfile 0 -1 1 2>$temp_file; then
+    echo '      ' $outfile 0 -1 1 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 0 -1 1 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT3b' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use functions
@@ -273,7 +281,9 @@ Input: #tokens = 12, #unique situations = 22
        #terminal sets = 8, their size = 64
        #unique set cores = 11, #their start situations = 42
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 44
+       #unique set dist. vects = 11, their length = 42
+       #unique sets = 12, #their start situations = 43
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 55, their trans+reduce vects length = 60
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 6, their length = 6
@@ -292,8 +302,8 @@ fi
 # Test 4.
 if test $result = ok -a $start_test_number -le 4; then
     echo test 4: Dynamic lookahead
-    echo '      ' $outfile 1 2 1 "2>$temp_file"
-    if $outfile 1 2 1 2>$temp_file; then
+    echo '      ' $outfile 1 2 1 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 1 2 1 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT4' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use description
@@ -302,7 +312,9 @@ Input: #tokens = 12, #unique situations = 45
        #terminal sets = 71, their size = 568
        #unique set cores = 13, #their start situations = 30
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 30
+       #unique set dist. vects = 10, their length = 25
+       #unique sets = 13, #their start situations = 30
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 48, their trans+reduce vects length = 54
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 4, their length = 4
@@ -321,22 +333,11 @@ fi
 # Test 4a.
 if test $result = ok -a $start_test_number -le 4; then
     echo test 4a: Dynamic lookahead
-    echo '      ' $outfile 0 2 1 "2>$temp_file"
-    if $outfile 0 2 1 2>$temp_file; then
+    echo '      ' $outfile 0 2 0 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 0 2 0 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT4a' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use functions
-Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
-Input: #tokens = 12, #unique situations = 45
-       #terminal sets = 71, their size = 568
-       #unique set cores = 13, #their start situations = 30
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 30
-       #pairs(set core, symb) = 48, their trans+reduce vects length = 54
-       #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 5, #abstract nodes = 4
-       #alternative nodes = 0, #all nodes = 9
 OUTPUT4a
                 result=ok
         else
@@ -350,22 +351,11 @@ fi
 # Test 4b.
 if test $result = ok -a $start_test_number -le 4; then
     echo test 4b: lookahead '>' 2
-    echo '      ' $outfile 0 3 1 "2>$temp_file"
-    if $outfile 0 3 1 2>$temp_file; then
+    echo '      ' $outfile 0 3 0 "2>$temp_file"
+    if $outfile 0 3 0 2>$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT4b' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use functions
-Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
-Input: #tokens = 12, #unique situations = 45
-       #terminal sets = 71, their size = 568
-       #unique set cores = 13, #their start situations = 30
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 30
-       #pairs(set core, symb) = 48, their trans+reduce vects length = 54
-       #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 5, #abstract nodes = 4
-       #alternative nodes = 0, #all nodes = 9
 OUTPUT4b
                 result=ok
         else
@@ -379,8 +369,8 @@ fi
 # Test 5.
 if test $result = ok -a $start_test_number -le 5; then
     echo test 5: Debugging level 2 -- printing translation.
-    echo '      ' $outfile 1 1 2 "2>$temp_file"
-    if $outfile 1 1 2 2>$temp_file; then
+    echo '      ' $outfile 1 1 2 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 1 1 2 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT5' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use description
@@ -400,7 +390,9 @@ Input: #tokens = 12, #unique situations = 22
        #terminal sets = 30, their size = 240
        #unique set cores = 10, #their start situations = 25
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 30
+       #unique set dist. vects = 10, their length = 25
+       #unique sets = 11, #their start situations = 26
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 4, their length = 4
@@ -419,8 +411,8 @@ fi
 # Test 5a.
 if test $result = ok -a $start_test_number -le 5; then
     echo test 5a: Debugging level 2 -- printing translation.
-    echo '      ' $outfile 0 1 2 "2>$temp_file"
-    if $outfile 0 1 2 2>$temp_file; then
+    echo '      ' $outfile 0 1 2 "2>&1|fgrep -v collisions >$temp_file"
+    if $outfile 0 1 2 2>&1|fgrep -v collisions >$temp_file; then
         echo '      ' $cmp $temp_file $temp3_file
         if cat <<'OUTPUT5a' >$temp3_file && $cmp $temp_file $temp3_file; then
 Use functions
@@ -440,7 +432,9 @@ Input: #tokens = 12, #unique situations = 22
        #terminal sets = 30, their size = 240
        #unique set cores = 10, #their start situations = 25
        #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 30
+       #unique set dist. vects = 10, their length = 25
+       #unique sets = 11, #their start situations = 26
+       #unique triples (set, term, lookahead) = 12
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
        #unique reduce vectors = 4, their length = 4
@@ -3596,8 +3590,8 @@ TEST28
         echo test 28: more error recovery.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT28' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 4 tokens starting with token = 5
@@ -3608,17 +3602,6 @@ Translation:
       3: TERMINAL: code=97, repr='a'
       4: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 11, #unique situations = 25
-       #terminal sets = 33, their size = 264
-       #unique set cores = 11, #their start situations = 20
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 25
-       #pairs(set core, symb) = 33, their trans+reduce vects length = 42
-       #unique transition vectors = 9, their length = 13
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 2, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT28
         	        result=ok
 	        else
@@ -3628,8 +3611,8 @@ OUTPUT28
         	result=fail
 	    fi
 	    if test $result = ok; then
-		echo '      ' $outfile 0 2 "2>$temp_file"
-		if $outfile 0 2 2>$temp_file; then
+		echo '      ' $outfile 0 2 "2>&1|fgrep -v '#' >$temp_file"
+		if $outfile 0 2 2>&1|fgrep -v '#' >$temp_file; then
 		    echo '      ' $cmp $temp_file $temp3_file
 		    if cat <<'OUTPUT28-1' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 4 tokens starting with token = 5
@@ -3640,17 +3623,6 @@ Translation:
       3: TERMINAL: code=97, repr='a'
       4: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 11, #unique situations = 26
-       #terminal sets = 8, their size = 64
-       #unique set cores = 11, #their start situations = 33
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 36
-       #pairs(set core, symb) = 46, their trans+reduce vects length = 55
-       #unique transition vectors = 11, their length = 15
-       #unique reduce vectors = 6, their length = 6
-       #term nodes = 2, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT28-1
 			    result=ok
 		    else
@@ -3661,8 +3633,8 @@ OUTPUT28-1
 		fi
 	   fi
 	   if test $result = ok; then
-		echo '      ' $outfile 2 2 "2>$temp_file"
-		if $outfile 2 2 2>$temp_file; then
+		echo '      ' $outfile 2 2 "2>&1|fgrep -v '#' >$temp_file"
+		if $outfile 2 2 2>&1|fgrep -v '#' >$temp_file; then
 		    echo '      ' $cmp $temp_file $temp3_file
 		    if cat <<'OUTPUT28-2' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 4 tokens starting with token = 5
@@ -3673,17 +3645,6 @@ Translation:
       3: TERMINAL: code=97, repr='a'
       4: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 11, #unique situations = 48
-       #terminal sets = 73, their size = 584
-       #unique set cores = 12, #their start situations = 23
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 25
-       #pairs(set core, symb) = 36, their trans+reduce vects length = 45
-       #unique transition vectors = 9, their length = 13
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 2, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT28-2
 			    result=ok
 		    else
@@ -3816,8 +3777,8 @@ TEST29
         echo test 29: more error recovery.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT29' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 5:ignore 4 tokens starting with token = 5
@@ -3828,17 +3789,6 @@ Translation:
       3: TERMINAL: code=97, repr='a'
       4: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 11, #unique situations = 25
-       #terminal sets = 33, their size = 264
-       #unique set cores = 10, #their start situations = 19
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 23
-       #pairs(set core, symb) = 28, their trans+reduce vects length = 34
-       #unique transition vectors = 9, their length = 13
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 2, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT29
         	        result=ok
 	        else
@@ -3848,8 +3798,8 @@ OUTPUT29
         	result=fail
 	    fi
 	    if test $result = ok; then
-		echo '      ' $outfile 0 2 "2>$temp_file"
-		if $outfile 0 2 2>$temp_file; then
+		echo '      ' $outfile 0 2 "2>&1|fgrep -v '#' >$temp_file"
+		if $outfile 0 2 2>&1|fgrep -v '#' >$temp_file; then
 		    echo '      ' $cmp $temp_file $temp3_file
 		    if cat <<'OUTPUT29-1' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 5:ignore 4 tokens starting with token = 5
@@ -3860,17 +3810,6 @@ Translation:
       3: TERMINAL: code=97, repr='a'
       4: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 11, #unique situations = 25
-       #terminal sets = 8, their size = 64
-       #unique set cores = 10, #their start situations = 27
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 31
-       #pairs(set core, symb) = 40, their trans+reduce vects length = 49
-       #unique transition vectors = 11, their length = 15
-       #unique reduce vectors = 6, their length = 6
-       #term nodes = 2, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT29-1
 			    result=ok
 		    else
@@ -3881,8 +3820,8 @@ OUTPUT29-1
 		fi
 	   fi
 	   if test $result = ok; then
-		echo '      ' $outfile 2 2 "2>$temp_file"
-		if $outfile 2 2 2>$temp_file; then
+		echo '      ' $outfile 2 2 "2>&1|fgrep -v '#' >$temp_file"
+		if $outfile 2 2 2>&1|fgrep -v '#' >$temp_file; then
 		    echo '      ' $cmp $temp_file $temp3_file
 		    if cat <<'OUTPUT29-2' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 5:ignore 4 tokens starting with token = 5
@@ -3893,17 +3832,6 @@ Translation:
       3: TERMINAL: code=97, repr='a'
       4: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 11, #unique situations = 34
-       #terminal sets = 55, their size = 440
-       #unique set cores = 10, #their start situations = 19
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 23
-       #pairs(set core, symb) = 28, their trans+reduce vects length = 34
-       #unique transition vectors = 9, their length = 13
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 2, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT29-2
 			    result=ok
 		    else
@@ -4037,8 +3965,8 @@ TEST30
         echo test 30: ambigous grammar.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT30' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -4052,17 +3980,6 @@ Translation:
       8: TERMINAL: code=97, repr='a'
       6: TERMINAL: code=97, repr='a'
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 6, rules size = 20
-Input: #tokens = 12, #unique situations = 18
-       #terminal sets = 22, their size = 176
-       #unique set cores = 13, #their start situations = 32
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 32
-       #pairs(set core, symb) = 32, their trans+reduce vects length = 56
-       #unique transition vectors = 8, their length = 16
-       #unique reduce vectors = 4, their length = 11
-       #term nodes = 5, #abstract nodes = 4
-       #alternative nodes = 0, #all nodes = 9
 OUTPUT30
         	        result=ok
 	        else
@@ -4195,8 +4112,8 @@ TEST31
         echo test 31: more ambigous grammar.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT31' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -4220,17 +4137,6 @@ Translation:
      17: ALTERNATIVE: node=7, next=18
      18: ALTERNATIVE: node=13, next=nil
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 6, rules size = 20
-Input: #tokens = 12, #unique situations = 18
-       #terminal sets = 22, their size = 176
-       #unique set cores = 13, #their start situations = 32
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 32
-       #pairs(set core, symb) = 32, their trans+reduce vects length = 56
-       #unique transition vectors = 8, their length = 16
-       #unique reduce vectors = 4, their length = 11
-       #term nodes = 5, #abstract nodes = 8
-       #alternative nodes = 6, #all nodes = 19
 OUTPUT31
         	        result=ok
 	        else
@@ -4364,8 +4270,8 @@ TEST32
         echo test 32: ambigous grammar with error recovery.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT32' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 5:ignore 4 tokens starting with token = 5
@@ -4376,17 +4282,6 @@ Translation:
       3: TERMINAL: code=97, repr='a'
       4: ERROR
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 7, rules size = 24
-Input: #tokens = 11, #unique situations = 21
-       #terminal sets = 25, their size = 200
-       #unique set cores = 10, #their start situations = 20
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 24
-       #pairs(set core, symb) = 20, their trans+reduce vects length = 35
-       #unique transition vectors = 9, their length = 18
-       #unique reduce vectors = 3, their length = 7
-       #term nodes = 2, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT32
         	        result=ok
 	        else
@@ -4519,25 +4414,14 @@ TEST33
         echo test 33: more ambigous grammar with error recovery.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT33' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 10 tokens starting with token = 0
 Translation:
       0: EMPTY
 
-Grammar: #terms = 7, #nonterms = 2, #rules = 6, rules size = 20
-Input: #tokens = 11, #unique situations = 17
-       #terminal sets = 21, their size = 168
-       #unique set cores = 10, #their start situations = 16
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 19
-       #pairs(set core, symb) = 21, their trans+reduce vects length = 32
-       #unique transition vectors = 8, their length = 16
-       #unique reduce vectors = 2, their length = 3
-       #term nodes = 0, #abstract nodes = 0
-       #alternative nodes = 0, #all nodes = 0
 OUTPUT33
         	        result=ok
 	        else
@@ -4671,8 +4555,8 @@ TEST34
         echo test 34: more ambigous grammar with error recovery.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT34' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 4 tokens starting with token = 5
@@ -4687,17 +4571,6 @@ Translation:
       7: ABSTRACT: plus ( 5 8 )
       8: ABSTRACT: mult ( 6 4 )
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 7, rules size = 24
-Input: #tokens = 11, #unique situations = 22
-       #terminal sets = 26, their size = 208
-       #unique set cores = 12, #their start situations = 23
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 14, their length = 25
-       #pairs(set core, symb) = 25, their trans+reduce vects length = 43
-       #unique transition vectors = 9, their length = 18
-       #unique reduce vectors = 3, their length = 7
-       #term nodes = 2, #abstract nodes = 4
-       #alternative nodes = 2, #all nodes = 8
 OUTPUT34
         	        result=ok
 	        else
@@ -4827,22 +4700,11 @@ TEST35
         echo test 35: error without error recovery.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 0 "2>$temp_file"
-	    if $outfile 1 2 0 2>$temp_file; then
+	    echo '      ' $outfile 1 2 0 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 0 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT35' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7
-Grammar: #terms = 7, #nonterms = 4, #rules = 8, rules size = 24
-Input: #tokens = 11, #unique situations = 18
-       #terminal sets = 26, their size = 208
-       #unique set cores = 7, #their start situations = 12
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 8, their length = 15
-       #pairs(set core, symb) = 25, their trans+reduce vects length = 30
-       #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 3, their length = 3
-       #term nodes = 0, #abstract nodes = 0
-       #alternative nodes = 0, #all nodes = 0
 OUTPUT35
         	        result=ok
 	        else
@@ -4973,8 +4835,8 @@ TEST36
         echo test 36: error recovery with 2 errors.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT36' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 2 tokens starting with token = 5
@@ -4987,17 +4849,6 @@ Translation:
       5: TERMINAL: code=97, repr='a'
       2: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 14, #unique situations = 25
-       #terminal sets = 33, their size = 264
-       #unique set cores = 13, #their start situations = 25
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 20, their length = 34
-       #pairs(set core, symb) = 38, their trans+reduce vects length = 47
-       #unique transition vectors = 10, their length = 14
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 2, #abstract nodes = 3
-       #alternative nodes = 0, #all nodes = 5
 OUTPUT36
         	        result=ok
 	        else
@@ -5131,8 +4982,8 @@ TEST37
         echo test 37: more error recovery with 2 errors.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT37' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 4 tokens starting with token = 5
@@ -5144,17 +4995,6 @@ Translation:
       5: TERMINAL: code=97, repr='a'
       2: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 14, #unique situations = 25
-       #terminal sets = 33, their size = 264
-       #unique set cores = 13, #their start situations = 25
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 20, their length = 34
-       #pairs(set core, symb) = 38, their trans+reduce vects length = 47
-       #unique transition vectors = 10, their length = 14
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 2, #abstract nodes = 3
-       #alternative nodes = 0, #all nodes = 5
 OUTPUT37
         	        result=ok
 	        else
@@ -5285,8 +5125,8 @@ TEST38
         echo test 38: more error recovery with 2 errors, another descr syntax.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT38' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 7:ignore 4 tokens starting with token = 5
@@ -5298,17 +5138,6 @@ Translation:
       5: TERMINAL: code=97, repr='a'
       2: ERROR
 
-Grammar: #terms = 7, #nonterms = 4, #rules = 9, rules size = 28
-Input: #tokens = 14, #unique situations = 25
-       #terminal sets = 33, their size = 264
-       #unique set cores = 13, #their start situations = 25
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 20, their length = 34
-       #pairs(set core, symb) = 38, their trans+reduce vects length = 47
-       #unique transition vectors = 10, their length = 14
-       #unique reduce vectors = 4, their length = 4
-       #term nodes = 2, #abstract nodes = 3
-       #alternative nodes = 0, #all nodes = 5
 OUTPUT38
         	        result=ok
 	        else
@@ -5444,8 +5273,8 @@ TEST39
         echo test 39: more ambigous grammar.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT39' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -5471,17 +5300,6 @@ Translation:
      19: ALTERNATIVE: node=20, next=nil
      20: ABSTRACT: plus ( 12 4 )
 
-AMBIGUOUS Grammar: #terms = 10, #nonterms = 2, #rules = 9, rules size = 26
-Input: #tokens = 8, #unique situations = 21
-       #terminal sets = 25, their size = 200
-       #unique set cores = 9, #their start situations = 29
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 9, their length = 29
-       #pairs(set core, symb) = 34, their trans+reduce vects length = 57
-       #unique transition vectors = 14, their length = 28
-       #unique reduce vectors = 4, their length = 13
-       #term nodes = 4, #abstract nodes = 9
-       #alternative nodes = 7, #all nodes = 20
 OUTPUT39
         	        result=ok
 	        else
@@ -5617,8 +5435,8 @@ TEST40
         echo test 40: more ambigous grammar.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT40' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -5644,17 +5462,6 @@ Translation:
      19: ALTERNATIVE: node=20, next=nil
      20: ABSTRACT: plus ( 3 12 )
 
-AMBIGUOUS Grammar: #terms = 10, #nonterms = 2, #rules = 9, rules size = 26
-Input: #tokens = 8, #unique situations = 20
-       #terminal sets = 24, their size = 192
-       #unique set cores = 9, #their start situations = 29
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 9, their length = 29
-       #pairs(set core, symb) = 34, their trans+reduce vects length = 57
-       #unique transition vectors = 14, their length = 28
-       #unique reduce vectors = 4, their length = 13
-       #term nodes = 4, #abstract nodes = 9
-       #alternative nodes = 7, #all nodes = 20
 OUTPUT40
         	        result=ok
 	        else
@@ -17167,8 +16974,8 @@ TEST42
         echo test 42: ambigous grammar with empty nodes.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT42' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -17178,17 +16985,6 @@ Translation:
       3: ABSTRACT: mult ( 4 2 )
       4: TERMINAL: code=97, repr='a'
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 2, #rules = 6, rules size = 20
-Input: #tokens = 12, #unique situations = 18
-       #terminal sets = 22, their size = 176
-       #unique set cores = 13, #their start situations = 32
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 32
-       #pairs(set core, symb) = 32, their trans+reduce vects length = 56
-       #unique transition vectors = 9, their length = 18
-       #unique reduce vectors = 4, their length = 9
-       #term nodes = 1, #abstract nodes = 3
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT42
         	        result=ok
 	        else
@@ -17325,8 +17121,8 @@ TEST43
         echo test 43: more ambigous grammar with empty nodes.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT43' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -17350,17 +17146,6 @@ Translation:
      17: ALTERNATIVE: node=18, next=nil
      18: ABSTRACT: plus ( 3 4 )
 
-AMBIGUOUS Grammar: #terms = 10, #nonterms = 2, #rules = 10, rules size = 30
-Input: #tokens = 8, #unique situations = 25
-       #terminal sets = 29, their size = 232
-       #unique set cores = 9, #their start situations = 37
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 9, their length = 37
-       #pairs(set core, symb) = 34, their trans+reduce vects length = 69
-       #unique transition vectors = 15, their length = 37
-       #unique reduce vectors = 4, their length = 17
-       #term nodes = 2, #abstract nodes = 8
-       #alternative nodes = 7, #all nodes = 17
 OUTPUT43
         	        result=ok
 	        else
@@ -17671,8 +17456,8 @@ TEST45
         echo test 45: ambigous grammar with cost and one parse tree.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT45' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -17683,17 +17468,6 @@ Translation:
       4: TERMINAL: code=97, repr='a'
       5: TERMINAL: code=97, repr='a'
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 3, #rules = 8, rules size = 36
-Input: #tokens = 12, #unique situations = 31
-       #terminal sets = 37, their size = 296
-       #unique set cores = 13, #their start situations = 34
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 34
-       #pairs(set core, symb) = 38, their trans+reduce vects length = 58
-       #unique transition vectors = 15, their length = 31
-       #unique reduce vectors = 4, their length = 5
-       #term nodes = 4, #abstract nodes = 4
-       #alternative nodes = 2, #all nodes = 10
 cost = 2
 OUTPUT45
         	        result=ok
@@ -17832,8 +17606,8 @@ TEST46
         echo test 46: ambigous grammar with cost and several parse trees.
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT46' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -17848,17 +17622,6 @@ Translation:
       4: ALTERNATIVE: node=9, next=nil
       9: ABSTRACT: madd ( 6 7 8 )
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 3, #rules = 8, rules size = 36
-Input: #tokens = 12, #unique situations = 31
-       #terminal sets = 37, their size = 296
-       #unique set cores = 13, #their start situations = 34
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 34
-       #pairs(set core, symb) = 38, their trans+reduce vects length = 58
-       #unique transition vectors = 15, their length = 31
-       #unique reduce vectors = 4, their length = 5
-       #term nodes = 4, #abstract nodes = 4
-       #alternative nodes = 2, #all nodes = 10
 cost = 3
 OUTPUT46
         	        result=ok
@@ -17989,8 +17752,8 @@ TEST47
         echo test 47: ambigous grammar with cost and one parse tree and freeing
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT47' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -18001,17 +17764,6 @@ Translation:
       4: TERMINAL: code=97, repr='a'
       5: TERMINAL: code=97, repr='a'
 
-AMBIGUOUS Grammar: #terms = 7, #nonterms = 3, #rules = 8, rules size = 36
-Input: #tokens = 12, #unique situations = 31
-       #terminal sets = 37, their size = 296
-       #unique set cores = 13, #their start situations = 34
-       #parent indexes for some non start situations = 0
-       #unique set dist. vects = 13, their length = 34
-       #pairs(set core, symb) = 38, their trans+reduce vects length = 58
-       #unique transition vectors = 15, their length = 31
-       #unique reduce vectors = 4, their length = 5
-       #term nodes = 4, #abstract nodes = 4
-       #alternative nodes = 2, #all nodes = 10
 cost = 2
 OUTPUT47
         	        result=ok
@@ -18138,8 +17890,8 @@ TEST48
         echo test 48: ambigous grammar with cost and one parse tree and freeing
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT48' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -18149,17 +17901,6 @@ Translation:
       3: TERMINAL: code=99, repr='c'
       4: EMPTY
 
-Grammar: #terms = 7, #nonterms = 5, #rules = 8, rules size = 25
-Input: #tokens = 6, #unique situations = 23
-       #terminal sets = 33, their size = 264
-       #unique set cores = 7, #their start situations = 12
-       #parent indexes for some non start situations = 8
-       #unique set dist. vects = 7, their length = 12
-       #pairs(set core, symb) = 25, their trans+reduce vects length = 34
-       #unique transition vectors = 11, their length = 13
-       #unique reduce vectors = 8, their length = 9
-       #term nodes = 1, #abstract nodes = 3
-       #alternative nodes = 0, #all nodes = 4
 OUTPUT48
         	        result=ok
 	        else
@@ -18282,8 +18023,8 @@ TEST49
         echo test 49: unambigous grammar abstarct node for an empty rule
         echo '      ' $CXX $CXX_options $test_file $addfiles -o $outfile
         if $CXX $CXX_options $test_file $addfiles -o $outfile; then
-	    echo '      ' $outfile 1 2 "2>$temp_file"
-	    if $outfile 1 2 2>$temp_file; then
+	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
+	    if $outfile 1 2 2>&1|fgrep -v '#' >$temp_file; then
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT49' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
@@ -18291,17 +18032,6 @@ Translation:
       1: ABSTRACT: opt ( 2 )
       2: EMPTY
 
-Grammar: #terms = 4, #nonterms = 3, #rules = 5, rules size = 12
-Input: #tokens = 2, #unique situations = 9
-       #terminal sets = 15, their size = 120
-       #unique set cores = 3, #their start situations = 5
-       #parent indexes for some non start situations = 1
-       #unique set dist. vects = 3, their length = 5
-       #pairs(set core, symb) = 8, their trans+reduce vects length = 9
-       #unique transition vectors = 4, their length = 4
-       #unique reduce vectors = 3, their length = 3
-       #term nodes = 0, #abstract nodes = 2
-       #alternative nodes = 0, #all nodes = 2
 OUTPUT49
         	        result=ok
 	        else

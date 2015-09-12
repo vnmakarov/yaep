@@ -111,7 +111,7 @@ hash_table::hash_table (size_t size,
   this->eq_function = eq_function;
   number_of_elements = 0;
   number_of_deleted_elements = 0;
-  _collisions = 0;
+  collisions = 0;
   searches = 0;
   for (entry_ptr = entries; entry_ptr < entries + size; entry_ptr++)
     *entry_ptr = EMPTY_ENTRY;
@@ -198,7 +198,7 @@ int hash_table::all_searches = 0;
 /* The following variable is used for debugging. Its value is number
    of collisions fixed for time of work with all hash tables. */
 
-int hash_table::_all_collisions = 0;
+int hash_table::all_collisions = 0;
 
 /* This function searches for hash table entry which contains element
    equal to given value or empty entry in which given value can be
@@ -226,7 +226,7 @@ hash_table::find_entry (hash_table_entry_t element, int reserve)
   searches++;
   all_searches++;
   first_deleted_entry_ptr = NULL;
-  for (;;_collisions++, _all_collisions++)
+  for (;;collisions++, all_collisions++)
     {
       entry_ptr = entries + hash_value;
       if (*entry_ptr == EMPTY_ENTRY)

@@ -104,7 +104,20 @@
 #define EARLEY_MAX_ERROR_MESSAGE_LENGTH 200
 #endif
 
-/*#define SYMB_CODE_TRANS_VECT*/
+/* Define if you don't want to use hash table: symb code -> code.  It
+   is faster not to use hash tables but it requires more memory if
+   symb codes are sparse.  */
+#define SYMB_CODE_TRANS_VECT
+/* Define this if you want to reuse already calculated Earley's sets
+   and fast their reproduction.  It considerably speed up the
+   parser.  */
+#define USE_SET_HASH_TABLE
+
+/* Define the following macro if you want to use absolute distances
+   (in other words parsing list indexes) in Earley sets.  We don't
+   recommend this as it considerably slows down the parser (there are
+   much more unique triples [set, term, lookahead] in this case).  */
+/* #define ABSOLUTE_DISTANCES */
 
 /* The following is major structure which stores information about
    grammar. */
@@ -1386,6 +1399,8 @@ struct set_core
   /* The following is unique number of the set core. It is defined
      only after forming all set. */
   int num;
+  /* The set core hash.  We save it as it is used several times.  */
+  unsigned int hash;
   /* The following is term shifting which resulted into this core.  It
      is defined only after forming all set. */
   struct symb *term;
@@ -1418,6 +1433,9 @@ struct set
      core only through this member or variable `new_core' (in other
      words don't save the member value in another variable).*/
   struct set_core *core;
+  /* Hash of the set distances.  We save it as it is used several
+     times.  */
+  unsigned int dists_hash;
   /* The following is distances only for start situations.  Other
      situations have their distances equal to 0.  The start situation
      in set core and the corresponding distance has the same index.
@@ -1425,6 +1443,25 @@ struct set
      variable `new_dists' (in other words don't save the member value
      in another variable). */
   int *dists;
+};
+
+/* Maximal goto sets saved for triple (set, terminal, lookahead).  */ 
+#define MAX_CACHED_GOTO_RESULTS 5
+
+/* The triple and possible goto sets for it.  */
+struct set_term_lookahead
+{
+  struct set *set;
+  struct symb *term;
+  int lookahead;
+  /* Saved goto sets form a queue.  The last goto is saved at the
+     following array elements whose index is given by CURR.  */
+  int curr;
+  /* Saved goto sets to which we can go from SET by the terminal with
+     subsequent terminal LOOKAHEAD given by its code.  */
+  struct set *result[MAX_CACHED_GOTO_RESULTS];
+  /* Corresponding places of the goto sets in the parsing list.  */
+  int place[MAX_CACHED_GOTO_RESULTS];
 };
 
 /* The following variable is set being created.  It can be read
@@ -1454,6 +1491,12 @@ static int new_n_start_sits;
    number of parent indexes.  The variables can be read externally. */
 static int n_set_cores, n_set_core_start_sits;
 static int n_set_dists, n_set_dists_len, n_parent_indexes;
+
+/* Number unique sets and their start situations.  */
+static int n_sets, n_sets_start_sits;
+
+/* Number unique triples (set, term, lookahead).  */
+static int n_set_term_lookaheads;
 
 /* The set cores of formed sets are placed in the following os. */
 #ifndef __cplusplus
@@ -1492,26 +1535,26 @@ static os_t sets_os;
 static os_t *sets_os;
 #endif
 
-/* The following two tables contain references for sets which refers
-   for set cores or distances which are in the tables. */
+/* Container for triples (set, term, lookahead.  */
+#ifndef __cplusplus
+static os_t set_term_lookahead_os;
+#else
+static os_t *set_term_lookahead_os;
+#endif
+
+/* The following 3 tables contain references for sets which refers
+   for set cores or distances or both which are in the tables. */
 static hash_table_t set_core_tab; /* key is only start situations. */
 static hash_table_t set_dists_tab; /* key is distances. */
+static hash_table_t set_tab; /* key is (core, distances). */
+/* Table for triples (set, term, lookahead).  */
+static hash_table_t set_term_lookahead_tab; /* key is (core, distances, lookeahed). */
 
 /* Hash of set core. */
 static unsigned
 set_core_hash (hash_table_entry_t s)
 {
-  struct set_core *set_core = ((struct set *) s)->core;
-  int n_sits = set_core->n_start_sits;
-  unsigned result;
-  struct sit **sit_ptr, **sit_bound;
-
-  sit_ptr = set_core->sits;
-  sit_bound = sit_ptr + n_sits;
-  result = n_sits << ((sizeof (unsigned) - 1) * CHAR_BIT);
-  while (sit_ptr < sit_bound)
-    result += (size_t) *sit_ptr++;
-  return result;
+  return ((struct set *) s)->core->hash;
 }
 
 /* Equality of set cores. */
@@ -1537,16 +1580,7 @@ set_core_eq (hash_table_entry_t s1, hash_table_entry_t s2)
 static unsigned
 dists_hash (hash_table_entry_t s)
 {
-  int *dist_ptr = ((struct set *) s)->dists;
-  int n_dists = ((struct set *) s)->core->n_start_sits;
-  int *dist_bound;
-  unsigned result;
-
-  dist_bound = dist_ptr + n_dists;
-  result = n_dists << ((sizeof (unsigned) - 1) * CHAR_BIT);
-  while (dist_ptr < dist_bound)
-    result += *dist_ptr++;
-  return result;
+  return ((struct set *) s)->dists_hash;
 }
 
 /* Equality of distances. */
@@ -1567,6 +1601,50 @@ dists_eq (hash_table_entry_t s1, hash_table_entry_t s2)
   return TRUE;
 }
 
+/* Hash of set core and distances. */
+static unsigned
+set_core_dists_hash (hash_table_entry_t s)
+{
+  return set_core_hash (s) + dists_hash (s);
+}
+
+/* Equality of set cores and distances. */
+static int
+set_core_dists_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+{
+  struct set_core *set_core1 = ((struct set *) s1)->core;
+  struct set_core *set_core2 = ((struct set *) s2)->core;
+  int *dists1 = ((struct set *) s1)->dists;
+  int *dists2 = ((struct set *) s2)->dists;
+
+  return set_core1 == set_core2 && dists1 == dists2;
+}
+
+/* Hash of triple (set, term, lookahead). */
+static unsigned
+set_term_lookahead_hash (hash_table_entry_t s)
+{
+  struct set *set = ((struct set_term_lookahead *) s)->set;
+  struct symb *term = ((struct set_term_lookahead *) s)->term;
+  int lookahead = ((struct set_term_lookahead *) s)->lookahead;
+  
+  return set_core_dists_hash (set) + (term->u.term.term_num << 16) + lookahead;
+}
+
+/* Equality of tripes (set, term, lookahead). */
+static int
+set_term_lookahead_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+{
+  struct set *set1 = ((struct set_term_lookahead *) s1)->set;
+  struct set *set2 = ((struct set_term_lookahead *) s2)->set;
+  struct symb *term1 = ((struct set_term_lookahead *) s1)->term;
+  struct symb *term2 = ((struct set_term_lookahead *) s2)->term;
+  int lookahead1 = ((struct set_term_lookahead *) s1)->lookahead;
+  int lookahead2 = ((struct set_term_lookahead *) s2)->lookahead;
+
+  return set1 == set2 && term1 == term2 && lookahead1 == lookahead2;
+}
+
 /* Initialize work with sets. */
 static void
 set_init (void)
@@ -1576,10 +1654,15 @@ set_init (void)
   OS_CREATE (set_parent_indexes_os, 2048);
   OS_CREATE (set_dists_os, 2048);
   OS_CREATE (sets_os, 0);
+  OS_CREATE (set_term_lookahead_os, 0);
   set_core_tab = create_hash_table (2000, set_core_hash, set_core_eq);
-  set_dists_tab = create_hash_table (10000, dists_hash, dists_eq);
+  set_dists_tab = create_hash_table (20000, dists_hash, dists_eq);
+  set_tab = create_hash_table (20000, set_core_dists_hash, set_core_dists_eq);
+  set_term_lookahead_tab = create_hash_table (50000, set_term_lookahead_hash, set_term_lookahead_eq);
   n_set_cores = n_set_core_start_sits = 0;
   n_set_dists = n_set_dists_len = n_parent_indexes = 0;
+  n_sets = n_sets_start_sits = 0;
+  n_set_term_lookaheads = 0;
 }
 
 /* The following function starts forming of new set. */
@@ -1669,6 +1752,45 @@ set_new_add_initial_sit (struct sit *sit)
   new_core->n_sits++;
 }
 
+/* Set up hash of distances of set S. */
+static void
+setup_set_dists_hash (hash_table_entry_t s)
+{
+  struct set *set = ((struct set *) s);
+  int *dist_ptr = set->dists;
+  int n_dists = set->core->n_start_sits;
+  int *dist_bound;
+  unsigned result;
+
+  dist_bound = dist_ptr + n_dists;
+  result = n_dists << ((sizeof (unsigned) - 1) * CHAR_BIT);
+  while (dist_ptr < dist_bound)
+    result += *dist_ptr++;
+  set->dists_hash = result;
+}
+
+/* Set up hash of core of set S. */
+static void
+setup_set_core_hash (hash_table_entry_t s)
+{
+  struct set_core *set_core = ((struct set *) s)->core;
+  int n, i, usize;
+  int n_sits = set_core->n_start_sits;
+  unsigned result;
+  struct sit **sit_ptr;
+
+  sit_ptr = set_core->sits;
+  usize = sizeof (unsigned) * CHAR_BIT;
+  result = n_sits << ((usize - 1) * CHAR_BIT);
+  for (i = 0; i < n_sits; i++)
+    {
+      n = sit_ptr[i]->sit_number;
+      result += (((unsigned) n >> i % usize)
+		 | ((unsigned) n << (usize - i % usize)));
+    }
+  set_core->hash = result;
+}
+
 /* The new set should contain only start situations.  Sort situations,
    remove duplicates and insert set into the set table.  If the
    function returns TRUE then set contains new set core (there was no
@@ -1688,7 +1810,8 @@ set_insert (void)
   struct sit **curr_sits;
   int *curr_dists;
   int h;
-
+  int result;
+  
   /* Sort situations and distances.  */
   /* Because the array is small and probably ordered, we use shell
      sort with big steps which becomes sorting by insertions for small
@@ -1708,7 +1831,11 @@ set_insert (void)
 	      break;
 	    else if ((*curr_sits)->sit_number == sit_number)
 	      {
+#ifndef ABSOLUTE_DISTANCES
 		if (*curr_dists < dist)
+#else
+		if (*curr_dists > dist)
+#endif
 		  break;
 		else if (*curr_dists == dist)
 		  {
@@ -1739,15 +1866,15 @@ set_insert (void)
     }
   OS_TOP_EXPAND (sets_os, sizeof (struct set));
   new_set = (struct set *) OS_TOP_BEGIN (sets_os);
-  OS_TOP_FINISH (sets_os);
   new_set->dists = new_dists;
   OS_TOP_EXPAND (set_cores_os, sizeof (struct set_core));
   new_set->core = new_core = (struct set_core *) OS_TOP_BEGIN (set_cores_os);
   new_core->n_start_sits = new_n_start_sits;
   new_core->sits = new_sits;
   new_set_ready_p = TRUE;
-#ifdef USE_DIST_HASH_TABLE
+#if defined(USE_DIST_HASH_TABLE) || defined (USE_SET_HASH_TABLE)
   /* Insert dists into table. */
+  setup_set_dists_hash (new_set);
   entry = find_hash_table_entry (set_dists_tab, new_set, TRUE);
   if (*entry != NULL)
     {
@@ -1767,6 +1894,7 @@ set_insert (void)
   n_set_dists_len += new_n_start_sits;
 #endif
   /* Insert set core into table. */
+  setup_set_core_hash (new_set);
   entry = find_hash_table_entry (set_core_tab, new_set, TRUE);
   if (*entry != NULL)
     {
@@ -1774,7 +1902,7 @@ set_insert (void)
       new_set->core = new_core = ((struct set *) *entry)->core;
       new_sits = new_core->sits;
       OS_TOP_NULLIFY (set_sits_os);
-      return FALSE;
+      result = FALSE;
     }
   else
     {
@@ -1785,8 +1913,27 @@ set_insert (void)
       new_core->parent_indexes = NULL;
       *entry = (hash_table_entry_t) new_set;
       n_set_core_start_sits += new_n_start_sits;
-      return TRUE;
+      result = TRUE;
     }
+#ifdef USE_SET_HASH_TABLE
+  /* Insert set into table. */
+  entry = find_hash_table_entry (set_tab, new_set, TRUE);
+  if (*entry == NULL)
+    {
+      *entry = (hash_table_entry_t) new_set;
+      n_sets++;
+      n_sets_start_sits += new_n_start_sits;
+      OS_TOP_FINISH (sets_os);
+    }
+  else
+    {
+      new_set = (struct set *) *entry;
+      OS_TOP_NULLIFY (sets_os);
+    }
+#else
+  OS_TOP_FINISH (sets_os);
+#endif
+  return result;
 }
 
 /* The following function finishes work with set being formed. */
@@ -1804,9 +1951,10 @@ set_new_core_stop (void)
 
 /* The following function prints SET to file F.  If NONSTART_P is TRUE
    then print all situations.  The situations are printed with the
-   lookahead set if LOOKAHEAD_P. */
+   lookahead set if LOOKAHEAD_P.  SET_DIST is used to print absolute
+   distances of non-start situations.  */
 static void
-set_print (FILE *f, struct set *set, int nonstart_p, int lookahead_p)
+set_print (FILE *f, struct set *set, int set_dist, int nonstart_p, int lookahead_p)
 {
   int i;
   int num, n_start_sits, n_sits, n_all_dists;
@@ -1842,7 +1990,12 @@ set_print (FILE *f, struct set *set, int nonstart_p, int lookahead_p)
       sit_print (f, sits [i], lookahead_p);
       fprintf (f, ", %d\n",
 	       (i < n_start_sits
-		? dists [i] : i < n_all_dists ? parent_indexes [i] : 0));
+		? dists [i] : i < n_all_dists ? parent_indexes [i]
+#ifndef ABSOLUTE_DISTANCES
+		: 0));
+#else
+		: set_dist));
+#endif
       if (i == n_start_sits - 1)
 	{
 	  if (!nonstart_p)
@@ -1858,8 +2011,11 @@ set_print (FILE *f, struct set *set, int nonstart_p, int lookahead_p)
 static void
 set_fin (void)
 {
+  delete_hash_table (set_term_lookahead_tab);
+  delete_hash_table (set_tab);
   delete_hash_table (set_dists_tab);
   delete_hash_table (set_core_tab);
+  OS_DELETE (set_term_lookahead_os);
   OS_DELETE (sets_os);
   OS_DELETE (set_parent_indexes_os);
   OS_DELETE (set_sits_os);
@@ -3430,7 +3586,7 @@ build_start_set (void)
     {
       fprintf (stderr, "\nParsing start...\n");
       if (grammar->debug_level > 3)
-	set_print (stderr, new_set, grammar->debug_level > 4,
+	set_print (stderr, new_set, 0, grammar->debug_level > 4,
 		   grammar->debug_level > 5);
     }
 #endif
@@ -3463,7 +3619,11 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
 	  && !term_set_test (new_sit->lookahead, lookahead_term_num)
 	  && !term_set_test (new_sit->lookahead, grammar->term_error_num))
 	continue;
+#ifndef ABSOLUTE_DISTANCES
       dist = 0;
+#else
+      dist = pl_curr;
+#endif
       if (sit_ind < set_core->n_all_dists)
 	{
 	  if (sit_ind < set_core->n_start_sits)
@@ -3471,7 +3631,11 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
 	  else
 	    dist = set->dists [set_core->parent_indexes [sit_ind]];
 	}
+#ifndef ABSOLUTE_DISTANCES
       set_new_add_start_sit (new_sit, dist + 1);
+#else
+      set_new_add_start_sit (new_sit, dist);
+#endif
     }
   for (i = 0; i < new_n_start_sits; i++)
     {
@@ -3483,7 +3647,11 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
 	  /* All tail in new sitiation may derivate empty string so
 	     make reduce and add new situations. */
 	  new_dist = new_dists [i];
+#ifndef ABSOLUTE_DISTANCES
 	  prev_set = pl [pl_curr + 1 - new_dist];
+#else
+	  prev_set = pl [new_dist];
+#endif
 	  prev_set_core = prev_set->core;
 	  prev_core_symb_vect = core_symb_vect_find (prev_set_core,
 						     new_sit->rule->lhs);
@@ -3506,7 +3674,11 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
 		  && !term_set_test (new_sit->lookahead,
 				     grammar->term_error_num))
 		continue;
+#ifndef ABSOLUTE_DISTANCES
 	      dist = 0;
+#else
+	      dist = new_dist;
+#endif
 	      if (sit_ind < prev_set_core->n_all_dists)
 		{
 		  if (sit_ind < prev_set_core->n_start_sits)
@@ -3515,7 +3687,11 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
 		    dist = prev_set->dists [prev_set_core->parent_indexes
 					   [sit_ind]];
 		}
+#ifndef ABSOLUTE_DISTANCES
 	      set_new_add_start_sit (new_sit, dist + new_dist);
+#else
+	      set_new_add_start_sit (new_sit, dist);
+#endif
 	    }
 	  while (curr_el < bound);
 	}
@@ -3622,7 +3798,7 @@ save_original_sets (void)
 	  fprintf (stderr, "++++Save original set=%d\n", curr_pl);
 	  if (grammar->debug_level > 3)
 	    {
-	      set_print (stderr, pl [curr_pl], grammar->debug_level > 4,
+	      set_print (stderr, pl [curr_pl], curr_pl, grammar->debug_level > 4,
 			 grammar->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
@@ -3657,7 +3833,7 @@ restore_original_sets (int last_pl_el)
 		   original_last_pl_el);
 	  if (grammar->debug_level > 3)
 	    {
-	      set_print (stderr, pl [original_last_pl_el],
+	      set_print (stderr, pl [original_last_pl_el], original_last_pl_el,
 			 grammar->debug_level > 4,
 			 grammar->debug_level > 5);
 	      fprintf (stderr, "\n");
@@ -3724,7 +3900,7 @@ new_recovery_state (int last_original_pl_el, int backward_move_cost)
       if (grammar->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++Saving set=%d\n", i);
-	  set_print (stderr, pl [i], grammar->debug_level > 4,
+	  set_print (stderr, pl [i], i, grammar->debug_level > 4,
 		     grammar->debug_level > 5);
 	  fprintf (stderr, "\n");
 	}
@@ -3795,7 +3971,7 @@ set_recovery_state (struct recovery_state *state)
       if (grammar->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++Add saved set=%d\n", pl_curr);
-	  set_print (stderr, pl [pl_curr], grammar->debug_level > 4,
+	  set_print (stderr, pl [pl_curr], pl_curr, grammar->debug_level > 4,
 		     grammar->debug_level > 5);
 	  fprintf (stderr, "\n");
 	}
@@ -3932,7 +4108,7 @@ error_recovery (int *start, int *stop)
 	  fprintf (stderr, "++Trying new set=%d\n", pl_curr);
 	  if (grammar->debug_level > 3)
 	    {
-	      set_print (stderr, new_set, grammar->debug_level > 4,
+	      set_print (stderr, new_set, pl_curr, grammar->debug_level > 4,
 			 grammar->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
@@ -3997,7 +4173,7 @@ error_recovery (int *start, int *stop)
 	{
 	  fprintf (stderr, "++++++++Building new set=%d\n", pl_curr);
 	  if (grammar->debug_level > 3)
-	    set_print (stderr, new_set, grammar->debug_level > 4,
+	    set_print (stderr, new_set, pl_curr, grammar->debug_level > 4,
 		       grammar->debug_level > 5);
 	}
 #endif
@@ -4090,7 +4266,7 @@ error_recovery (int *start, int *stop)
       symb_print (stderr, toks [tok_curr].symb, TRUE);
       fprintf (stderr, ", Current set=%d:\n", pl_curr);
       if (grammar->debug_level > 3)
-	set_print (stderr, pl [pl_curr], grammar->debug_level > 4,
+	set_print (stderr, pl [pl_curr], pl_curr, grammar->debug_level > 4,
 		   grammar->debug_level > 5);
     }
 #endif
@@ -4115,23 +4291,55 @@ error_recovery_fin (void)
 
 
 
+
+#if MAKE_INLINE
+INLINE
+#endif
+/* Return TRUE if goto set SET from parsing list PLACE can be used as
+   the next set.  The criterium is that all origin sets of start
+   situations are the same as from PLACE.  */
+static int
+check_cached_transition_set (struct set *set, int place)
+{
+  int i, dist;
+  int *dists = set->dists;
+  
+  for (i = set->core->n_start_sits - 1; i >= 0; i--)
+    {
+      dist = dists[i];
+      /* Sets at origins of situations with distance one are supposed
+	 to be the same.  */
+      if (dist > 1 && pl[pl_curr + 1 - dist] != pl[place + 1 - dist])
+	return FALSE;
+    }
+  return TRUE;
+}
+
 /* The following function is major function forming parsing list in
    Earley's algorithm. */
 static void
 build_pl (void)
 {
+  int i;
   struct symb *term;
   struct set *set;
   struct core_symb_vect *core_symb_vect;
   int lookahead_term_num;
+#ifdef USE_SET_HASH_TABLE
+  hash_table_entry_t *entry;
+  struct set_term_lookahead *new_set_term_lookahead;
+#endif
 
   error_recovery_init ();
   build_start_set ();
+  lookahead_term_num = -1;
   for (tok_curr = pl_curr = 0; tok_curr < toks_len; tok_curr++)
     {
       term = toks [tok_curr].symb;
-      lookahead_term_num = (tok_curr < toks_len - 1
-			    ? toks [tok_curr + 1].symb->u.term.term_num : -1);
+      if (grammar->lookahead_level != 0)
+	lookahead_term_num = (tok_curr < toks_len - 1
+			      ? toks [tok_curr + 1].symb->u.term.term_num : -1);
+	
 #ifndef NO_EARLEY_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
@@ -4141,37 +4349,82 @@ build_pl (void)
 	}
 #endif
       set = pl [pl_curr];
-      core_symb_vect = core_symb_vect_find (set->core, term);
-      if (core_symb_vect == NULL)
+      new_set = NULL;
+#ifdef USE_SET_HASH_TABLE
+      OS_TOP_EXPAND (set_term_lookahead_os, sizeof (struct set_term_lookahead));
+      new_set_term_lookahead = (struct set_term_lookahead *) OS_TOP_BEGIN (set_term_lookahead_os);
+      new_set_term_lookahead->set = set;
+      new_set_term_lookahead->term = term;
+      new_set_term_lookahead->lookahead = lookahead_term_num;
+      for (i = 0; i < MAX_CACHED_GOTO_RESULTS; i++)
+	new_set_term_lookahead->result [i] = NULL;
+      new_set_term_lookahead->curr = 0;
+      entry = find_hash_table_entry (set_term_lookahead_tab, new_set_term_lookahead, TRUE);
+      if (*entry != NULL)
 	{
-	  int saved_tok_curr, start, stop;
-
-	  /* Error recovery.  We do not check transition vector
-	     because for terminal transition vector is never NULL and
-	     reduce is always NULL. */
-	  saved_tok_curr = tok_curr;
-	  if (grammar->error_recovery_p)
-	    {
-	      error_recovery (&start, &stop);
-	      syntax_error (saved_tok_curr, toks [saved_tok_curr].attr,
-			    start, toks [start].attr, stop, toks [stop].attr);
-	      continue;
-	    }
-	  else
-	    {
-	      syntax_error (saved_tok_curr, toks [saved_tok_curr].attr,
-			    -1, NULL, -1, NULL);
+	  struct set *tab_set;
+	  
+	  OS_TOP_NULLIFY (set_term_lookahead_os);
+	  for (i = 0; i < MAX_CACHED_GOTO_RESULTS; i++)
+	    if ((tab_set = ((struct set_term_lookahead *) *entry)->result [i]) == NULL)
 	      break;
-	    }
+	    else if (check_cached_transition_set
+		     (tab_set, ((struct set_term_lookahead *) *entry)->place[i]))
+	      {
+		new_set = tab_set;
+		break;
+	      }
 	}
-      build_new_set (set, core_symb_vect, lookahead_term_num);
+      else
+	{
+	  OS_TOP_FINISH (set_term_lookahead_os);
+	  *entry = (hash_table_entry_t) new_set_term_lookahead;
+	  n_set_term_lookaheads++;
+	}
+      
+#endif
+      if (new_set == NULL)
+	{
+	  core_symb_vect = core_symb_vect_find (set->core, term);
+	  if (core_symb_vect == NULL)
+	    {
+	      int saved_tok_curr, start, stop;
+	      
+	      /* Error recovery.  We do not check transition vector
+		 because for terminal transition vector is never NULL
+		 and reduce is always NULL. */
+	      saved_tok_curr = tok_curr;
+	      if (grammar->error_recovery_p)
+		{
+		  error_recovery (&start, &stop);
+		  syntax_error (saved_tok_curr, toks [saved_tok_curr].attr,
+				start, toks [start].attr, stop, toks [stop].attr);
+		  continue;
+		}
+	      else
+		{
+		  syntax_error (saved_tok_curr, toks [saved_tok_curr].attr,
+				-1, NULL, -1, NULL);
+		  break;
+		}
+	    }
+	  build_new_set (set, core_symb_vect, lookahead_term_num);
+#ifdef USE_SET_HASH_TABLE
+	  /* Save (set, term, lookahead) -> new_set in the table.  */
+	  i = ((struct set_term_lookahead *) *entry)->curr;
+	  ((struct set_term_lookahead *) *entry)->result [i] = new_set;
+	  ((struct set_term_lookahead *) *entry)->place [i] = pl_curr;
+	  ((struct set_term_lookahead *) *entry)->lookahead = lookahead_term_num;
+	  ((struct set_term_lookahead *) *entry)->curr = (i + 1) % MAX_CACHED_GOTO_RESULTS;
+#endif
+	}
       pl [++pl_curr] = new_set;
 #ifndef NO_EARLEY_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "New set=%d\n", pl_curr);
 	  if (grammar->debug_level > 3)
-	    set_print (stderr, new_set, grammar->debug_level > 4,
+	    set_print (stderr, new_set, pl_curr, grammar->debug_level > 4,
 		       grammar->debug_level > 5);
 	}
 #endif
@@ -4851,7 +5104,12 @@ make_parse (int *ambiguous_p)
   set = pl [pl_curr];
   assert (grammar->axiom != NULL);
   sit = (set->core->sits != NULL ? set->core->sits [0] : NULL);
-  if (sit == NULL || set->dists [0] != pl_curr
+  if (sit == NULL
+#ifndef ABSOLUTE_DISTANCES
+      || set->dists [0] != pl_curr
+#else
+      || set->dists [0] != 0
+#endif
       || sit->rule->lhs != grammar->axiom || sit->pos != sit->rule->rhs_len)
     {
       /* It is possible only if error recovery is switched off.
@@ -4949,7 +5207,7 @@ make_parse (int *ambiguous_p)
 	{
 	  /* Terminal before dot: */
 	  pl_ind--; /* l */
-#if 0
+#ifndef ABSOLUTE_DISTANCES
 	  /* Because of error recovery toks [pl_ind].symb may be not
              equal to symb. */
 	  assert (toks [pl_ind].symb == symb);
@@ -4997,10 +5255,19 @@ make_parse (int *ambiguous_p)
 	  sit_ind = core_symb_vect->reduces.els [i];
 	  sit = set_core->sits [sit_ind];
 	  if (sit_ind < set_core->n_start_sits)
+#ifndef ABSOLUTE_DISTANCES
 	    sit_orig = pl_ind - set->dists [sit_ind];
+#else
+	    sit_orig = set->dists [sit_ind];
+#endif
 	  else if (sit_ind < set_core->n_all_dists)
+#ifndef ABSOLUTE_DISTANCES
 	    sit_orig = pl_ind - set->dists [set_core->parent_indexes
 					   [sit_ind]];
+#else
+	    sit_orig = set->dists [set_core->parent_indexes
+				   [sit_ind]];
+#endif
 	  else
 	    sit_orig = pl_ind;
 #if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
@@ -5026,13 +5293,23 @@ make_parse (int *ambiguous_p)
 	      if (check_sit_ind < check_set_core->n_all_dists)
 		{
 		  if (check_sit_ind < check_set_core->n_start_sits)
+#ifndef ABSOLUTE_DISTANCES
 		    check_sit_orig
 		      = sit_orig - check_set->dists [check_sit_ind];
+#else
+  		    check_sit_orig = check_set->dists [check_sit_ind];
+#endif
 		  else
+#ifndef ABSOLUTE_DISTANCES
 		    check_sit_orig
 		      = (sit_orig
 			 - check_set->dists [check_set_core->parent_indexes
 					    [check_sit_ind]]);
+#else
+		    check_sit_orig
+		      = check_set->dists [check_set_core->parent_indexes
+					  [check_sit_ind]];
+#endif
 		}
 	      if (check_sit_orig == orig)
 		{
@@ -5301,7 +5578,8 @@ earley_parse (struct grammar *g,
 	      struct earley_tree_node **root, int *ambiguous_p)
 {
   int code, parse_init_p;
-
+  int tab_collisions, tab_searches;
+  
   grammar = g;
   assert (grammar != NULL);
   symbs_ptr = g->symbs_ptr;
@@ -5331,8 +5609,23 @@ earley_parse (struct grammar *g,
   parse_init_p = TRUE;
   read_toks ();
   pl_create ();
+#ifndef __cplusplus
+  tab_collisions = get_all_collisions ();
+  tab_searches = get_all_searches ();
+#else
+  tab_collisions = hash_table::get_all_collisions ();
+  tab_searches = hash_table::get_all_searches ();
+#endif
   build_pl ();
   *root = make_parse (ambiguous_p);
+#ifndef __cplusplus
+  tab_collisions = get_all_collisions () - tab_collisions;
+  tab_searches = get_all_searches () - tab_searches;
+#else
+  tab_collisions = hash_table::get_all_collisions () - tab_collisions;
+  tab_searches = hash_table::get_all_searches () - tab_searches;
+#endif
+  
 #ifndef NO_EARLEY_DEBUG_PRINT
   if (grammar->debug_level > 0)
     {
@@ -5357,6 +5650,11 @@ earley_parse (struct grammar *g,
 	       "       #unique set dist. vects = %d, their length = %d\n",
 	       n_set_dists, n_set_dists_len);
       fprintf (stderr,
+	       "       #unique sets = %d, #their start situations = %d\n",
+	       n_sets, n_sets_start_sits);
+      fprintf (stderr, "       #unique triples (set, term, lookahead) = %d\n",
+	       n_set_term_lookaheads);
+      fprintf (stderr,
 	       "       #pairs(set core, symb) = %d, their trans+reduce vects length = %d\n",
 	       n_core_symb_pairs, n_core_symb_vect_len);
       fprintf (stderr,
@@ -5373,6 +5671,12 @@ earley_parse (struct grammar *g,
 	       n_parse_alt_nodes,
 	       n_parse_term_nodes + n_parse_abstract_nodes
 	       + n_parse_alt_nodes);
+      if (tab_searches == 0)
+	tab_searches++;
+      fprintf (stderr,
+	       "       #table collisions = %.2g%% (%d out of %d)\n",
+	       tab_collisions * 100.0 / tab_searches,
+	       tab_collisions, tab_searches);
     }
 #endif
   earley_parse_fin ();

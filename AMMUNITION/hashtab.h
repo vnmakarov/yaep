@@ -109,9 +109,41 @@ extern size_t hash_table_size (hash_table_t htab);
 
 extern size_t hash_table_elements_number (hash_table_t htab);
 
-extern int hash_table_collisions (hash_table_t htab);
+/* The following function returns number of searches during all work
+   with given hash table. */
+static inline int
+get_searches (hash_table_t htab)
+{
+  return htab->searches;
+}
 
-extern int all_hash_table_collisions (void);
+/* The following function returns number of occurred collisions during
+   all work with given hash table. */
+static inline int
+get_collisions (hash_table_t htab)
+{
+  return htab->collisions;
+}
+
+/* The following function returns number of searches during all work
+   with all hash tables. */
+static inline int
+get_all_searches (void)
+{
+  return all_searches;
+}
+
+/* The following function returns number of occurred collisions
+   during all work with all hash tables. */
+static inline int
+get_all_collisions (void)
+{
+  return all_collisions;
+}
+
+extern int hash_table_collision_percentage (hash_table_t htab);
+
+extern int all_hash_table_collision_percentage (void);
 
 #else /* #ifndef __cplusplus */
 
@@ -132,7 +164,7 @@ class hash_table
   int searches;
   /* The following member is used for debugging.  Its value is number
      of collisions fixed for time of work with the hash table. */
-  int _collisions;
+  int collisions;
   /* Pointer to function for evaluation of hash value (any unsigned value).
      This function has one parameter of type hash_table_entry_t. */
   unsigned (*hash_function) (hash_table_entry_t el_ptr);
@@ -151,7 +183,7 @@ class hash_table
   /* The following variable is used for debugging. Its value is number
      of collisions fixed for time of work with all hash tables. */
 
-  static int _all_collisions;
+  static int all_collisions;
 
 public:
 
@@ -190,30 +222,36 @@ public:
       return number_of_elements - number_of_deleted_elements;
     }
   
-  /* The following function returns number of percents of fixed
-     collisions during all work with given hash table. */
+  /* The following function returns number of searches during all work
+     with given hash table. */
 
-  inline int collisions (void)
+  inline int get_searches (void)
     {
-      int searches;
-
-      searches = this->searches;
-      if (searches == 0)
-        searches++;
-      return _collisions * 100 / searches;
+      return this->searches;
     }
 
-  /* The following function returns number of percents of fixed
-     collisions during all work with all hash tables. */
-  
-  static inline int all_collisions (void)
+  /* The following function returns number of occurred collisions
+     during all work with given hash table. */
+
+  inline int get_collisions (void)
     {
-      int searches;
-      
-      searches = all_searches;
-      if (searches == 0)
-        searches++;
-      return _all_collisions * 100 / searches;
+      return this->collisions;
+    }
+
+  /* The following function returns number of searches
+     during all work with all hash tables. */
+  
+  static inline int get_all_searches (void)
+    {
+      return all_searches;
+    }
+
+  /* The following function returns number of occurred collisions
+     during all work with all hash tables. */
+  
+  static inline int get_all_collisions (void)
+    {
+      return all_collisions;
     }
 private:
 
