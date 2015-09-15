@@ -119,6 +119,13 @@
    much more unique triples [set, term, lookahead] in this case).  */
 /* #define ABSOLUTE_DISTANCES */
 
+/* Prime number (79087987342985798987987) mod 32 used for hash
+   calculations.  */
+static const unsigned jauquet_prime_mod32 = 2053222611;
+/* Shift used for hash calculations.  */
+static const unsigned hash_shift = 611;
+
+
 /* The following is major structure which stores information about
    grammar. */
 struct grammar
@@ -326,14 +333,12 @@ struct symbs
 static unsigned
 symb_repr_hash (hash_table_entry_t s)
 {
-  unsigned result = 0;
+  unsigned result = jauquet_prime_mod32;
   const char *str = ((struct symb *) s)->repr;
-  int i, usize;
+  int i;
 
-  usize = sizeof (unsigned) * CHAR_BIT;
   for (i = 0; str [i] != '\0'; i++)
-    result += (((unsigned) str [i] >> i % usize * CHAR_BIT)
-	       | ((unsigned) str [i] << (usize - i % usize * CHAR_BIT)));
+    result = result * hash_shift + (unsigned) str [i];
   return result;
 }
 
@@ -663,13 +668,13 @@ term_set_hash (hash_table_entry_t s)
   term_set_el_t *set = ((struct tab_term_set *) s)->set;
   term_set_el_t *bound;
   int size;
-  unsigned result = 0;
+  unsigned result = jauquet_prime_mod32;
 
   size = ((symbs_ptr->n_terms + CHAR_BIT * sizeof (term_set_el_t) - 1)
 	  / (CHAR_BIT * sizeof (term_set_el_t)));
   bound = set + size;
   while (set < bound)
-    result += *set++;
+    result = result * hash_shift + *set++;
   return result;
 }
 
@@ -1439,14 +1444,14 @@ struct set
   /* The following is distances only for start situations.  Other
      situations have their distances equal to 0.  The start situation
      in set core and the corresponding distance has the same index.
-     You should access to distnaces only through this member or
+     You should access to distances only through this member or
      variable `new_dists' (in other words don't save the member value
      in another variable). */
   int *dists;
 };
 
 /* Maximal goto sets saved for triple (set, terminal, lookahead).  */ 
-#define MAX_CACHED_GOTO_RESULTS 5
+#define MAX_CACHED_GOTO_RESULTS 3
 
 /* The triple and possible goto sets for it.  */
 struct set_term_lookahead
@@ -1605,7 +1610,7 @@ dists_eq (hash_table_entry_t s1, hash_table_entry_t s2)
 static unsigned
 set_core_dists_hash (hash_table_entry_t s)
 {
-  return set_core_hash (s) + dists_hash (s);
+  return set_core_hash (s) * hash_shift + dists_hash (s);
 }
 
 /* Equality of set cores and distances. */
@@ -1628,7 +1633,8 @@ set_term_lookahead_hash (hash_table_entry_t s)
   struct symb *term = ((struct set_term_lookahead *) s)->term;
   int lookahead = ((struct set_term_lookahead *) s)->lookahead;
   
-  return set_core_dists_hash (set) + (term->u.term.term_num << 16) + lookahead;
+  return ((set_core_dists_hash (set) * hash_shift
+	   + term->u.term.term_num) * hash_shift + lookahead);
 }
 
 /* Equality of tripes (set, term, lookahead). */
@@ -1645,10 +1651,12 @@ set_term_lookahead_eq (hash_table_entry_t s1, hash_table_entry_t s2)
   return set1 == set2 && term1 == term2 && lookahead1 == lookahead2;
 }
 
-/* Initialize work with sets. */
+/* Initialize work with sets for parsing input with N_TOKS tokens. */
 static void
-set_init (void)
+set_init (int n_toks)
 {
+  int n = n_toks >> 3;
+  
   OS_CREATE (set_cores_os, 0);
   OS_CREATE (set_sits_os, 2048);
   OS_CREATE (set_parent_indexes_os, 2048);
@@ -1656,9 +1664,13 @@ set_init (void)
   OS_CREATE (sets_os, 0);
   OS_CREATE (set_term_lookahead_os, 0);
   set_core_tab = create_hash_table (2000, set_core_hash, set_core_eq);
-  set_dists_tab = create_hash_table (20000, dists_hash, dists_eq);
-  set_tab = create_hash_table (20000, set_core_dists_hash, set_core_dists_eq);
-  set_term_lookahead_tab = create_hash_table (50000, set_term_lookahead_hash, set_term_lookahead_eq);
+  set_dists_tab = create_hash_table (n < 20000 ? 20000 : n,
+				     dists_hash, dists_eq);
+  set_tab = create_hash_table (n < 20000 ? 20000 : n, set_core_dists_hash,
+			       set_core_dists_eq);
+  set_term_lookahead_tab = create_hash_table (n < 30000 ? 30000 : n,
+					      set_term_lookahead_hash,
+					      set_term_lookahead_eq);
   n_set_cores = n_set_core_start_sits = 0;
   n_set_dists = n_set_dists_len = n_parent_indexes = 0;
   n_sets = n_sets_start_sits = 0;
@@ -1763,9 +1775,9 @@ setup_set_dists_hash (hash_table_entry_t s)
   unsigned result;
 
   dist_bound = dist_ptr + n_dists;
-  result = n_dists << ((sizeof (unsigned) - 1) * CHAR_BIT);
+  result = jauquet_prime_mod32;
   while (dist_ptr < dist_bound)
-    result += *dist_ptr++;
+    result = result * hash_shift + *dist_ptr++;
   set->dists_hash = result;
 }
 
@@ -1774,19 +1786,17 @@ static void
 setup_set_core_hash (hash_table_entry_t s)
 {
   struct set_core *set_core = ((struct set *) s)->core;
-  int n, i, usize;
+  int n, i;
   int n_sits = set_core->n_start_sits;
   unsigned result;
   struct sit **sit_ptr;
 
   sit_ptr = set_core->sits;
-  usize = sizeof (unsigned) * CHAR_BIT;
-  result = n_sits << ((usize - 1) * CHAR_BIT);
+  result = jauquet_prime_mod32;
   for (i = 0; i < n_sits; i++)
     {
       n = sit_ptr[i]->sit_number;
-      result += (((unsigned) n >> i % usize)
-		 | ((unsigned) n << (usize - i % usize)));
+      result = result * hash_shift + n;
     }
   set_core->hash = result;
 }
@@ -2289,10 +2299,9 @@ core_symb_vect_hash (hash_table_entry_t t)
 {
   struct core_symb_vect *core_symb_vect = (struct core_symb_vect *) t;
 
-  return ((unsigned) core_symb_vect->set_core
-	  + ((unsigned) core_symb_vect->symb >> CHAR_BIT)
-	  + ((unsigned) core_symb_vect->symb
-	     << (sizeof (unsigned) - 1) * CHAR_BIT));
+  return ((jauquet_prime_mod32 * hash_shift
+	   + (unsigned) core_symb_vect->set_core) * hash_shift
+	  + (unsigned) core_symb_vect->symb);
 }
 
 /* Equality of core_symb_vects. */
@@ -2312,14 +2321,13 @@ static unsigned
 transition_els_hash (hash_table_entry_t t)
 {
   struct core_symb_vect *core_symb_vect = (struct core_symb_vect *) t;
-  unsigned result = 0;
-  int i, el, usize;
+  unsigned result = jauquet_prime_mod32;
+  int i, el;
 
-  usize = sizeof (int) * CHAR_BIT;
   for (i = 0; i < core_symb_vect->transitions.len; i++)
     {
       el = core_symb_vect->transitions.els [i];
-      result += ((el >> i % usize) | (el << (usize - i % usize)));
+      result = result * hash_shift + el;
     }
   return result;
 }
@@ -2347,14 +2355,13 @@ static unsigned
 reduce_els_hash (hash_table_entry_t t)
 {
   struct core_symb_vect *core_symb_vect = (struct core_symb_vect *) t;
-  unsigned result = 0;
-  int i, el, usize;
+  unsigned result = jauquet_prime_mod32;
+  int i, el;
 
-  usize = sizeof (int) * CHAR_BIT;
   for (i = 0; i < core_symb_vect->reduces.len; i++)
     {
       el = core_symb_vect->reduces.els [i];
-      result += ((el >> i % usize) | (el << (usize - i % usize)));
+      result = result * hash_shift + el;
     }
   return result;
 }
@@ -3383,15 +3390,15 @@ earley_set_recovery_match (struct grammar *grammar, int n_toks)
   return old;
 }
 
-/* The function initializes all internal data for parser. */
+/* The function initializes all internal data for parser for N_TOKS
+   tokens. */
 static void
-earley_parse_init (void)
+earley_parse_init (int n_toks)
 {
   struct rule *rule;
 
-  tok_init ();
   sit_init ();
-  set_init ();
+  set_init (n_toks);
   core_symb_vect_init ();
 #ifdef USE_CORE_SYMB_HASH_TABLE
   {
@@ -3414,7 +3421,6 @@ earley_parse_fin (void)
   core_symb_vect_fin ();
   set_fin ();
   sit_fin ();
-  tok_fin ();
 }
 
 /* The following function reads all input tokens. */
@@ -4306,14 +4312,19 @@ check_cached_transition_set (struct set *set, int place)
   
   for (i = set->core->n_start_sits - 1; i >= 0; i--)
     {
-      dist = dists[i];
+      if ((dist = dists[i]) <= 1)
+	continue;
       /* Sets at origins of situations with distance one are supposed
 	 to be the same.  */
-      if (dist > 1 && pl[pl_curr + 1 - dist] != pl[place + 1 - dist])
+      if (pl[pl_curr + 1 - dist] != pl[place + 1 - dist])
 	return FALSE;
     }
   return TRUE;
 }
+
+/* How many times we reuse Earley's sets without their
+   recalculation.  */
+static int n_goto_successes;
 
 /* The following function is major function forming parsing list in
    Earley's algorithm. */
@@ -4372,6 +4383,7 @@ build_pl (void)
 		     (tab_set, ((struct set_term_lookahead *) *entry)->place[i]))
 	      {
 		new_set = tab_set;
+		n_goto_successes++;
 		break;
 	      }
 	}
@@ -4482,7 +4494,8 @@ parse_state_hash (hash_table_entry_t s)
 
   /* The table contains only states with dot at the end of rule. */
   assert (state->pos == state->rule->rhs_len);
-  return (size_t) state->rule + (state->orig << 4) + (state->pl_ind << 6);
+  return (((jauquet_prime_mod32 * hash_shift + (unsigned) (size_t) state->rule)
+	   * hash_shift + state->orig) * hash_shift + state->pl_ind);
 }
 
 /* Equality of parse states. */
@@ -5577,7 +5590,7 @@ earley_parse (struct grammar *g,
 	      void (*free) (void *mem),
 	      struct earley_tree_node **root, int *ambiguous_p)
 {
-  int code, parse_init_p;
+  int code, tok_init_p, parse_init_p;
   int tab_collisions, tab_searches;
   
   grammar = g;
@@ -5594,20 +5607,25 @@ earley_parse (struct grammar *g,
   *root = NULL;
   *ambiguous_p = FALSE;
   pl_init ();
-  parse_init_p = FALSE;
+  tok_init_p = parse_init_p = FALSE;
   if ((code = setjmp (error_longjump_buff)) != 0)
     {
       pl_fin ();
       if (parse_init_p)
 	earley_parse_fin ();
+      if (tok_init_p)
+	tok_fin ();
       change_allocation_error_function (init_error_func_for_allocate);
       return code;
     }
   if (grammar->undefined_p)
     earley_error (EARLEY_UNDEFINED_OR_BAD_GRAMMAR, "undefined or bad grammar");
-  earley_parse_init ();
-  parse_init_p = TRUE;
+  n_goto_successes = 0;
+  tok_init ();
+  tok_init_p = TRUE;
   read_toks ();
+  earley_parse_init (toks_len);
+  parse_init_p = TRUE;
   pl_create ();
 #ifndef __cplusplus
   tab_collisions = get_all_collisions ();
@@ -5652,8 +5670,8 @@ earley_parse (struct grammar *g,
       fprintf (stderr,
 	       "       #unique sets = %d, #their start situations = %d\n",
 	       n_sets, n_sets_start_sits);
-      fprintf (stderr, "       #unique triples (set, term, lookahead) = %d\n",
-	       n_set_term_lookaheads);
+      fprintf (stderr, "       #unique triples (set, term, lookahead) = %d, goto successes=%d\n",
+	       n_set_term_lookaheads, n_goto_successes);
       fprintf (stderr,
 	       "       #pairs(set core, symb) = %d, their trans+reduce vects length = %d\n",
 	       n_core_symb_pairs, n_core_symb_vect_len);
@@ -5680,6 +5698,7 @@ earley_parse (struct grammar *g,
     }
 #endif
   earley_parse_fin ();
+  tok_fin ();
   change_allocation_error_function (init_error_func_for_allocate);
   return 0;
 }
