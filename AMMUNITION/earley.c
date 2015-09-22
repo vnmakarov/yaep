@@ -225,6 +225,21 @@ void earley_free_grammar (struct grammar *g);
    stop error recovery alternative (state). */
 #define DEFAULT_RECOVERY_TOKEN_MATCHES 3
 
+/* Expand VLO to contain N_ELS integers.  Initilize the new elements
+   as zero. Return TRUE if we really made an expansion.  */
+static int
+expand_int_vlo (vlo_t *vlo, int n_els)
+{
+  int i, prev_n_els = VLO_LENGTH (*vlo) / sizeof (int);
+  
+  if (prev_n_els >= n_els)
+    return FALSE;
+  VLO_EXPAND (*vlo, (n_els - prev_n_els) * sizeof (int));
+  for (i = prev_n_els; i < n_els; i++)
+    ((int *) VLO_BEGIN (*vlo))[i] = 0;
+  return TRUE;
+}
+
 
 
 /* This page is abstract data `grammar symbols'. */
@@ -622,6 +637,7 @@ symb_fin (struct symbs *symbs)
 }
 
 
+
 
 /* This page contains abstract data set of terminals. */
 
@@ -1383,6 +1399,22 @@ sit_print (FILE *f, struct sit *sit, int lookahead_p)
 
 #endif /* #ifndef NO_EARLEY_DEBUG_PRINT */
 
+/* Return hash of sequence of N_SITS situations in array SITS.  */
+static unsigned
+sits_hash (int n_sits, struct sit **sits)
+{
+  int n, i;
+  unsigned result;
+
+  result = jauquet_prime_mod32;
+  for (i = 0; i < n_sits; i++)
+    {
+      n = sits[i]->sit_number;
+      result = result * hash_shift + n;
+    }
+  return result;
+}
+
 /* Finalize work with situations. */
 static void
 sit_fin (void)
@@ -1413,12 +1445,13 @@ struct set_core
      in the following array. */
   int n_sits;
   int n_start_sits;
-  /* Array with ordered starts situations.  Start situations are
-     always placed the first, then nonstart noninitial (situation with
-     at least one symbol before the dot) situations are placed and
-     then initial situations are placed.  You should access to a set
-     situation only through this member or variable `new_sits' (in
-     other words don't save the member value in another variable). */
+  /* Array of situations.  Start situations are always placed the
+     first in the order of their creation (with subsequent duplicates
+     are removed), then nonstart noninitial (situation with at least
+     one symbol before the dot) situations are placed and then initial
+     situations are placed.  You should access to a set situation only
+     through this member or variable `new_sits' (in other words don't
+     save the member value in another variable). */
   struct sit **sits;
   /* The following member is number of start situations and nonstart
      (noninitial) situations whose distance is defined from a start
@@ -1651,6 +1684,131 @@ set_term_lookahead_eq (hash_table_entry_t s1, hash_table_entry_t s2)
   return set1 == set2 && term1 == term2 && lookahead1 == lookahead2;
 }
 
+
+
+/* This page contains code for table of pairs (sit, dist).  */
+
+/* The following structure describes tuple (sit, dist).  */
+struct sit_dist
+{
+  struct sit *sit;
+  /* Next index is an index in SIT_DIST_VLO containing the next pair
+     with the same situation.  -1 means no such pair anymore.  */
+  int dist, next_index;
+};
+
+/* Index of first free pair in SIT_DIST_VLO.  */
+static int first_free_sit_dist_index;
+
+#ifndef __cplusplus
+/* Container of pairs (sit, dist).  */
+static vlo_t sit_dist_vlo;
+/* Vector implementing map: sit number -> pairs of the same sit with
+   different distances.  */
+static vlo_t sit_dist_vec_vlo;
+/* Vector used to check that an element in SIT_DIST_VEC_VLO is
+   valid.  */
+static vlo_t sit_dist_vec_check_vlo;
+#else
+static vlo_t *sit_dist_vlo;
+static vlo_t *sit_dist_vec_vlo;
+static vlo_t *sit_dist_vec_check_vlo;
+#endif
+
+/* The value used to check the validity.  */
+static int curr_sit_dist_vec_check;
+
+/* Initiate the set of pairs (sit, dist).  */
+static void
+sit_dist_set_init (void)
+{
+  VLO_CREATE (sit_dist_vlo, 2048);
+  VLO_CREATE (sit_dist_vec_vlo, 8192);
+  VLO_CREATE (sit_dist_vec_check_vlo, 8192);
+  curr_sit_dist_vec_check = 0;
+  first_free_sit_dist_index = 0;
+}
+
+/* Make the set empty.  */
+static void
+empty_sit_dist_set (void)
+{
+  int i, len, *check_vec;
+  
+  curr_sit_dist_vec_check++;
+  /* Expand the set to accomadate all situations currently
+     existing.  */
+  /* Remeber N_ALL_SITS is the last situation number.  */
+  if (expand_int_vlo (&sit_dist_vec_check_vlo, n_all_sits + 1))
+    VLO_EXPAND
+      (sit_dist_vec_vlo,
+       (n_all_sits + 1) * sizeof (int) - VLO_LENGTH (sit_dist_vec_vlo));
+}
+
+/* Insert pair (SIT, DIST) into the set.  If such pair exists return
+   FALSE, otherwise return TRUE.  */
+static int
+sit_dist_insert (struct sit *sit, int dist)
+{
+  int len, last_index, next_index, sit_number;
+  struct sit_dist *sit_dist, *sit_dist_vec;
+  
+  sit_number = sit->sit_number;
+  sit_dist_vec = (struct sit_dist *) VLO_BEGIN (sit_dist_vlo);
+  if (((int *) VLO_BEGIN (sit_dist_vec_check_vlo)) [sit_number]
+      != curr_sit_dist_vec_check)
+    {
+      /* Start the list of pairs (sit, dist) with the same sit.  */
+      last_index = -1;
+      ((int *) VLO_BEGIN (sit_dist_vec_check_vlo)) [sit_number]
+	= curr_sit_dist_vec_check;
+    }
+  else
+    {
+      last_index = ((int *) VLO_BEGIN (sit_dist_vec_vlo)) [sit_number];
+      assert (last_index >= 0);
+      for (;;)
+	{
+	  assert (sit_dist_vec[last_index].sit == sit);
+	  if (sit_dist_vec[last_index].dist == dist)
+	    return FALSE;
+	  if ((next_index = sit_dist_vec[last_index].next_index) < 0)
+	    break;
+	  last_index = next_index;
+	}
+    }
+  /* Insert */
+  len = VLO_LENGTH (sit_dist_vlo);
+  if (first_free_sit_dist_index * sizeof (struct sit_dist) >= len)
+    {
+      /* Expand the container for the pairs.  */
+      VLO_EXPAND (sit_dist_vlo, sizeof (struct sit_dist));
+      sit_dist_vec = (struct sit_dist *) VLO_BEGIN (sit_dist_vlo);
+    }
+  sit_dist = &sit_dist_vec [first_free_sit_dist_index];
+  sit_dist->sit = sit;
+  sit_dist->dist = dist;
+  sit_dist->next_index = -1;
+  if (last_index >= 0)
+    sit_dist_vec[last_index].next_index = first_free_sit_dist_index;
+  else
+    ((int *) VLO_BEGIN (sit_dist_vec_vlo)) [sit_number]
+      = first_free_sit_dist_index;
+  first_free_sit_dist_index++;
+  return TRUE;
+}
+
+/* Finish the set of pairs (sit, dist).  */
+static void
+sit_dist_set_fin (void)
+{
+  VLO_DELETE (sit_dist_vec_check_vlo);
+  VLO_DELETE (sit_dist_vec_vlo);
+  VLO_DELETE (sit_dist_vlo);
+}
+
+
+
 /* Initialize work with sets for parsing input with N_TOKS tokens. */
 static void
 set_init (int n_toks)
@@ -1675,6 +1833,7 @@ set_init (int n_toks)
   n_set_dists = n_set_dists_len = n_parent_indexes = 0;
   n_sets = n_sets_start_sits = 0;
   n_set_term_lookaheads = 0;
+  sit_dist_set_init ();
 }
 
 /* The following function starts forming of new set. */
@@ -1786,19 +1945,8 @@ static void
 setup_set_core_hash (hash_table_entry_t s)
 {
   struct set_core *set_core = ((struct set *) s)->core;
-  int n, i;
-  int n_sits = set_core->n_start_sits;
-  unsigned result;
-  struct sit **sit_ptr;
 
-  sit_ptr = set_core->sits;
-  result = jauquet_prime_mod32;
-  for (i = 0; i < n_sits; i++)
-    {
-      n = sit_ptr[i]->sit_number;
-      result = result * hash_shift + n;
-    }
-  set_core->hash = result;
+  set_core->hash = sits_hash (set_core->n_start_sits, set_core->sits);
 }
 
 /* The new set should contain only start situations.  Sort situations,
@@ -1811,68 +1959,32 @@ INLINE
 static int
 set_insert (void)
 {
-  int i, j;
-  int dist, temp_dist;
-  int sit_number;
-  struct sit *sit, *temp_sit;
+  int i;
   hash_table_entry_t *entry;
-  int dup_flag;
-  struct sit **curr_sits;
-  int *curr_dists;
-  int h;
   int result;
-  
-  /* Sort situations and distances.  */
-  /* Because the array is small and probably ordered, we use shell
-     sort with big steps which becomes sorting by insertions for small
-     arrays. */
-  dup_flag = FALSE;
-  for (h = (new_n_start_sits >> 4) + 1; h > 0; h = (h  + 2) >> 2)
-    for (i = h; i < new_n_start_sits; i++)
+  int first_free;
+
+  /* Remove duplicates (sit, dist).  */
+  empty_sit_dist_set ();
+  for (i = first_free = 0; i < new_n_start_sits; i++)
+    if (sit_dist_insert (new_sits [i], new_dists[i]))
       {
-	sit = new_sits [i];
-	sit_number = sit->sit_number;
-	dist = new_dists [i];
-	curr_sits = new_sits + i - h;
-	curr_dists = new_dists + i - h;
-	while (curr_sits >= new_sits)
+	if (first_free != i)
 	  {
-	    if ((*curr_sits)->sit_number < sit_number)
-	      break;
-	    else if ((*curr_sits)->sit_number == sit_number)
-	      {
-#ifndef ABSOLUTE_DISTANCES
-		if (*curr_dists < dist)
-#else
-		if (*curr_dists > dist)
-#endif
-		  break;
-		else if (*curr_dists == dist)
-		  {
-		    dup_flag = TRUE;
-		    break;
-		  }
-	      }
-	    curr_sits [h] = *curr_sits;
-	    curr_sits -= h;
-	    curr_dists [h]  = *curr_dists;
-	    curr_dists -= h;
+	    new_sits[first_free] = new_sits[i];
+	    new_dists[first_free] = new_dists[i];
 	  }
-	curr_sits [h] = sit;
-	curr_dists [h] = dist;
+	first_free++;
       }
-  /* Remove duplicates: */
-  if (dup_flag)
+
+  if (first_free != new_n_start_sits)
     {
-      for (temp_sit = NULL, temp_dist = j = i = 0; i < new_n_start_sits; i++)
-	if (new_sits [i] != temp_sit || new_dists [i] != temp_dist)
-	  {
-	    new_sits [j] = temp_sit = new_sits [i];
-	    new_dists [j++] = temp_dist = new_dists [i];
-	  }
-      OS_TOP_SHORTEN (set_sits_os, (i - j) * sizeof (struct sit *));
-      OS_TOP_SHORTEN (set_dists_os, (i - j) * sizeof (int));
-      new_n_start_sits -= i - j;
+      assert (new_n_start_sits >= 2);
+      OS_TOP_SHORTEN (set_sits_os,
+		      (new_n_start_sits - first_free) * sizeof (struct sit *));
+      OS_TOP_SHORTEN (set_dists_os,
+		      (new_n_start_sits - first_free) * sizeof (int));
+      new_n_start_sits = first_free;
     }
   OS_TOP_EXPAND (sets_os, sizeof (struct set));
   new_set = (struct set *) OS_TOP_BEGIN (sets_os);
@@ -2021,6 +2133,7 @@ set_print (FILE *f, struct set *set, int set_dist, int nonstart_p, int lookahead
 static void
 set_fin (void)
 {
+  sit_dist_set_fin ();
   delete_hash_table (set_term_lookahead_tab);
   delete_hash_table (set_tab);
   delete_hash_table (set_dists_tab);
@@ -2221,7 +2334,7 @@ struct core_symb_vect
   /* The following vector contains indexes of situations with given
      symb in situation after dot. */
   struct vect transitions;
-  /* The following vector contains indexes of reduse situations with
+  /* The following vector contains indexes of reduce situations with
      given symb in lhs. */
   struct vect reduces;
 };
@@ -3610,7 +3723,7 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
   struct sit *sit, *new_sit, **prev_sits;
   struct core_symb_vect *prev_core_symb_vect;
   int local_lookahead_level, dist, sit_ind, new_dist;
-  int i;
+  int i, place;
 
   local_lookahead_level = (lookahead_term_num < 0
 			   ? 0 : grammar->lookahead_level);
@@ -3654,10 +3767,11 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
 	     make reduce and add new situations. */
 	  new_dist = new_dists [i];
 #ifndef ABSOLUTE_DISTANCES
-	  prev_set = pl [pl_curr + 1 - new_dist];
+	  place = pl_curr + 1 - new_dist;
 #else
-	  prev_set = pl [new_dist];
+	  place = new_dist;
 #endif
+	  prev_set = pl [place];
 	  prev_set_core = prev_set->core;
 	  prev_core_symb_vect = core_symb_vect_find (prev_set_core,
 						     new_sit->rule->lhs);
