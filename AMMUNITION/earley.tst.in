@@ -158,7 +158,7 @@ Input: #tokens = 12, #unique situations = 22
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 4, their length = 4
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT2
@@ -189,7 +189,7 @@ Input: #tokens = 12, #unique situations = 22
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 4, their length = 4
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT2a
@@ -220,7 +220,7 @@ Input: #tokens = 12, #unique situations = 22
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 55, their trans+reduce vects length = 60
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 6, their length = 6
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT3
@@ -251,7 +251,7 @@ Input: #tokens = 12, #unique situations = 22
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 55, their trans+reduce vects length = 60
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 6, their length = 6
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT3a
@@ -282,7 +282,7 @@ Input: #tokens = 12, #unique situations = 22
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 55, their trans+reduce vects length = 60
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 6, their length = 6
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT3b
@@ -313,7 +313,7 @@ Input: #tokens = 12, #unique situations = 45
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 48, their trans+reduce vects length = 54
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 4, their length = 4
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT4
@@ -391,7 +391,7 @@ Input: #tokens = 12, #unique situations = 22
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 4, their length = 4
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT5
@@ -433,7 +433,7 @@ Input: #tokens = 12, #unique situations = 22
        #unique triples (set, term, lookahead) = 12, goto successes=0
        #pairs(set core, symb) = 38, their trans+reduce vects length = 43
        #unique transition vectors = 12, their length = 16
-       #unique reduce vectors = 4, their length = 4
+       #unique reduce vectors = 3, their length = 3
        #term nodes = 5, #abstract nodes = 4
        #alternative nodes = 0, #all nodes = 9
 OUTPUT5a
@@ -3941,11 +3941,11 @@ TEST30
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT30' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
-      0: ABSTRACT: plus ( 1 2 )
-      1: TERMINAL: code=97, repr='a'
-      2: ABSTRACT: mult ( 3 4 )
+      0: ABSTRACT: mult ( 1 2 )
+      1: ABSTRACT: plus ( 3 4 )
       3: TERMINAL: code=97, repr='a'
-      4: ABSTRACT: plus ( 5 6 )
+      4: TERMINAL: code=97, repr='a'
+      2: ABSTRACT: plus ( 5 6 )
       5: ABSTRACT: mult ( 7 8 )
       7: TERMINAL: code=97, repr='a'
       8: TERMINAL: code=97, repr='a'
@@ -4088,11 +4088,11 @@ TEST31
 	        if cat <<'OUTPUT31' >$temp3_file && $cmp $temp_file $temp3_file; then
 Translation:
       0: ALTERNATIVE: node=1, next=2
-      1: ABSTRACT: mult ( 3 4 )
-      3: ABSTRACT: plus ( 5 6 )
+      1: ABSTRACT: plus ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ABSTRACT: mult ( 5 6 )
       5: TERMINAL: code=97, repr='a'
-      6: TERMINAL: code=97, repr='a'
-      4: ALTERNATIVE: node=7, next=8
+      6: ALTERNATIVE: node=7, next=8
       7: ABSTRACT: mult ( 9 10 )
       9: TERMINAL: code=97, repr='a'
      10: ABSTRACT: plus ( 11 12 )
@@ -4102,8 +4102,8 @@ Translation:
      13: ABSTRACT: plus ( 14 12 )
      14: ABSTRACT: mult ( 9 11 )
       2: ALTERNATIVE: node=15, next=nil
-     15: ABSTRACT: plus ( 5 16 )
-     16: ABSTRACT: mult ( 6 17 )
+     15: ABSTRACT: mult ( 16 17 )
+     16: ABSTRACT: plus ( 3 5 )
      17: ALTERNATIVE: node=7, next=18
      18: ALTERNATIVE: node=13, next=nil
 
@@ -4245,11 +4245,11 @@ TEST32
 	        if cat <<'OUTPUT32' >$temp3_file && $cmp $temp_file $temp3_file; then
 Syntax error on token 5:ignore 4 tokens starting with token = 5
 Translation:
-      0: ABSTRACT: plus ( 1 2 )
-      1: TERMINAL: code=97, repr='a'
-      2: ABSTRACT: mult ( 3 4 )
+      0: ABSTRACT: mult ( 1 2 )
+      1: ABSTRACT: plus ( 3 4 )
       3: TERMINAL: code=97, repr='a'
-      4: ERROR
+      4: TERMINAL: code=97, repr='a'
+      2: ERROR
 
 OUTPUT32
         	        result=ok
@@ -4529,14 +4529,14 @@ TEST34
 Syntax error on token 7:ignore 4 tokens starting with token = 5
 Translation:
       0: ALTERNATIVE: node=1, next=2
-      1: ABSTRACT: mult ( 3 4 )
-      3: ABSTRACT: plus ( 5 6 )
+      1: ABSTRACT: plus ( 3 4 )
+      3: TERMINAL: code=97, repr='a'
+      4: ABSTRACT: mult ( 5 6 )
       5: TERMINAL: code=97, repr='a'
-      6: TERMINAL: code=97, repr='a'
-      4: ERROR
+      6: ERROR
       2: ALTERNATIVE: node=7, next=nil
-      7: ABSTRACT: plus ( 5 8 )
-      8: ABSTRACT: mult ( 6 4 )
+      7: ABSTRACT: mult ( 8 6 )
+      8: ABSTRACT: plus ( 3 5 )
 
 OUTPUT34
         	        result=ok
@@ -5242,25 +5242,25 @@ TEST39
 Translation:
       0: ALTERNATIVE: node=1, next=2
       1: ABSTRACT: plus ( 3 4 )
-      3: ALTERNATIVE: node=5, next=6
+      3: TERMINAL: code=97, repr='a'
+      4: ALTERNATIVE: node=5, next=6
       5: ABSTRACT: mult ( 7 8 )
-      7: ABSTRACT: plus ( 9 10 )
-      9: TERMINAL: code=97, repr='a'
-     10: TERMINAL: code=98, repr='b'
-      8: TERMINAL: code=99, repr='c'
+      7: TERMINAL: code=98, repr='b'
+      8: ABSTRACT: plus ( 9 10 )
+      9: TERMINAL: code=99, repr='c'
+     10: TERMINAL: code=100, repr='d'
       6: ALTERNATIVE: node=11, next=nil
-     11: ABSTRACT: plus ( 9 12 )
-     12: ABSTRACT: mult ( 10 8 )
-      4: TERMINAL: code=100, repr='d'
+     11: ABSTRACT: plus ( 12 10 )
+     12: ABSTRACT: mult ( 7 9 )
       2: ALTERNATIVE: node=13, next=14
-     13: ABSTRACT: mult ( 7 15 )
-     15: ABSTRACT: plus ( 8 4 )
+     13: ABSTRACT: mult ( 15 8 )
+     15: ABSTRACT: plus ( 3 7 )
      14: ALTERNATIVE: node=16, next=nil
-     16: ABSTRACT: plus ( 9 17 )
+     16: ABSTRACT: plus ( 17 10 )
      17: ALTERNATIVE: node=18, next=19
-     18: ABSTRACT: mult ( 10 15 )
+     18: ABSTRACT: plus ( 3 12 )
      19: ALTERNATIVE: node=20, next=nil
-     20: ABSTRACT: plus ( 12 4 )
+     20: ABSTRACT: mult ( 15 9 )
 
 OUTPUT39
         	        result=ok
@@ -5419,9 +5419,9 @@ Translation:
      14: ALTERNATIVE: node=16, next=nil
      16: ABSTRACT: plus ( 17 10 )
      17: ALTERNATIVE: node=18, next=19
-     18: ABSTRACT: mult ( 15 9 )
+     18: ABSTRACT: plus ( 3 12 )
      19: ALTERNATIVE: node=20, next=nil
-     20: ABSTRACT: plus ( 3 12 )
+     20: ABSTRACT: mult ( 15 9 )
 
 OUTPUT40
         	        result=ok
@@ -16926,7 +16926,7 @@ Translation:
       0: ABSTRACT: mult ( 1 2 )
       1: ABSTRACT: plus ( 2 3 )
       2: EMPTY
-      3: ABSTRACT: mult ( 4 2 )
+      3: ABSTRACT: plus ( 2 4 )
       4: TERMINAL: code=97, repr='a'
 
 OUTPUT42
@@ -17072,22 +17072,22 @@ Translation:
       0: ALTERNATIVE: node=1, next=2
       1: ABSTRACT: plus ( 3 4 )
       3: EMPTY
-      4: TERMINAL: code=100, repr='d'
-      2: ALTERNATIVE: node=5, next=6
+      4: ALTERNATIVE: node=5, next=6
       5: ABSTRACT: mult ( 7 3 )
-      7: ABSTRACT: plus ( 3 8 )
-      8: TERMINAL: code=98, repr='b'
-      6: ALTERNATIVE: node=9, next=10
-      9: ABSTRACT: mult ( 7 11 )
-     11: ABSTRACT: plus ( 3 4 )
-     10: ALTERNATIVE: node=12, next=nil
-     12: ABSTRACT: plus ( 3 13 )
-     13: ALTERNATIVE: node=14, next=15
-     14: ABSTRACT: mult ( 8 3 )
-     15: ALTERNATIVE: node=16, next=17
-     16: ABSTRACT: mult ( 8 11 )
+      7: TERMINAL: code=98, repr='b'
+      6: ALTERNATIVE: node=8, next=9
+      8: ABSTRACT: mult ( 7 10 )
+     10: ABSTRACT: plus ( 3 11 )
+     11: TERMINAL: code=100, repr='d'
+      9: ALTERNATIVE: node=12, next=nil
+     12: ABSTRACT: plus ( 3 11 )
+      2: ALTERNATIVE: node=13, next=14
+     13: ABSTRACT: mult ( 15 3 )
+     15: ABSTRACT: plus ( 3 7 )
+     14: ALTERNATIVE: node=16, next=17
+     16: ABSTRACT: mult ( 15 10 )
      17: ALTERNATIVE: node=18, next=nil
-     18: ABSTRACT: plus ( 3 4 )
+     18: ABSTRACT: plus ( 3 11 )
 
 OUTPUT43
         	        result=ok
@@ -17554,13 +17554,13 @@ Translation:
       0: ABSTRACT: add ( 1 2 )
       1: TERMINAL: code=97, repr='a'
       2: ALTERNATIVE: node=3, next=4
-      3: ABSTRACT: add ( 5 6 )
-      5: ABSTRACT: mult ( 7 8 )
-      7: TERMINAL: code=97, repr='a'
-      8: TERMINAL: code=97, repr='a'
+      3: ABSTRACT: madd ( 5 6 7 )
+      5: TERMINAL: code=97, repr='a'
       6: TERMINAL: code=97, repr='a'
-      4: ALTERNATIVE: node=9, next=nil
-      9: ABSTRACT: madd ( 6 7 8 )
+      7: TERMINAL: code=97, repr='a'
+      4: ALTERNATIVE: node=8, next=nil
+      8: ABSTRACT: add ( 9 5 )
+      9: ABSTRACT: mult ( 6 7 )
 
 cost = 3
 OUTPUT46
@@ -17957,7 +17957,7 @@ main (int argc, char **argv)
 }
 TEST49
 
-        echo test 49: unambigous grammar abstarct node for an empty rule
+        echo test 49: unambigous grammar abstract node for an empty rule
         echo '      ' $CC $CC_options $test_file $addfiles -o $outfile
         if $CC $CC_options $test_file $addfiles -o $outfile; then
 	    echo '      ' $outfile 1 2 "2>&1|fgrep -v '#' >$temp_file"
