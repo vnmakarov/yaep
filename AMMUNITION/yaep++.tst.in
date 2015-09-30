@@ -1,14 +1,14 @@
 #!/bin/sh
 # @configure_input@
 
-# Script to test of allocation package (files `earley.h', `earley.c',
+# Script to test of allocation package (files `yaep.h', `yaep.cpp',
 #`sgramm.y').
 #
 #   Copyright (C) 1997-2015 Vladimir Makarov.
 #
 #   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
 #
-#   This is part of Earley's parser implementation; you can
+#   This is part of YAEP (Yet Another Earley Parser) implementation; you can
 #   redistribute it and/or modify it under the terms of the GNU General
 #   Public License as published by the Free Software Foundation; either
 #   version 2, or (at your option) any later version.
@@ -25,10 +25,9 @@
 #
 #
 #
-# Attention: It is distrubuted under GPL not LGPL.
 #
 #
-# Usage: earley.tst [start_test_number]
+# Usage: yaep++.tst [start_test_number]
 #
 # The script outputs self-explanatory messages and returns zero exit code if 
 # it is all ok.
@@ -43,22 +42,22 @@ CC_options="@CFLAGS@ @DEFS@ -I. -I$srcdir/"
 CXX='@CXX@'
 YACC='@YACC@'
 CXX_options="@CFLAGS@ @DEFS@ -I. -I$srcdir/"
-source_earley=$srcdir/earley.cpp
+source_yaep=$srcdir/yaep.cpp
 source_addfiles1="$srcdir/allocate.cpp $srcdir/vlobject.cpp $srcdir/hashtab.cpp $srcdir/objstack.cpp $srcdir/ticker.cpp"
-source_addfiles="$source_addfiles1 $source_earley"
+source_addfiles="$source_addfiles1 $source_yaep"
 
 GCC=gcc
 LEX=@LEX@
 
-source_addfiles="$source_addfiles1 $source_earley"
+source_addfiles="$source_addfiles1 $source_yaep"
 temp_file=_${prefix}_temp.out
 temp3_file=_${prefix}_temp3.out
 cmp=cmp
 
 sgramm=sgramm
 addfiles1="${prefix}_allocate.o ${prefix}_vlobject.o ${prefix}_hashtab.o ${prefix}_objstack.o ${prefix}_ticker.o"
-addfiles="$addfiles1 ${prefix}_earley.o"
-test_file=${prefix}_tearley.cpp
+addfiles="$addfiles1 ${prefix}_yaep.o"
+test_file=${prefix}_tyaep.cpp
 outfile=./${prefix}_a.out
 
 CTEST=__${prefix}_test.c
@@ -99,8 +98,8 @@ done
 
 
 if test $start_test_number -le 5;then
-	echo '      ' $CXX $CXX_options -DEARLEY_TEST $source_earley $addfiles1 -o $outfile
-	if $CXX $CXX_options -DEARLEY_TEST -DEARLEY_DEBUG $source_earley $addfiles1 -o $outfile; then
+	echo '      ' $CXX $CXX_options -DYAEP_TEST $source_yaep $addfiles1 -o $outfile
+	if $CXX $CXX_options -DYAEP_TEST -DYAEP_DEBUG $source_yaep $addfiles1 -o $outfile; then
 	      result=ok
 	else
 	      echo '***' $script_file: test is failed see file $test_file
@@ -455,7 +454,7 @@ if test $result = ok -a $start_test_number -le 6; then
         cat >$test_file <<'TEST6'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -491,8 +490,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -522,15 +520,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -538,7 +536,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -557,7 +555,7 @@ TEST6
 	    else
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT6' >$temp3_file && $cmp $temp_file $temp3_file; then
-earley::parse: undefined or bad grammar
+yaep::parse: undefined or bad grammar
 OUTPUT6
         	        result=ok
 	        else
@@ -574,7 +572,7 @@ if test $result = ok -a $start_test_number -le 7; then
         cat >$test_file <<'TEST7'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -610,8 +608,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -641,15 +638,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -669,7 +666,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -704,7 +701,7 @@ if test $result = ok -a $start_test_number -le 8; then
         cat >$test_file <<'TEST8'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -740,8 +737,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -771,15 +767,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -793,7 +789,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -829,7 +825,7 @@ if test $result = ok -a $start_test_number -le 9; then
         cat >$test_file <<'TEST9'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -865,8 +861,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -896,15 +891,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -918,7 +913,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -954,7 +949,7 @@ if test $result = ok -a $start_test_number -le 10; then
         cat >$test_file <<'TEST10'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -990,8 +985,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1021,15 +1015,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1043,7 +1037,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1079,7 +1073,7 @@ if test $result = ok -a $start_test_number -le 11; then
         cat >$test_file <<'TEST11'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1115,8 +1109,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1146,15 +1139,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1168,7 +1161,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1204,7 +1197,7 @@ if test $result = ok -a $start_test_number -le 12; then
         cat >$test_file <<'TEST12'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1240,8 +1233,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1259,15 +1251,15 @@ static const char *description = "TERM;\n";
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1281,7 +1273,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1317,7 +1309,7 @@ if test $result = ok -a $start_test_number -le 13; then
         cat >$test_file <<'TEST13'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1353,8 +1345,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1372,15 +1363,15 @@ static const char *description = "TERM ident; ident : ;\n";
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1394,7 +1385,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1430,7 +1421,7 @@ if test $result = ok -a $start_test_number -le 14; then
         cat >$test_file <<'TEST14'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1466,8 +1457,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1497,15 +1487,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1519,7 +1509,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1555,7 +1545,7 @@ if test $result = ok -a $start_test_number -le 15; then
         cat >$test_file <<'TEST15'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1591,8 +1581,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1622,15 +1611,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1644,7 +1633,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1680,7 +1669,7 @@ if test $result = ok -a $start_test_number -le 16; then
         cat >$test_file <<'TEST16'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1716,8 +1705,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1746,15 +1734,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1768,7 +1756,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1804,7 +1792,7 @@ if test $result = ok -a $start_test_number -le 17; then
         cat >$test_file <<'TEST17'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1840,8 +1828,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1864,15 +1851,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -1897,7 +1884,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -1933,7 +1920,7 @@ if test $result = ok -a $start_test_number -le 18; then
         cat >$test_file <<'TEST18'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -1969,8 +1956,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2003,15 +1989,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -2025,7 +2011,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -2061,7 +2047,7 @@ if test $result = ok -a $start_test_number -le 19; then
         cat >$test_file <<'TEST19'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -2097,8 +2083,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2128,15 +2113,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -2150,7 +2135,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -2169,7 +2154,7 @@ TEST19
 	    else
 	        echo '      ' $cmp $temp_file $temp3_file
 	        if cat <<'OUTPUT19' >$temp3_file && $cmp $temp_file $temp3_file; then
-earley::parse: invalid token code 98
+yaep::parse: invalid token code 98
 OUTPUT19
         	        result=ok
 	        else
@@ -2186,7 +2171,7 @@ if test $result = ok -a $start_test_number -le 20; then
         cat >$test_file <<'TEST20'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -2222,8 +2207,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2254,15 +2238,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -2276,7 +2260,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -2312,7 +2296,7 @@ if test $result = ok -a $start_test_number -le 21; then
         cat >$test_file <<'TEST21'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -2348,8 +2332,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2370,8 +2353,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2411,8 +2393,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2428,15 +2409,15 @@ test_read_token (void **attr)
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -2450,7 +2431,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -2486,7 +2467,7 @@ if test $result = ok -a $start_test_number -le 22; then
         cat >$test_file <<'TEST22'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -2522,8 +2503,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2543,8 +2523,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2584,8 +2563,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2601,15 +2579,15 @@ test_read_token (void **attr)
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -2623,7 +2601,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -2659,7 +2637,7 @@ if test $result = ok -a $start_test_number -le 23; then
         cat >$test_file <<'TEST23'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -2695,8 +2673,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2717,8 +2694,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2758,8 +2734,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2775,15 +2750,15 @@ test_read_token (void **attr)
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -2797,7 +2772,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -2833,7 +2808,7 @@ if test $result = ok -a $start_test_number -le 24; then
         cat >$test_file <<'TEST24'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -2869,8 +2844,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2891,8 +2865,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2932,8 +2905,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2949,15 +2921,15 @@ test_read_token (void **attr)
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -2971,7 +2943,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -3007,7 +2979,7 @@ if test $result = ok -a $start_test_number -le 25; then
         cat >$test_file <<'TEST25'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -3043,8 +3015,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -3064,8 +3035,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -3105,8 +3075,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3122,15 +3091,15 @@ test_read_token (void **attr)
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -3144,7 +3113,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -3180,7 +3149,7 @@ if test $result = ok -a $start_test_number -le 26; then
         cat >$test_file <<'TEST26'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -3216,8 +3185,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -3237,8 +3205,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -3278,8 +3245,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3295,15 +3261,15 @@ test_read_token (void **attr)
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -3317,7 +3283,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -3353,7 +3319,7 @@ if test $result = ok -a $start_test_number -le 27; then
         cat >$test_file <<'TEST27'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -3389,8 +3355,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3419,15 +3384,15 @@ static const char *description =
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -3441,7 +3406,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -3477,7 +3442,7 @@ if test $result = ok -a $start_test_number -le 28; then
         cat >$test_file <<'TEST28'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -3513,8 +3478,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3544,15 +3508,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -3577,7 +3541,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -3664,7 +3628,7 @@ if test $result = ok -a $start_test_number -le 29; then
         cat >$test_file <<'TEST29'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -3700,8 +3664,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3731,15 +3694,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -3764,7 +3727,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -3851,7 +3814,7 @@ if test $result = ok -a $start_test_number -le 30; then
         cat >$test_file <<'TEST30'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -3887,8 +3850,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3913,15 +3875,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -3946,7 +3908,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -3998,7 +3960,7 @@ if test $result = ok -a $start_test_number -le 31; then
         cat >$test_file <<'TEST31'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -4034,8 +3996,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4060,15 +4021,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -4093,7 +4054,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -4155,7 +4116,7 @@ if test $result = ok -a $start_test_number -le 32; then
         cat >$test_file <<'TEST32'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -4191,8 +4152,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4218,15 +4178,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -4251,7 +4211,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -4300,7 +4260,7 @@ if test $result = ok -a $start_test_number -le 33; then
         cat >$test_file <<'TEST33'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -4336,8 +4296,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4362,15 +4321,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -4395,7 +4354,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -4440,7 +4399,7 @@ if test $result = ok -a $start_test_number -le 34; then
         cat >$test_file <<'TEST34'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -4476,8 +4435,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4503,15 +4461,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -4536,7 +4494,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -4589,7 +4547,7 @@ if test $result = ok -a $start_test_number -le 35; then
         cat >$test_file <<'TEST35'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -4625,8 +4583,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4655,15 +4612,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -4687,7 +4644,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -4723,7 +4680,7 @@ if test $result = ok -a $start_test_number -le 36; then
         cat >$test_file <<'TEST36'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -4759,8 +4716,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4790,15 +4746,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -4822,7 +4778,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -4867,7 +4823,7 @@ if test $result = ok -a $start_test_number -le 37; then
         cat >$test_file <<'TEST37'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -4903,8 +4859,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4934,15 +4889,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -4969,7 +4924,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -5013,7 +4968,7 @@ if test $result = ok -a $start_test_number -le 38; then
         cat >$test_file <<'TEST38'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -5049,8 +5004,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5077,15 +5031,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -5112,7 +5066,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -5156,7 +5110,7 @@ if test $result = ok -a $start_test_number -le 39; then
         cat >$test_file <<'TEST39'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -5192,8 +5146,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5221,15 +5174,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -5254,7 +5207,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -5318,7 +5271,7 @@ if test $result = ok -a $start_test_number -le 40; then
         cat >$test_file <<'TEST40'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -5354,8 +5307,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5383,15 +5335,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -5416,7 +5368,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -15991,7 +15943,7 @@ EOF
 #include "hashtab.h"
 #include "ticker.h"
 
-#include "earley.h"
+#include "yaep.h"
 
 extern "C" {
 #include "ansic.h"
@@ -16150,8 +16102,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
        start_recovered_tok_num - start_ignored_tok_num, start_ignored_tok_num);
 }
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -16787,18 +16738,18 @@ main (int argc, char **argv)
 {
   ticker_t *t;
   int code, ambiguous_p;
-  struct earley_tree_node *root;
-  earley *e;
+  struct yaep_tree_node *root;
+  yaep *e;
 
   mem_os = new os (0);
   store_lexs ();
   initiate_typedefs ();
   curr = NULL;
   t = new ticker ();
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -16822,7 +16773,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -16860,7 +16811,7 @@ if test $result = ok -a $start_test_number -le 42; then
         cat >$test_file <<'TEST42'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -16896,8 +16847,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -16922,15 +16872,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -16955,7 +16905,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -17003,7 +16953,7 @@ if test $result = ok -a $start_test_number -le 43; then
         cat >$test_file <<'TEST43'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -17039,8 +16989,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17069,15 +17018,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -17102,7 +17051,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -17164,7 +17113,7 @@ if test $result = ok -a $start_test_number -le 44; then
         cat >$test_file <<'TEST44'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -17200,8 +17149,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -17221,8 +17169,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -17262,8 +17209,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17279,15 +17225,15 @@ test_read_token (void **attr)
 
 main ()
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -17301,7 +17247,7 @@ main ()
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -17337,7 +17283,7 @@ if test $result = ok -a $start_test_number -le 45; then
         cat >$test_file <<'TEST45'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -17373,8 +17319,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17402,15 +17347,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -17436,7 +17381,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
                 NULL, &root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -17487,7 +17432,7 @@ if test $result = ok -a $start_test_number -le 46; then
         cat >$test_file <<'TEST46'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 /* All parse_alloc memory is contained here. */
 static os_t *mem_os;
@@ -17523,8 +17468,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17552,15 +17496,15 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   mem_os = new os (0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       delete mem_os;
       exit (1);
     }
@@ -17586,7 +17530,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
                 NULL, &root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       delete mem_os;
       exit (1);
     }
@@ -17641,7 +17585,7 @@ if test $result = ok -a $start_test_number -le 47; then
         cat >$test_file <<'TEST47'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 static void *
 test_parse_alloc (int size)
@@ -17675,8 +17619,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17704,14 +17647,14 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       exit (1);
     }
   ntok = 0;
@@ -17735,7 +17678,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
 		test_parse_free, &root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       exit (1);
     }
   if (!ambiguous_p)
@@ -17783,7 +17726,7 @@ if test $result = ok -a $start_test_number -le 48; then
         cat >$test_file <<'TEST48'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 static void *
 test_parse_alloc (int size)
@@ -17817,8 +17760,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17844,14 +17786,14 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       exit (1);
     }
   ntok = 0;
@@ -17874,7 +17816,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
 		test_parse_free, &root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       exit (1);
     }
   if (ambiguous_p)
@@ -17919,7 +17861,7 @@ if test $result = ok -a $start_test_number -le 49; then
         cat >$test_file <<'TEST49'
 #include <stdlib.h>
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 static void *
 test_parse_alloc (int size)
@@ -17953,8 +17895,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by Earley's algorithm (see comments
-   in the interface file). */
+/* The following function imported by YEAP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17977,14 +17918,14 @@ static const char *description =
 
 main (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       exit (1);
     }
   ntok = 0;
@@ -18007,7 +17948,7 @@ main (int argc, char **argv)
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
 		test_parse_free, &root, &ambiguous_p))
     {
-      fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+      fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
       exit (1);
     }
   if (ambiguous_p)

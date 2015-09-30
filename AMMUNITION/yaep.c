@@ -3,7 +3,7 @@
 
    Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
 
-   This is part of Earley's parser implementation; you can
+   This is part of YAEP (Yet Another Earley Parser) implementation; you can
    redistribute it and/or modify it under the terms of the GNU General
    Public License as published by the Free Software Foundation; either
    version 2, or (at your option) any later version.
@@ -19,8 +19,6 @@
    02111-1307, USA.
 
 */
-
-/* Attention: It is distrubuted under GPL not LGPL. */
 
 /* ??? optimize grammar-> rules-> symbs->. */
 /* This file implements parsing any CFG with minimal error recovery
@@ -51,7 +49,7 @@
 #define NDEBUG 1
 #endif
 
-#ifdef EARLEY_DEBUG
+#ifdef YAEP_DEBUG
 #undef NDEBUG
 #endif
 
@@ -65,7 +63,7 @@
 #include "hashtab.h"
 #include "vlobject.h"
 #include "objstack.h"
-#include "earley.h"
+#include "yaep.h"
 
 
 
@@ -100,8 +98,8 @@
 #define CHAR_BIT 8
 #endif
 
-#ifndef EARLEY_MAX_ERROR_MESSAGE_LENGTH
-#define EARLEY_MAX_ERROR_MESSAGE_LENGTH 200
+#ifndef YAEP_MAX_ERROR_MESSAGE_LENGTH
+#define YAEP_MAX_ERROR_MESSAGE_LENGTH 200
 #endif
 
 /* Define if you don't want to use hash table: symb code -> code.  It
@@ -140,8 +138,8 @@ static const unsigned hash_shift = 611;
 struct grammar
 {
   /* The following member is TRUE if the grammar is undefined (you
-     should set up the grammar by earley_read_grammar or
-     earley_parse_grammar) or bad (error was occured in setting up the
+     should set up the grammar by yaep_read_grammar or
+     yaep_parse_grammar) or bad (error was occured in setting up the
      grammar). */
   int undefined_p;
 
@@ -150,7 +148,7 @@ struct grammar
   int error_code;
   /* This member contains message are always contains error message
      corresponding to the last occurred error code. */
-  char error_message [EARLEY_MAX_ERROR_MESSAGE_LENGTH + 1];
+  char error_message [YAEP_MAX_ERROR_MESSAGE_LENGTH + 1];
 
   /* The following is grammar axiom.  There is only one rule with axiom
      in lhs. */
@@ -221,14 +219,14 @@ static void *(*parse_alloc) (int nmemb);
 static void (*parse_free) (void *mem);
 
 /* Forward decrlarations: */
-static void earley_error (int code, const char *format, ...);
+static void yaep_error (int code, const char *format, ...);
 
 #ifndef __cplusplus
 extern
 #else
 static
 #endif
-void earley_free_grammar (struct grammar *g);
+void yaep_free_grammar (struct grammar *g);
   
 /* The following is default number of tokens sucessfully matched to
    stop error recovery alternative (state). */
@@ -570,7 +568,7 @@ nonterm_get (int n)
   return symb;
 }
 
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 
 /* The following function prints symbol SYMB to file F.  Terminal is
    printed with its code if CODE_P. */
@@ -582,7 +580,7 @@ symb_print (FILE *f, struct symb *symb, int code_p)
     fprintf (f, "(%d)", symb->u.term.code);
 }
 
-#endif /* #ifndef NO_EARLEY_DEBUG_PRINT */
+#endif /* #ifndef NO_YAEP_DEBUG_PRINT */
 
 #ifdef SYMB_CODE_TRANS_VECT
 
@@ -1096,7 +1094,7 @@ rule_new_stop (void)
     rules_ptr->curr_rule->order [i] = -1;
 }
 
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 
 /* The following function prints RULE with its translation (if
    TRANS_P) to file F. */
@@ -1154,7 +1152,7 @@ rule_dot_print (FILE *f, struct rule *rule, int pos)
     fprintf (f, ".");
 }
 
-#endif /* #ifndef NO_EARLEY_DEBUG_PRINT */
+#endif /* #ifndef NO_YAEP_DEBUG_PRINT */
 
 /* The following function frees memory for rules. */
 static void
@@ -1184,8 +1182,8 @@ rule_fin (struct rules *rules)
 
 /* The initial length of array (in tokens) in which input tokens are
    placed. */
-#ifndef EARLEY_INIT_TOKENS_NUMBER
-#define EARLEY_INIT_TOKENS_NUMBER 10000
+#ifndef YAEP_INIT_TOKENS_NUMBER
+#define YAEP_INIT_TOKENS_NUMBER 10000
 #endif
 
 /* The following describes input token. */
@@ -1214,7 +1212,7 @@ static vlo_t *toks_vlo;
 static void
 tok_init (void)
 {
-  VLO_CREATE (toks_vlo, EARLEY_INIT_TOKENS_NUMBER * sizeof (struct tok));
+  VLO_CREATE (toks_vlo, YAEP_INIT_TOKENS_NUMBER * sizeof (struct tok));
   toks_len = 0;
 }
 
@@ -1228,7 +1226,7 @@ tok_add (int code, void *attr)
   tok.attr = attr;
   tok.symb = symb_find_by_code (code);
   if (tok.symb == NULL)
-    earley_error (EARLEY_INVALID_TOKEN_CODE, "invalid token code %d", code);
+    yaep_error (YAEP_INVALID_TOKEN_CODE, "invalid token code %d", code);
   VLO_ADD_MEMORY (toks_vlo, &tok, sizeof (struct tok));
   toks = (struct tok *) VLO_BEGIN (toks_vlo);
   toks_len++;
@@ -1409,7 +1407,7 @@ sit_create (struct rule *rule, int pos, int context)
   return sit;
 }
 
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 
 /* The following function prints situation SIT to file F.  The
    situation is printed with the lookahead set if LOOKAHEAD_P. */
@@ -1425,7 +1423,7 @@ sit_print (FILE *f, struct sit *sit, int lookahead_p)
     }
 }
 
-#endif /* #ifndef NO_EARLEY_DEBUG_PRINT */
+#endif /* #ifndef NO_YAEP_DEBUG_PRINT */
 
 /* Return hash of sequence of N_SITS situations in array SITS.  */
 static unsigned
@@ -2104,7 +2102,7 @@ set_new_core_stop (void)
   OS_TOP_FINISH (set_parent_indexes_os);
 }
 
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 
 /* The following function prints SET to file F.  If NONSTART_P is TRUE
    then print all situations.  The situations are printed with the
@@ -2162,7 +2160,7 @@ set_print (FILE *f, struct set *set, int set_dist, int nonstart_p, int lookahead
     }
 }
 
-#endif /* #ifndef NO_EARLEY_DEBUG_PRINT */
+#endif /* #ifndef NO_YAEP_DEBUG_PRINT */
 
 /* Finalize work with sets. */
 static void
@@ -2998,7 +2996,7 @@ static jmp_buf error_longjump_buff;
    makes long jump after that.  So the function is designed to process
    only one error. */
 static void
-earley_error (int code, const char *format, ...)
+yaep_error (int code, const char *format, ...)
 {
   va_list arguments;
 
@@ -3006,7 +3004,7 @@ earley_error (int code, const char *format, ...)
   va_start (arguments, format);
   vsprintf (grammar->error_message, format, arguments);
   va_end (arguments);
-  assert (strlen (grammar->error_message) < EARLEY_MAX_ERROR_MESSAGE_LENGTH);
+  assert (strlen (grammar->error_message) < YAEP_MAX_ERROR_MESSAGE_LENGTH);
   longjmp (error_longjump_buff, code);
 }
 
@@ -3016,7 +3014,7 @@ static void (*init_error_func_for_allocate) (void);
 static void
 error_func_for_allocate (void)
 {
-  earley_error (EARLEY_NO_MEMORY, "no memory");
+  yaep_error (YAEP_NO_MEMORY, "no memory");
 }
 
 /* The following function allocates memory for new grammar. */
@@ -3024,14 +3022,14 @@ error_func_for_allocate (void)
 static
 #endif
 struct grammar *
-earley_create_grammar (void)
+yaep_create_grammar (void)
 {
   grammar = NULL;
   init_error_func_for_allocate
     = change_allocation_error_function (error_func_for_allocate);
   if (setjmp (error_longjump_buff) != 0)
     {
-      earley_free_grammar (grammar);
+      yaep_free_grammar (grammar);
       change_allocation_error_function (init_error_func_for_allocate);
       return NULL;
     }
@@ -3060,7 +3058,7 @@ earley_create_grammar (void)
 
 /* The following function makes grammar empty. */
 static void
-earley_empty_grammar (void)
+yaep_empty_grammar (void)
 {
   if (grammar != NULL)
     {
@@ -3076,7 +3074,7 @@ earley_empty_grammar (void)
 static
 #endif
 int
-earley_error_code (struct grammar *g)
+yaep_error_code (struct grammar *g)
 {
   assert (g != NULL);
   return g->error_code;
@@ -3088,7 +3086,7 @@ earley_error_code (struct grammar *g)
 static
 #endif
 const char *
-earley_error_message (struct grammar *g)
+yaep_error_message (struct grammar *g)
 {
   assert (g != NULL);
   return g->error_message;
@@ -3286,23 +3284,23 @@ check_grammar (int strict_p)
       for (i = 0; (symb = nonterm_get (i)) != NULL; i++)
 	{
 	  if (!symb->derivation_p)
-	    earley_error
-	      (EARLEY_NONTERM_DERIVATION,
+	    yaep_error
+	      (YAEP_NONTERM_DERIVATION,
 	       "nonterm `%s' does not derive any term string", symb->repr);
 	  else if (!symb->access_p)
-	    earley_error (EARLEY_UNACCESSIBLE_NONTERM,
-			  "nonterm `%s' is not accessible from axiom",
-			  symb->repr);
+	    yaep_error (YAEP_UNACCESSIBLE_NONTERM,
+			"nonterm `%s' is not accessible from axiom",
+			symb->repr);
 	}
     }
   else if (!grammar->axiom->derivation_p)
-    earley_error (EARLEY_NONTERM_DERIVATION,
-		  "nonterm `%s' does not derive any term string",
-		  grammar->axiom->repr);
+    yaep_error (YAEP_NONTERM_DERIVATION,
+		"nonterm `%s' does not derive any term string",
+		grammar->axiom->repr);
   for (i = 0; (symb = nonterm_get (i)) != NULL; i++)
     if (symb->u.nonterm.loop_p)
-      earley_error
-	(EARLEY_LOOP_NONTERM,
+      yaep_error
+	(YAEP_LOOP_NONTERM,
 	 "nonterm `%s' can derive only itself (grammar with loops)",
 	 symb->repr);
   /* We should have correct flags empty_p here. */
@@ -3326,12 +3324,12 @@ check_grammar (int strict_p)
 static
 #endif
 int
-earley_read_grammar (struct grammar *g, int strict_p,
-		     const char *(*read_terminal) (int *code),
-		     const char *(*read_rule) (const char ***rhs,
-					       const char **abs_node,
-					       int *anode_cost,
-					       int **transl))
+yaep_read_grammar (struct grammar *g, int strict_p,
+		   const char *(*read_terminal) (int *code),
+		   const char *(*read_rule) (const char ***rhs,
+					     const char **abs_node,
+					     int *anode_cost,
+					     int **transl))
 {
   const char *name, *lhs, **rhs, *anode;
   struct symb *symb, *start;
@@ -3349,31 +3347,31 @@ earley_read_grammar (struct grammar *g, int strict_p,
   rules_ptr = g->rules_ptr;
   if ((code = setjmp (error_longjump_buff)) != 0)
     {
-      earley_free_grammar (grammar);
+      yaep_free_grammar (grammar);
       change_allocation_error_function (init_error_func_for_allocate);
       return code;
     }
   if (!grammar->undefined_p)
-    earley_empty_grammar ();
+    yaep_empty_grammar ();
   while ((name = (*read_terminal) (&code)) != NULL)
     {
       if (code < 0)
-	earley_error (EARLEY_NEGATIVE_TERM_CODE,
-		      "term `%s' has negative code", name);
+	yaep_error (YAEP_NEGATIVE_TERM_CODE,
+		    "term `%s' has negative code", name);
       symb = symb_find_by_repr (name);
       if (symb != NULL)
-	earley_error (EARLEY_REPEATED_TERM_DECL,
-		      "repeated declaration of term `%s'", name);
+	yaep_error (YAEP_REPEATED_TERM_DECL,
+		    "repeated declaration of term `%s'", name);
       if (symb_find_by_code (code) != NULL)
-	earley_error (EARLEY_REPEATED_TERM_CODE,
-		      "repeated code %d in term `%s'", code, name);
+	yaep_error (YAEP_REPEATED_TERM_CODE,
+		    "repeated code %d in term `%s'", code, name);
       symb_add_term (name, code);
     }
 
   /* Adding error symbol. */
   if (symb_find_by_repr (TERM_ERROR_NAME) != NULL)
-    earley_error (EARLEY_FIXED_NAME_USAGE,
-		  "do not use fixed name `%s'", TERM_ERROR_NAME);
+    yaep_error (YAEP_FIXED_NAME_USAGE,
+		"do not use fixed name `%s'", TERM_ERROR_NAME);
   if (symb_find_by_code (TERM_ERROR_CODE) != NULL)
     abort ();
   grammar->term_error = symb_add_term (TERM_ERROR_NAME, TERM_ERROR_CODE);
@@ -3385,15 +3383,15 @@ earley_read_grammar (struct grammar *g, int strict_p,
       if (symb == NULL)
 	symb = symb_add_nonterm (lhs);
       else if (symb->term_p)
-	earley_error (EARLEY_TERM_IN_RULE_LHS,
-		      "term `%s' in the left hand side of rule", lhs);
+	yaep_error (YAEP_TERM_IN_RULE_LHS,
+		    "term `%s' in the left hand side of rule", lhs);
       if (anode == NULL
 	  && transl != NULL && *transl >= 0 && transl [1] >= 0)
-	earley_error (EARLEY_INCORRECT_TRANSLATION,
-		      "rule for `%s' has incorrect translation", lhs);
+	yaep_error (YAEP_INCORRECT_TRANSLATION,
+		    "rule for `%s' has incorrect translation", lhs);
       if (anode != NULL && anode_cost < 0)
-	earley_error (EARLEY_NEGATIVE_COST,
-		      "translation for `%s' has negative cost", lhs);
+	yaep_error (YAEP_NEGATIVE_COST,
+		    "translation for `%s' has negative cost", lhs);
       if (grammar->axiom == NULL)
 	{
 	  /* We made this here becuase we want that the start rule has
@@ -3402,13 +3400,13 @@ earley_read_grammar (struct grammar *g, int strict_p,
 	  start = symb;
 	  grammar->axiom = symb_find_by_repr (AXIOM_NAME);
 	  if (grammar->axiom != NULL)
-	    earley_error (EARLEY_FIXED_NAME_USAGE,
-			  "do not use fixed name `%s'", AXIOM_NAME);
+	    yaep_error (YAEP_FIXED_NAME_USAGE,
+			"do not use fixed name `%s'", AXIOM_NAME);
 	  grammar->axiom = symb_add_nonterm (AXIOM_NAME);
 	  grammar->end_marker = symb_find_by_repr (END_MARKER_NAME);
 	  if (grammar->end_marker != NULL)
-	    earley_error (EARLEY_FIXED_NAME_USAGE,
-			  "do not use fixed name `%s'", END_MARKER_NAME);
+	    yaep_error (YAEP_FIXED_NAME_USAGE,
+			"do not use fixed name `%s'", END_MARKER_NAME);
 	  if (symb_find_by_code (END_MARKER_CODE) != NULL)
 	    abort ();
 	  grammar->end_marker = symb_add_term (END_MARKER_NAME,
@@ -3436,17 +3434,17 @@ earley_read_grammar (struct grammar *g, int strict_p,
 	  for (i = 0; (el = transl [i]) >= 0; i++)
 	    if (el >= rule->rhs_len)
 	      {
-		if (el != EARLEY_NIL_TRANSLATION_NUMBER)
-		  earley_error
-		    (EARLEY_INCORRECT_SYMBOL_NUMBER,
+		if (el != YAEP_NIL_TRANSLATION_NUMBER)
+		  yaep_error
+		    (YAEP_INCORRECT_SYMBOL_NUMBER,
 		     "translation symbol number %d in rule for `%s' is out of range",
 		     el, lhs);
 		else
 		  rule->trans_len++;
 	      }
 	    else if (rule->order [el] >= 0)
-	      earley_error
-		(EARLEY_REPEATED_SYMBOL_NUMBER,
+	      yaep_error
+		(YAEP_REPEATED_SYMBOL_NUMBER,
 		 "repeated translation symbol number %d in rule for `%s'",
 		 el, lhs);
 	    else
@@ -3458,7 +3456,7 @@ earley_read_grammar (struct grammar *g, int strict_p,
 	}
     }
   if (grammar->axiom == NULL)
-    earley_error (EARLEY_NO_RULES, "grammar does not contains rules");
+    yaep_error (YAEP_NO_RULES, "grammar does not contains rules");
   assert (start != NULL);
   /* Adding axiom : error $eof if it is neccessary. */
   for (rule = start->u.nonterm.rules; rule != NULL; rule = rule->lhs_next)
@@ -3476,7 +3474,7 @@ earley_read_grammar (struct grammar *g, int strict_p,
 #ifdef SYMB_CODE_TRANS_VECT
   symb_finish_adding_terms ();
 #endif
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
       /* Print rules. */
@@ -3519,7 +3517,7 @@ earley_read_grammar (struct grammar *g, int strict_p,
 static
 #endif
 int
-earley_set_lookahead_level (struct grammar *grammar, int level)
+yaep_set_lookahead_level (struct grammar *grammar, int level)
 {
   int old;
 
@@ -3533,7 +3531,7 @@ earley_set_lookahead_level (struct grammar *grammar, int level)
 static
 #endif
 int
-earley_set_debug_level (struct grammar *grammar, int level)
+yaep_set_debug_level (struct grammar *grammar, int level)
 {
   int old;
 
@@ -3547,7 +3545,7 @@ earley_set_debug_level (struct grammar *grammar, int level)
 static
 #endif
 int
-earley_set_one_parse_flag (struct grammar *grammar, int flag)
+yaep_set_one_parse_flag (struct grammar *grammar, int flag)
 {
   int old;
 
@@ -3561,7 +3559,7 @@ earley_set_one_parse_flag (struct grammar *grammar, int flag)
 static
 #endif
 int
-earley_set_cost_flag (struct grammar *grammar, int flag)
+yaep_set_cost_flag (struct grammar *grammar, int flag)
 {
   int old;
 
@@ -3575,7 +3573,7 @@ earley_set_cost_flag (struct grammar *grammar, int flag)
 static
 #endif
 int
-earley_set_error_recovery_flag (struct grammar *grammar, int flag)
+yaep_set_error_recovery_flag (struct grammar *grammar, int flag)
 {
   int old;
   
@@ -3589,7 +3587,7 @@ earley_set_error_recovery_flag (struct grammar *grammar, int flag)
 static
 #endif
 int
-earley_set_recovery_match (struct grammar *grammar, int n_toks)
+yaep_set_recovery_match (struct grammar *grammar, int n_toks)
 {
   int old;
 
@@ -3602,7 +3600,7 @@ earley_set_recovery_match (struct grammar *grammar, int n_toks)
 /* The function initializes all internal data for parser for N_TOKS
    tokens. */
 static void
-earley_parse_init (int n_toks)
+yaep_parse_init (int n_toks)
 {
   struct rule *rule;
 
@@ -3625,7 +3623,7 @@ earley_parse_init (int n_toks)
 /* The function should be called the last (it frees all allocated
    data for parser). */
 static void
-earley_parse_fin (void)
+yaep_parse_fin (void)
 {
   core_symb_vect_fin ();
   set_fin ();
@@ -3886,7 +3884,7 @@ build_start_set (void)
     assert (FALSE);
   expand_new_start_set ();
   pl [0] = new_set;
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
       fprintf (stderr, "\nParsing start...\n");
@@ -4120,7 +4118,7 @@ save_original_sets (void)
     {
       VLO_ADD_MEMORY (original_pl_tail_stack, &pl [curr_pl],
 		      sizeof (struct set *));
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "++++Save original set=%d\n", curr_pl);
@@ -4154,7 +4152,7 @@ restore_original_sets (int last_pl_el)
       pl [original_last_pl_el]
 	= ((struct set **) VLO_BEGIN (original_pl_tail_stack))
 	  [start_pl_curr - original_last_pl_el];
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "++++++Restore original set=%d\n",
@@ -4208,7 +4206,7 @@ new_recovery_state (int last_original_pl_el, int backward_move_cost)
   int i;
 
   assert (backward_move_cost >= 0);
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
       fprintf (stderr,
@@ -4224,7 +4222,7 @@ new_recovery_state (int last_original_pl_el, int backward_move_cost)
   for (i = last_original_pl_el + 1; i <= pl_curr; i++)
     {
       OS_TOP_ADD_MEMORY (recovery_state_tail_sets, &pl [i], sizeof (pl [i]));
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++Saving set=%d\n", i);
@@ -4261,7 +4259,7 @@ push_recovery_state (int last_original_pl_el, int backward_move_cost)
   struct recovery_state state;
 
   state = new_recovery_state (last_original_pl_el, backward_move_cost);
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
       fprintf (stderr, "++++Push recovery state: original set=%d, tok=%d, ",
@@ -4283,7 +4281,7 @@ set_recovery_state (struct recovery_state *state)
   tok_curr = state->start_tok;
   restore_original_sets (state->last_original_pl_el);
   pl_curr = state->last_original_pl_el;
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
       fprintf (stderr, "++++Set recovery state: set=%d, tok=%d, ",
@@ -4295,7 +4293,7 @@ set_recovery_state (struct recovery_state *state)
   for (i = 0; i < state->pl_tail_length; i++)
     {
       pl [++pl_curr] = state->pl_tail [i];
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++Add saved set=%d\n", pl_curr);
@@ -4320,7 +4318,7 @@ pop_recovery_state (void)
 
   state = &((struct recovery_state *) VLO_BOUND (recovery_state_stack)) [-1];
   VLO_SHORTEN (recovery_state_stack, sizeof (struct recovery_state));
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     fprintf (stderr, "++++Pop error recovery state\n");
 #endif
@@ -4343,7 +4341,7 @@ error_recovery (int *start, int *stop)
   int best_cost, cost, lookahead_term_num, n_matched_toks;
   int back_to_frontier_move_cost, backward_move_cost;
 
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     fprintf (stderr, "\n++Error recovery start\n");
 #endif
@@ -4373,7 +4371,7 @@ error_recovery (int *start, int *stop)
 	  /* Advance back frontier. */
 	  pl_curr = find_error_pl_set (back_pl_frontier - 1,
 				       &backward_move_cost);
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	  if (grammar->debug_level > 2)
 	    fprintf (stderr, "++++Advance back frontier: old=%d, new=%d\n",
 		     back_pl_frontier, pl_curr);
@@ -4397,7 +4395,7 @@ error_recovery (int *start, int *stop)
 	  tok_curr++;
 	  if (tok_curr < toks_len)
 	    {
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	      if (grammar->debug_level > 2)
 		{
 		  fprintf (stderr,
@@ -4412,7 +4410,7 @@ error_recovery (int *start, int *stop)
 	  tok_curr--;
 	}
       set = pl [pl_curr];
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "++++Trying set=%d, tok=%d, ",
@@ -4424,13 +4422,13 @@ error_recovery (int *start, int *stop)
       /* Shift error: */
       core_symb_vect = core_symb_vect_find (set->core, grammar->term_error);
       assert (core_symb_vect != NULL);
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	fprintf (stderr, "++++Making error shift in set=%d\n", pl_curr);
 #endif
       build_new_set (set, core_symb_vect, -1);
       pl [++pl_curr] = new_set;
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "++Trying new set=%d\n", pl_curr);
@@ -4449,7 +4447,7 @@ error_recovery (int *start, int *stop)
 						toks [tok_curr].symb);
 	  if (core_symb_vect != NULL)
 	    break;
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	  if (grammar->debug_level > 2)
 	    {
 	      fprintf (stderr, "++++++Skipping=%d ", tok_curr);
@@ -4465,7 +4463,7 @@ error_recovery (int *start, int *stop)
 	}
       if (cost >= best_cost)
 	{
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	  if (grammar->debug_level > 2)
 	    fprintf
 	      (stderr,
@@ -4477,7 +4475,7 @@ error_recovery (int *start, int *stop)
 	}
       if (tok_curr >= toks_len)
 	{
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	  if (grammar->debug_level > 2)
 	    fprintf
 	      (stderr,
@@ -4496,7 +4494,7 @@ error_recovery (int *start, int *stop)
 			    : -1);
       build_new_set (new_set, core_symb_vect, lookahead_term_num);
       pl [++pl_curr] = new_set;
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++++Building new set=%d\n", pl_curr);
@@ -4508,7 +4506,7 @@ error_recovery (int *start, int *stop)
       n_matched_toks = 0;
       for (;;)
 	{
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	  if (grammar->debug_level > 2)
 	    {
 	      fprintf (stderr, "++++++Matching=%d ", tok_curr);
@@ -4525,7 +4523,7 @@ error_recovery (int *start, int *stop)
 	  /* Push secondary recovery state (with error in set). */
 	  if (core_symb_vect_find (new_core, grammar->term_error) != NULL)
 	    {
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	      if (grammar->debug_level > 2)
 		{
 		  fprintf
@@ -4554,7 +4552,7 @@ error_recovery (int *start, int *stop)
 	  /* We found an error recovery.  Compare costs. */
 	  if (best_cost > cost)
 	    {
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	      if (grammar->debug_level > 2)
 		fprintf
 		  (stderr,
@@ -4571,23 +4569,23 @@ error_recovery (int *start, int *stop)
 	      *start = start_tok_curr - state.backward_move_cost;
 	      *stop = *start + cost;
 	    }
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 	  else if (grammar->debug_level > 2)
 	    fprintf (stderr, "++++Ignore %d tokens (worse recovery)\n", cost);
 #endif
 	}
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       else if (cost < best_cost && grammar->debug_level > 2)
 	fprintf (stderr, "++++No %d matched tokens  -- reject this state\n",
 		 grammar->recovery_token_matches);
 #endif
     }
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     fprintf (stderr, "\n++Finishing error recovery: Restore best state\n");
 #endif
   set_recovery_state (&best_state);
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
       fprintf (stderr, "\n++Error recovery end: curr token %d=", tok_curr);
@@ -4673,7 +4671,7 @@ build_pl (void)
 	lookahead_term_num = (tok_curr < toks_len - 1
 			      ? toks [tok_curr + 1].symb->u.term.term_num : -1);
 	
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "\nReading %d=", tok_curr);
@@ -4753,7 +4751,7 @@ build_pl (void)
 #endif
 	}
       pl [++pl_curr] = new_set;
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "New set=%d\n", pl_curr);
@@ -4789,7 +4787,7 @@ struct parse_state
   struct parse_state *parent_anode_state;
   int parent_disp;
   /* The following is used only for states in the table. */
-  struct earley_tree_node *anode;
+  struct yaep_tree_node *anode;
 };
 
 /* The following os contains all allocated parser states. */
@@ -4928,7 +4926,7 @@ parse_state_fin (void)
 
 
 
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
 
 /* This page conatins code to traverse translation. */
 
@@ -4940,7 +4938,7 @@ struct trans_visit_node
      negative if we did not visit the node yet. */
   int num;
   /* The tree node itself. */
-  struct earley_tree_node *node;
+  struct yaep_tree_node *node;
 };
 
 /* The key of the following table is node itself. */
@@ -4977,7 +4975,7 @@ trans_visit_node_eq (hash_table_entry_t n1, hash_table_entry_t n2)
    function creates the translation visit node and inserts it into
    the table. */
 static struct trans_visit_node *
-visit_node (struct earley_tree_node *node)
+visit_node (struct yaep_tree_node *node)
 {
   struct trans_visit_node trans_visit_node;
   hash_table_entry_t *entry;
@@ -5017,10 +5015,10 @@ canon_node_num (int num)
    all its children (if debug_level < 0 output format is for
    graphviz). */
 static void
-print_node (FILE *f, struct earley_tree_node *node)
+print_node (FILE *f, struct yaep_tree_node *node)
 {
   struct trans_visit_node *trans_visit_node;
-  struct earley_tree_node *child;
+  struct yaep_tree_node *child;
   int i;
 
   assert (node != NULL);
@@ -5032,20 +5030,20 @@ print_node (FILE *f, struct earley_tree_node *node)
     fprintf (f, "%7d: ", trans_visit_node->num);
   switch (node->type)
     {
-    case EARLEY_NIL:
+    case YAEP_NIL:
       if (grammar->debug_level > 0)
 	fprintf (f, "EMPTY\n");
       break;
-    case EARLEY_ERROR:
+    case YAEP_ERROR:
       if (grammar->debug_level > 0)
 	fprintf (f, "ERROR\n");
       break;
-    case EARLEY_TERM:
+    case YAEP_TERM:
       if (grammar->debug_level > 0)
 	fprintf (f, "TERMINAL: code=%d, repr=%s\n", node->val.term.code,
 		 symb_find_by_code (node->val.term.code)->repr);
       break;
-    case EARLEY_ANODE:
+    case YAEP_ANODE:
       if (grammar->debug_level > 0)
 	{
 	  fprintf (f, "ABSTRACT: %s (", node->val.anode.name);
@@ -5062,20 +5060,20 @@ print_node (FILE *f, struct earley_tree_node *node)
 		       canon_node_num (visit_node (child)->num));
 	      switch (child->type)
 		{
-		case EARLEY_NIL:
+		case YAEP_NIL:
 		  fprintf (f, "EMPTY");
 		  break;
-		case EARLEY_ERROR:
+		case YAEP_ERROR:
 		  fprintf (f, "ERROR");
 		  break;
-		case EARLEY_TERM:
+		case YAEP_TERM:
 		  fprintf (f, "%s",
 			   symb_find_by_code (child->val.term.code)->repr);
 		  break;
-		case EARLEY_ANODE:
+		case YAEP_ANODE:
 		  fprintf (f, "%s", child->val.anode.name);
 		  break;
-		case EARLEY_ALT:
+		case YAEP_ALT:
 		  fprintf (f, "ALT");
 		}
 	      fprintf (f, "\";\n");
@@ -5084,7 +5082,7 @@ print_node (FILE *f, struct earley_tree_node *node)
       for (i = 0; (child = node->val.anode.children [i]) != NULL; i++)
 	print_node (f, child);
       break;
-    case EARLEY_ALT:
+    case YAEP_ALT:
       if (grammar->debug_level > 0)
 	{
 	  fprintf (f, "ALTERNATIVE: node=%d, next=",
@@ -5101,21 +5099,21 @@ print_node (FILE *f, struct earley_tree_node *node)
 		   canon_node_num (visit_node (node->val.alt.node)->num));
 	  switch (node->val.alt.node->type)
 	    {
-	    case EARLEY_NIL:
+	    case YAEP_NIL:
 	      fprintf (f, "EMPTY");
 	      break;
-	    case EARLEY_ERROR:
+	    case YAEP_ERROR:
 	      fprintf (f, "ERROR");
 	      break;
-	    case EARLEY_TERM:
+	    case YAEP_TERM:
 	      fprintf (f, "%s",
 		       symb_find_by_code (node->val.alt.node->val.term.code)
 		       ->repr);
 	      break;
-	    case EARLEY_ANODE:
+	    case YAEP_ANODE:
 	      fprintf (f, "%s", node->val.alt.node->val.anode.name);
 	      break;
-	    case EARLEY_ALT:
+	    case YAEP_ALT:
 	      fprintf (f, "ALT");
 	    }
 	  fprintf (f, "\";\n");
@@ -5135,7 +5133,7 @@ print_node (FILE *f, struct earley_tree_node *node)
 
 /* The following function prints parse tree with ROOT. */
 static void
-print_parse (FILE *f, struct earley_tree_node *root)
+print_parse (FILE *f, struct yaep_tree_node *root)
 {
 #ifndef __cplusplus
   trans_visit_nodes_tab = create_hash_table (toks_len * 2,
@@ -5168,10 +5166,10 @@ static int n_parse_term_nodes, n_parse_abstract_nodes, n_parse_alt_nodes;
 INLINE
 #endif
 static void
-place_translation (struct earley_tree_node **place,
-		   struct earley_tree_node *node)
+place_translation (struct yaep_tree_node **place,
+		   struct yaep_tree_node *node)
 {
-  struct earley_tree_node *alt, *next_alt;
+  struct yaep_tree_node *alt, *next_alt;
 
   assert (place != NULL);
   if (*place == NULL)
@@ -5180,14 +5178,14 @@ place_translation (struct earley_tree_node **place,
       return;
     }
   /* We need an alternative. */
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   n_parse_alt_nodes++;
 #endif
-  alt = (struct earley_tree_node *) (*parse_alloc) (sizeof
-						    (struct earley_tree_node));
-  alt->type = EARLEY_ALT;
+  alt = (struct yaep_tree_node *) (*parse_alloc) (sizeof
+						  (struct yaep_tree_node));
+  alt->type = YAEP_ALT;
   alt->val.alt.node = node;
-  if ((*place)->type == EARLEY_ALT)
+  if ((*place)->type == YAEP_ALT)
     alt->val.alt.next = *place;
   else
     {
@@ -5195,30 +5193,30 @@ place_translation (struct earley_tree_node **place,
 	 alternative too. */
       n_parse_alt_nodes++;
       next_alt = alt->val.alt.next
-	= ((struct earley_tree_node *)
-	   (*parse_alloc) (sizeof (struct earley_tree_node)));
-      next_alt->type = EARLEY_ALT;
+	= ((struct yaep_tree_node *)
+	   (*parse_alloc) (sizeof (struct yaep_tree_node)));
+      next_alt->type = YAEP_ALT;
       next_alt->val.alt.node = *place;
       next_alt->val.alt.next = NULL;
     }
   *place = alt;
 }
 
-static struct earley_tree_node *
-copy_anode (struct earley_tree_node **place, struct earley_tree_node *anode,
+static struct yaep_tree_node *
+copy_anode (struct yaep_tree_node **place, struct yaep_tree_node *anode,
 	    struct rule *rule, int disp)
 {
-  struct earley_tree_node *node;
+  struct yaep_tree_node *node;
   int i;
 
-  node = ((struct earley_tree_node *)
-	  (*parse_alloc) (sizeof (struct earley_tree_node)
-			  + sizeof (struct earley_tree_node *)
+  node = ((struct yaep_tree_node *)
+	  (*parse_alloc) (sizeof (struct yaep_tree_node)
+			  + sizeof (struct yaep_tree_node *)
 			  * (rule->trans_len + 1)));
   *node = *anode;
   node->val.anode.children
-    = ((struct earley_tree_node **)
-       ((char *) node + sizeof (struct earley_tree_node)));
+    = ((struct yaep_tree_node **)
+       ((char *) node + sizeof (struct yaep_tree_node)));
   for (i = 0; i <= rule->trans_len; i++)
     node->val.anode.children [i] = anode->val.anode.children [i];
   node->val.anode.children [disp] = NULL;
@@ -5257,23 +5255,23 @@ static vlo_t *tnodes_vlo;
    The function also collects references to memory which can be
    freed. Remeber that the translation is DAG, altenatives form lists
    (alt node may not refer for another alternative). */
-static struct earley_tree_node *
-prune_to_minimal (struct earley_tree_node *node, int *cost)
+static struct yaep_tree_node *
+prune_to_minimal (struct yaep_tree_node *node, int *cost)
 {
-  struct earley_tree_node *child, *alt, *next_alt, *result;
+  struct yaep_tree_node *child, *alt, *next_alt, *result;
   int i, min_cost;
 
   assert (node != NULL);
   switch (node->type)
     {
-    case EARLEY_NIL:
-    case EARLEY_ERROR:
-    case EARLEY_TERM:
+    case YAEP_NIL:
+    case YAEP_ERROR:
+    case YAEP_TERM:
       if (parse_free != NULL)
 	VLO_ADD_MEMORY (tnodes_vlo, &node, sizeof (node));
       *cost = 0;
       return node;
-    case EARLEY_ANODE:
+    case YAEP_ANODE:
       if (node->val.anode.cost >= 0)
 	 {
 	   if (parse_free != NULL)
@@ -5287,7 +5285,7 @@ prune_to_minimal (struct earley_tree_node *node, int *cost)
 	 }
       node->val.anode.cost = -node->val.anode.cost - 1; /* flag of visit */
       return node;
-    case EARLEY_ALT:
+    case YAEP_ALT:
       for (alt = node; alt != NULL; alt = next_alt)
 	 {
 	   if (parse_free != NULL)
@@ -5318,9 +5316,9 @@ prune_to_minimal (struct earley_tree_node *node, int *cost)
 /* The following function traverses the translation collecting
    reference to memory which may not be freed. */
 static void
-traverse_pruned_translation (struct earley_tree_node *node)
+traverse_pruned_translation (struct yaep_tree_node *node)
 {
-  struct earley_tree_node *child, *alt;
+  struct yaep_tree_node *child, *alt;
   hash_table_entry_t *entry;
   int i;
   
@@ -5330,11 +5328,11 @@ traverse_pruned_translation (struct earley_tree_node *node)
     *entry = (hash_table_entry_t) node;
   switch (node->type)
     {
-    case EARLEY_NIL:
-    case EARLEY_ERROR:
-    case EARLEY_TERM:
+    case YAEP_NIL:
+    case YAEP_ERROR:
+    case YAEP_TERM:
       break;
-    case EARLEY_ANODE:
+    case YAEP_ANODE:
       if (parse_free != NULL
 	  && *(entry = find_hash_table_entry (reserv_mem_tab,
 					       node->val.anode.name,
@@ -5345,7 +5343,7 @@ traverse_pruned_translation (struct earley_tree_node *node)
       assert (node->val.anode.cost < 0);
       node->val.anode.cost = -node->val.anode.cost - 1;
       break;
-    case EARLEY_ALT:
+    case YAEP_ALT:
       for (alt = node; alt != NULL; alt = alt->val.alt.next)
 	traverse_pruned_translation (alt->val.alt.node);
       break;
@@ -5356,10 +5354,10 @@ traverse_pruned_translation (struct earley_tree_node *node)
 }
 
 /* The function finds and returns a minimal cost parse(s). */
-static struct earley_tree_node *
-find_minimal_translation (struct earley_tree_node *root)
+static struct yaep_tree_node *
+find_minimal_translation (struct yaep_tree_node *root)
 {
-  struct earley_tree_node **node_ptr;
+  struct yaep_tree_node **node_ptr;
   hash_table_entry_t *entry, *entry_1;
   int cost;
   
@@ -5378,13 +5376,13 @@ find_minimal_translation (struct earley_tree_node *root)
   traverse_pruned_translation (root);
   if (parse_free != NULL)
     {
-      for (node_ptr = (struct earley_tree_node **) VLO_BEGIN (tnodes_vlo);
-	   node_ptr < (struct earley_tree_node **) VLO_BOUND (tnodes_vlo);
+      for (node_ptr = (struct yaep_tree_node **) VLO_BEGIN (tnodes_vlo);
+	   node_ptr < (struct yaep_tree_node **) VLO_BOUND (tnodes_vlo);
 	   node_ptr++)
 	if (*(entry = find_hash_table_entry (reserv_mem_tab, *node_ptr, TRUE))
 	     == NULL)
 	   {
-	     if ((*node_ptr)->type == EARLEY_ANODE
+	     if ((*node_ptr)->type == YAEP_ANODE
 		 && *(entry_1
 		      = find_hash_table_entry (reserv_mem_tab,
 					       (*node_ptr)->val.anode.name,
@@ -5410,7 +5408,7 @@ find_minimal_translation (struct earley_tree_node *root)
    function sets up *AMBIGUOUS_P if we found that the grammer is
    ambigous (it works even we asked only one parse tree without
    alternatives). */
-static struct earley_tree_node *
+static struct yaep_tree_node *
 make_parse (int *ambiguous_p)
 {
   struct set *set, *check_set;
@@ -5424,11 +5422,11 @@ make_parse (int *ambiguous_p)
   struct parse_state *state, *orig_state, *curr_state;
   struct parse_state *table_state, *parent_anode_state;
   struct parse_state root_state;
-  struct earley_tree_node *result, *empty_node, *node, *error_node;
-  struct earley_tree_node *parent_anode, *anode, root_anode;
+  struct yaep_tree_node *result, *empty_node, *node, *error_node;
+  struct yaep_tree_node *parent_anode, *anode, root_anode;
   int parent_disp;
   int saved_one_parse_p;
-  struct earley_tree_node **term_node_array;
+  struct yaep_tree_node **term_node_array;
 #ifndef __cplusplus
   vlo_t stack, orig_states;
 #else
@@ -5464,8 +5462,8 @@ make_parse (int *ambiguous_p)
 
       /* We need this array to reuse terminal nodes only for
          generation of several parses. */
-      MALLOC (mem, sizeof (struct earley_tree_node *) * toks_len);
-      term_node_array = (struct earley_tree_node **) mem;
+      MALLOC (mem, sizeof (struct yaep_tree_node *) * toks_len);
+      term_node_array = (struct yaep_tree_node **) mem;
       for (i = 0; i < toks_len; i++)
 	term_node_array [i] = NULL;
       /* The following is used to check necessity to create current
@@ -5487,15 +5485,15 @@ make_parse (int *ambiguous_p)
   state->parent_disp = 0;
   state->anode = NULL;
   /* Create empty and error node: */
-  empty_node = ((struct earley_tree_node *)
-		(*parse_alloc) (sizeof (struct earley_tree_node)));
-  empty_node->type = EARLEY_NIL;
-  error_node = ((struct earley_tree_node *)
-		(*parse_alloc) (sizeof (struct earley_tree_node)));
-  error_node->type = EARLEY_ERROR;
+  empty_node = ((struct yaep_tree_node *)
+		(*parse_alloc) (sizeof (struct yaep_tree_node)));
+  empty_node->type = YAEP_NIL;
+  error_node = ((struct yaep_tree_node *)
+		(*parse_alloc) (sizeof (struct yaep_tree_node)));
+  error_node->type = YAEP_ERROR;
   while (VLO_LENGTH (stack) != 0)
     {
-#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
+#if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
       if ((grammar->debug_level > 2 && state->pos == state->rule->rhs_len)
 	  || grammar->debug_level > 3)
 	{
@@ -5559,9 +5557,9 @@ make_parse (int *ambiguous_p)
 	      else
 		{
 		  n_parse_term_nodes++;
-		  node = ((struct earley_tree_node *)
-			  (*parse_alloc) (sizeof (struct earley_tree_node)));
-		  node->type = EARLEY_TERM;
+		  node = ((struct yaep_tree_node *)
+			  (*parse_alloc) (sizeof (struct yaep_tree_node)));
+		  node->type = YAEP_TERM;
 		  node->val.term.code = symb->u.term.code;
 		  node->val.term.attr = toks [pl_ind].attr;
 		  if (!grammar->one_parse_p)
@@ -5605,7 +5603,7 @@ make_parse (int *ambiguous_p)
 #endif
 	  else
 	    sit_orig = pl_ind;
-#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
+#if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 	  if (grammar->debug_level > 3)
 	    {
 	      fprintf (stderr, "Trying set = %d, sit = ", pl_ind);
@@ -5710,7 +5708,7 @@ make_parse (int *ambiguous_p)
 		      VLO_EXPAND (orig_states, sizeof (struct parse_state *));
 		      ((struct parse_state **) VLO_BOUND (orig_states))	[-1]
 			= state;
-#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
+#if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 		      if (grammar->debug_level > 3)
 			{
 			  fprintf (stderr, "Adding set = %d, modified sit = ",
@@ -5739,14 +5737,14 @@ make_parse (int *ambiguous_p)
 		      /* We need new abtract node. */
 		      n_parse_abstract_nodes++;
 		      node
-			= ((struct earley_tree_node *)
-			   (*parse_alloc) (sizeof (struct earley_tree_node)
-					   + sizeof (struct earley_tree_node *)
+			= ((struct yaep_tree_node *)
+			   (*parse_alloc) (sizeof (struct yaep_tree_node)
+					   + sizeof (struct yaep_tree_node *)
 					   * (sit_rule->trans_len + 1)));
 		      state->anode = node;
 		      if (table_state != NULL)
 			table_state->anode = node;
-		      node->type = EARLEY_ANODE;
+		      node->type = YAEP_ANODE;
 		      if (sit_rule->caller_anode == NULL)
 			{
 			  sit_rule->caller_anode
@@ -5757,8 +5755,8 @@ make_parse (int *ambiguous_p)
 		      node->val.anode.name = sit_rule->caller_anode;
 		      node->val.anode.cost = sit_rule->anode_cost;
 		      node->val.anode.children
-			= ((struct earley_tree_node **)
-			   ((char *) node + sizeof (struct earley_tree_node)));
+			= ((struct yaep_tree_node **)
+			   ((char *) node + sizeof (struct yaep_tree_node)));
 		      for (k = 0; k <= sit_rule->trans_len; k++)
 			node->val.anode.children [k] = NULL;
 		      VLO_EXPAND (stack, sizeof (struct parse_state *));
@@ -5774,7 +5772,7 @@ make_parse (int *ambiguous_p)
 			  state->parent_anode_state = curr_state;
 			  state->parent_disp = disp;
 			}
-#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
+#if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 		      if (grammar->debug_level > 3)
 			{
 			  fprintf (stderr, "Adding set = %d, sit = ", pl_ind);
@@ -5791,7 +5789,7 @@ make_parse (int *ambiguous_p)
 		      state = ((struct parse_state **) VLO_BOUND (stack)) [-1];
 		      node = table_state->anode;
 		      assert (node != NULL);
-#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
+#if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 		      if (grammar->debug_level > 3)
 			{
 			  fprintf (stderr,
@@ -5824,7 +5822,7 @@ make_parse (int *ambiguous_p)
 					       : curr_state);
 		  state->parent_disp = anode == NULL ? parent_disp : disp;
 		  state->anode = NULL;
-#if !defined (NDEBUG) && !defined (NO_EARLEY_DEBUG_PRINT)
+#if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 		  if (grammar->debug_level > 3)
 		    {
 		      fprintf (stderr, "Adding set = %d, sit = ", pl_ind);
@@ -5862,7 +5860,7 @@ make_parse (int *ambiguous_p)
        during parsing because the abstract nodes are created before
        their children. */
     result = find_minimal_translation (result);
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 1)
     {
       fprintf (stderr, "Translation:\n");
@@ -5893,7 +5891,7 @@ make_parse (int *ambiguous_p)
    and speed, dynamic ones does sligthly worse, and no usage of
    lookaheds does the worst.  D_LEVEL says what debugging information
    to output (it works only if we compiled without defined macro
-   NO_EARLEY_DEBUG_PRINT).  The function returns the error code (which
+   NO_YAEP_DEBUG_PRINT).  The function returns the error code (which
    will be also in error_code).  The function sets up
    *AMBIGUOUS_P if we found that the grammer is ambigous (it works even
    we asked only one parse tree without alternatives). */
@@ -5901,16 +5899,16 @@ make_parse (int *ambiguous_p)
 static
 #endif
 int
-earley_parse (struct grammar *g,
-	      int (*read) (void **attr),
-	      void (*error) (int err_tok_num, void *err_tok_attr,
-			     int start_ignored_tok_num,
-			     void *start_ignored_tok_attr,
-			     int start_recovered_tok_num,
-			     void *start_recovered_tok_attr),
-	      void *(*alloc) (int nmemb),
-	      void (*free) (void *mem),
-	      struct earley_tree_node **root, int *ambiguous_p)
+yaep_parse (struct grammar *g,
+	    int (*read) (void **attr),
+	    void (*error) (int err_tok_num, void *err_tok_attr,
+	    		     int start_ignored_tok_num,
+	    		     void *start_ignored_tok_attr,
+	    		     int start_recovered_tok_num,
+	    		     void *start_recovered_tok_attr),
+	    void *(*alloc) (int nmemb),
+	    void (*free) (void *mem),
+	    struct yaep_tree_node **root, int *ambiguous_p)
 {
   int code, tok_init_p, parse_init_p;
   int tab_collisions, tab_searches;
@@ -5934,19 +5932,19 @@ earley_parse (struct grammar *g,
     {
       pl_fin ();
       if (parse_init_p)
-	earley_parse_fin ();
+	yaep_parse_fin ();
       if (tok_init_p)
 	tok_fin ();
       change_allocation_error_function (init_error_func_for_allocate);
       return code;
     }
   if (grammar->undefined_p)
-    earley_error (EARLEY_UNDEFINED_OR_BAD_GRAMMAR, "undefined or bad grammar");
+    yaep_error (YAEP_UNDEFINED_OR_BAD_GRAMMAR, "undefined or bad grammar");
   n_goto_successes = 0;
   tok_init ();
   tok_init_p = TRUE;
   read_toks ();
-  earley_parse_init (toks_len);
+  yaep_parse_init (toks_len);
   parse_init_p = TRUE;
   pl_create ();
 #ifndef __cplusplus
@@ -5966,7 +5964,7 @@ earley_parse (struct grammar *g,
   tab_searches = hash_table::get_all_searches () - tab_searches;
 #endif
   
-#ifndef NO_EARLEY_DEBUG_PRINT
+#ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 0)
     {
       fprintf (stderr, "%sGrammar: #terms = %d, #nonterms = %d, ",
@@ -6024,7 +6022,7 @@ earley_parse (struct grammar *g,
 	       tab_collisions, tab_searches);
     }
 #endif
-  earley_parse_fin ();
+  yaep_parse_fin ();
   tok_fin ();
   change_allocation_error_function (init_error_func_for_allocate);
   return 0;
@@ -6035,7 +6033,7 @@ earley_parse (struct grammar *g,
 static
 #endif
 void
-earley_free_grammar (struct grammar *g)
+yaep_free_grammar (struct grammar *g)
 {
   grammar = g;
   if (grammar != NULL)
@@ -6049,9 +6047,9 @@ earley_free_grammar (struct grammar *g)
 
 
 /* This page contains a test code for Earley's algorithm.  To use it,
-   define macro EARLEY_TEST during compilation. */
+   define macro YAEP_TEST during compilation. */
 
-#ifdef EARLEY_TEST
+#ifdef YAEP_TEST
 
 /* All parse_alloc memory is contained here. */
 #ifndef __cplusplus
@@ -6175,40 +6173,40 @@ static void
 use_functions (int argc, char **argv)
 {
   struct grammar *g;
-  struct earley_tree_node *root;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   nterm = nrule = 0;
   OS_CREATE (mem_os, 0);
   fprintf (stderr, "Use functions\n");
-  if ((g = earley_create_grammar ()) == NULL)
+  if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "No memory\n");
       OS_DELETE (mem_os);
       exit (1);
     }
-  earley_set_one_parse_flag (g, FALSE);
+  yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
-    earley_set_lookahead_level (g, atoi (argv [1]));
+    yaep_set_lookahead_level (g, atoi (argv [1]));
   if (argc > 2)
-    earley_set_debug_level (g, atoi (argv [2]));
+    yaep_set_debug_level (g, atoi (argv [2]));
   else
-    earley_set_debug_level (g, 3);
+    yaep_set_debug_level (g, 3);
   if (argc > 3)
-    earley_set_error_recovery_flag (g, atoi (argv [3]));
+    yaep_set_error_recovery_flag (g, atoi (argv [3]));
   if (argc > 4)
-    earley_set_one_parse_flag (g, atoi (argv [4]));
-  if (earley_read_grammar (g, TRUE, read_terminal, read_rule) != 0)
+    yaep_set_one_parse_flag (g, atoi (argv [4]));
+  if (yaep_read_grammar (g, TRUE, read_terminal, read_rule) != 0)
     {
-      fprintf (stderr, "%s\n", earley_error_message (g));
+      fprintf (stderr, "%s\n", yaep_error_message (g));
       OS_DELETE (mem_os);
       exit (1);
     }
   ntok = 0;
-  if (earley_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
-		    NULL, &root, &ambiguous_p))
-    fprintf (stderr, "earley_parse: %s\n", earley_error_message (g));
-  earley_free_grammar (g);
+  if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
+		  NULL, &root, &ambiguous_p))
+    fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));
+  yaep_free_grammar (g);
   OS_DELETE (mem_os);
 }
 #endif
@@ -6232,38 +6230,38 @@ static void
 use_description (int argc, char **argv)
 {
   struct grammar *g;
-  struct earley_tree_node *root;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   fprintf (stderr, "Use description\n");
   OS_CREATE (mem_os, 0);
-  if ((g = earley_create_grammar ()) == NULL)
+  if ((g = yaep_create_grammar ()) == NULL)
     {
-      fprintf (stderr, "earley_create_grammar: No memory\n");
+      fprintf (stderr, "yaep_create_grammar: No memory\n");
       OS_DELETE (mem_os);
       exit (1);
     }
-  earley_set_one_parse_flag (g, FALSE);
+  yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
-    earley_set_lookahead_level (g, atoi (argv [1]));
+    yaep_set_lookahead_level (g, atoi (argv [1]));
   if (argc > 2)
-    earley_set_debug_level (g, atoi (argv [2]));
+    yaep_set_debug_level (g, atoi (argv [2]));
   else
-    earley_set_debug_level (g, 3);
+    yaep_set_debug_level (g, 3);
   if (argc > 3)
-    earley_set_error_recovery_flag (g, atoi (argv [3]));
+    yaep_set_error_recovery_flag (g, atoi (argv [3]));
   if (argc > 4)
-    earley_set_one_parse_flag (g, atoi (argv [4]));
-  if (earley_parse_grammar (g, TRUE, description) != 0)
+    yaep_set_one_parse_flag (g, atoi (argv [4]));
+  if (yaep_parse_grammar (g, TRUE, description) != 0)
     {
-      fprintf (stderr, "%s\n", earley_error_message (g));
+      fprintf (stderr, "%s\n", yaep_error_message (g));
       OS_DELETE (mem_os);
       exit (1);
     }
-  if (earley_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
-		    NULL, &root, &ambiguous_p))
-    fprintf (stderr, "earley_parse: %s\n", earley_error_message (g));
-  earley_free_grammar (g);
+  if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
+		  NULL, &root, &ambiguous_p))
+    fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));
+  yaep_free_grammar (g);
   OS_DELETE (mem_os);
 }
 #endif
@@ -6284,4 +6282,4 @@ main (int argc, char **argv)
   exit (0);
 }
 
-#endif /* #ifdef EARLEY_TEST */
+#endif /* #ifdef YAEP_TEST */

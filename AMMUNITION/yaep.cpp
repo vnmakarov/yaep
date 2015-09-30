@@ -3,7 +3,7 @@
 
    Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
 
-   This is part of Earley's parser implementation; you can
+   This is part of YAEP (Yet Another Earley Parser) implementation; you can
    redistribute it and/or modify it under the terms of the GNU General
    Public License as published by the Free Software Foundation; either
    version 2, or (at your option) any later version.
@@ -19,8 +19,6 @@
    02111-1307, USA.
 
 */
-
-/* Attention: It is distrubuted under GPL not LGPL. */
 
 #define MALLOC(result, size) (result) = allocate::malloc (size)
 #define FREE(mem) allocate::free (mem)
@@ -55,120 +53,120 @@
 #define delete_hash_table(tab) delete tab
 #define find_hash_table_entry(tab, el, res_p) (tab)->find_entry(el, res_p)
 
-#ifdef EARLEY_TEST
+#ifdef YAEP_TEST
 /* Forward declarations: */
 static void use_functions (int argc, char **argv);
 static void use_description (int argc, char **argv);
 #endif
 
-#include "earley.c"
+#include "yaep.c"
 
-earley::earley (void)
+yaep::yaep (void)
 {
-  this->grammar = earley_create_grammar ();
+  this->grammar = yaep_create_grammar ();
 }
 
-earley::~earley (void)
+yaep::~yaep (void)
 {
-  earley_free_grammar (this->grammar);
+  yaep_free_grammar (this->grammar);
 }
 
 int
-earley::error_code (void)
+yaep::error_code (void)
 {
-  return earley_error_code (this->grammar);
+  return yaep_error_code (this->grammar);
 }
 
 const char *
-earley::error_message (void)
+yaep::error_message (void)
 {
-  return earley_error_message (this->grammar);
+  return yaep_error_message (this->grammar);
 }
 
 int
-earley::read_grammar (int strict_p,
-		      const char *(*read_terminal) (int *code),
-		      const char *(*read_rule) (const char ***rhs,
-						const char **abs_node,
-						int *anode_cost, int **transl))
+yaep::read_grammar (int strict_p,
+		    const char *(*read_terminal) (int *code),
+		    const char *(*read_rule) (const char ***rhs,
+					      const char **abs_node,
+					      int *anode_cost, int **transl))
 {
-  return earley_read_grammar (this->grammar, strict_p,
-			      read_terminal, read_rule);
+  return yaep_read_grammar (this->grammar, strict_p,
+			    read_terminal, read_rule);
 }
 
 int
-earley::parse_grammar (int strict_p, const char *description)
+yaep::parse_grammar (int strict_p, const char *description)
 {
-  return earley_parse_grammar (this->grammar, strict_p, description);
+  return yaep_parse_grammar (this->grammar, strict_p, description);
 }
 
 int
-earley::set_lookahead_level (int level)
+yaep::set_lookahead_level (int level)
 {
-  return earley_set_lookahead_level (this->grammar, level);
+  return yaep_set_lookahead_level (this->grammar, level);
 }
 
-int earley::set_debug_level (int level)
+int yaep::set_debug_level (int level)
 {
-  return earley_set_debug_level (this->grammar, level);
+  return yaep_set_debug_level (this->grammar, level);
 }
 
-int earley::set_one_parse_flag (int flag)
+int yaep::set_one_parse_flag (int flag)
 {
-  return earley_set_one_parse_flag (this->grammar, flag);
+  return yaep_set_one_parse_flag (this->grammar, flag);
 }
 
-int earley::set_cost_flag (int flag)
+int yaep::set_cost_flag (int flag)
 {
-  return earley_set_cost_flag (this->grammar, flag);
+  return yaep_set_cost_flag (this->grammar, flag);
 }
 
-int earley::set_error_recovery_flag (int flag)
+int yaep::set_error_recovery_flag (int flag)
 {
-  return earley_set_error_recovery_flag (this->grammar, flag);
+  return yaep_set_error_recovery_flag (this->grammar, flag);
 }
 
-int earley::set_recovery_match (int n_toks)
+int yaep::set_recovery_match (int n_toks)
 {
-  return earley_set_recovery_match (this->grammar, n_toks);
+  return yaep_set_recovery_match (this->grammar, n_toks);
 }
 
 int
-earley::parse (int (*read_token) (void **attr),
-	       void (*syntax_error) (int err_tok_num,
-				     void *err_tok_attr,
-				     int start_ignored_tok_num,
-				     void *start_ignored_tok_attr,
-				     int start_recovered_tok_num,
-				     void *start_recovered_tok_attr),
-	       void *(*parse_alloc) (int nmemb),
-	       void (*parse_free) (void *mem),
-	       struct earley_tree_node **root,
-	       int *ambiguous_p)
+yaep::parse (int (*read_token) (void **attr),
+	     void (*syntax_error) (int err_tok_num,
+				   void *err_tok_attr,
+				   int start_ignored_tok_num,
+				   void *start_ignored_tok_attr,
+				   int start_recovered_tok_num,
+				   void *start_recovered_tok_attr),
+	     void *(*parse_alloc) (int nmemb),
+	     void (*parse_free) (void *mem),
+	     struct yaep_tree_node **root,
+	     int *ambiguous_p)
 {
-  return earley_parse (this->grammar, read_token, syntax_error,
+  return yaep_parse (this->grammar, read_token, syntax_error,
 		       parse_alloc, parse_free, root, ambiguous_p);
 }
 
 
-#ifdef EARLEY_TEST
+#ifdef YAEP_TEST
 
 /* The following two functions calls earley parser with two different
    ways of forming grammars. */
 static void
 use_functions (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   nterm = nrule = 0;
   OS_CREATE (mem_os, 0);
   fprintf (stderr, "Use functions\n");
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       OS_DELETE (mem_os);
       exit (1);
     }
@@ -192,7 +190,7 @@ use_functions (int argc, char **argv)
   ntok = 0;
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		    &root, &ambiguous_p))
-    fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+    fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
   delete e;
   OS_DELETE (mem_os);
 }
@@ -200,16 +198,16 @@ use_functions (int argc, char **argv)
 static void
 use_description (int argc, char **argv)
 {
-  earley *e;
-  struct earley_tree_node *root;
+  yaep *e;
+  struct yaep_tree_node *root;
   int ambiguous_p;
 
   fprintf (stderr, "Use description\n");
   OS_CREATE (mem_os, 0);
-  e = new earley ();
+  e = new yaep ();
   if (e == NULL)
     {
-      fprintf (stderr, "earley::earley: No memory\n");
+      fprintf (stderr, "yaep::yaep: No memory\n");
       OS_DELETE (mem_os);
       exit (1);
     }
@@ -232,9 +230,9 @@ use_description (int argc, char **argv)
     }
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
-    fprintf (stderr, "earley::parse: %s\n", e->error_message ());
+    fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
   delete e;
   OS_DELETE (mem_os);
 }
 
-#endif /* #ifdef EARLEY_TEST */
+#endif /* #ifdef YAEP_TEST */

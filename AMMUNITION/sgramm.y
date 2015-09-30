@@ -1,14 +1,9 @@
-/* This is interface file of the code which transforms grammar
-   description given by string into representation which can be used
-   by EARLEY parser.  So the code implements functions read_terminal
-   and read_rule imported by earley parser.  */
-
 /*
    Copyright (C) 1997-2015 Vladimir Makarov.
 
    Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
 
-   This is part of Earley's parser implementation; you can
+   This is part of YAEP (Yet Another Earley Parser) implementation; you can
    redistribute it and/or modify it under the terms of the GNU General
    Public License as published by the Free Software Foundation; either
    version 2, or (at your option) any later version.
@@ -25,7 +20,10 @@
 
 */
 
-/* Attention: It is distrubuted under GPL not LGPL. */
+/* This is interface file of the code which transforms grammar
+   description given by string into representation which can be used
+   by YAEP.  So the code implements functions read_terminal
+   and read_rule imported by YAEP.  */
 
 %{
 
@@ -39,31 +37,31 @@
 #endif
 #endif
 
-/* The following is necessary if we use earley parser with byacc/bison/msta
+/* The following is necessary if we use YAEP with byacc/bison/msta
    parser. */
 
-#define yylval earley_yylval
-#define yylex earley_yylex
-#define yyerror earley_yyerror
-#define yyparse earley_yyparse
-#define yychar earley_yychar
-#define yynerrs earley_yynerrs
-#define yydebug earley_yydebug
-#define yyerrflag earley_yyerrflag
-#define yyssp earley_yyssp
-#define yyval earley_yyval
-#define yyvsp earley_yyvsp
-#define yylhs earley_yylhs
-#define yylen earley_yylen
-#define yydefred earley_yydefred
-#define yydgoto earley_yydgoto
-#define yysindex earley_yysindex
-#define yyrindex earley_yyrindex
-#define yygindex earley_yygindex
-#define yytable earley_yytable
-#define yycheck earley_yycheck
-#define yyss earley_yyss
-#define yyvs earley_yyvs
+#define yylval yaep_yylval
+#define yylex yaep_yylex
+#define yyerror yaep_yyerror
+#define yyparse yaep_yyparse
+#define yychar yaep_yychar
+#define yynerrs yaep_yynerrs
+#define yydebug yaep_yydebug
+#define yyerrflag yaep_yyerrflag
+#define yyssp yaep_yyssp
+#define yyval yaep_yyval
+#define yyvsp yaep_yyvsp
+#define yylhs yaep_yylhs
+#define yylen yaep_yylen
+#define yydefred yaep_yydefred
+#define yydgoto yaep_yydgoto
+#define yysindex yaep_yysindex
+#define yyrindex yaep_yyrindex
+#define yygindex yaep_yygindex
+#define yytable yaep_yytable
+#define yycheck yaep_yycheck
+#define yyss yaep_yyss
+#define yyvs yaep_yyvs
 
 /* The following structure describes syntax grammar terminal. */
 struct sterm
@@ -219,7 +217,7 @@ trans :     {$$ = NULL;}
         }
       | '#' '-'
         {
-	  int symb_num = EARLEY_NIL_TRANSLATION_NUMBER;
+	  int symb_num = YAEP_NIL_TRANSLATION_NUMBER;
 
   	  $$ = NULL;
 	  OS_TOP_ADD_MEMORY (strans, &symb_num, sizeof (int));
@@ -243,7 +241,7 @@ numbers :
           }
         | numbers '-'
           {
-	    int symb_num = EARLEY_NIL_TRANSLATION_NUMBER;
+	    int symb_num = YAEP_NIL_TRANSLATION_NUMBER;
 	    
 	    OS_TOP_ADD_MEMORY (strans, &symb_num, sizeof (int));
           }
@@ -392,8 +390,8 @@ yylex (void)
 int
 yyerror (const char *str)
 {
-  earley_error (EARLEY_DESCRIPTION_SYNTAX_ERROR_CODE,
-		"description syntax error on ln %d", ln);
+  yaep_error (YAEP_DESCRIPTION_SYNTAX_ERROR_CODE,
+  	      "description syntax error on ln %d", ln);
   return 0;
 }
 
@@ -457,13 +455,12 @@ set_sgrammar (const char *grammar)
       else if (term->code != -1 && prev->code != -1
 	       && prev->code != term->code)
 	{
-	  char str [EARLEY_MAX_ERROR_MESSAGE_LENGTH / 2];
+	  char str [YAEP_MAX_ERROR_MESSAGE_LENGTH / 2];
 	  
 	  strncpy (str, prev->repr, sizeof (str));
 	  str [sizeof (str) - 1] = '\0';
-	  earley_error (EARLEY_REPEATED_TERM_CODE,
-			"term %s described repeatedly with different code",
-			str);
+	  yaep_error (YAEP_REPEATED_TERM_CODE,
+		      "term %s described repeatedly with different code", str);
 	}
       else if (prev->code != -1)
 	prev->code = term->code;
@@ -495,8 +492,7 @@ free_sgrammar (void)
   OS_DELETE (stoks);
 }
 
-/* The following two functions implements functions used by Earley
-   parser. */
+/* The following two functions implements functions used by YAEP. */
 static const char *
 sread_terminal (int *code)
 {
@@ -536,14 +532,14 @@ sread_rule (const char ***rhs, const char **abs_node, int *anode_cost,
 static
 #endif
 int
-earley_parse_grammar (struct grammar *g, int strict_p, const char *description)
+yaep_parse_grammar (struct grammar *g, int strict_p, const char *description)
 {
   int code;
 
   assert (g != NULL);
   if ((code = set_sgrammar (description)) != 0)
     return code;
-  code = earley_read_grammar (g, strict_p, sread_terminal, sread_rule);
+  code = yaep_read_grammar (g, strict_p, sread_terminal, sread_rule);
   free_sgrammar ();
   return code;
 }
