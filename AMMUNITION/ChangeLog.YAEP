@@ -1,0 +1,14 @@
+2015-10-06  Vladimir Makarov  <vmakarov@gcc.gnu.org>
+
+	* ChangeLog.YAEP: Start.
+	* yaep.c (struct sit_dist, first_free_sit_dist_index): Remove.
+	(sit_dist_vlo, sit_dist_vec_check_vlo): Ditto.
+	(sit_dist_set_init, empty_sit_dist_set, sit_dist_insert): Rewrite
+	for new (sit, dist) set implementation.
+	(sit_dist_set_fin): Ditto.
+	(make_parse): Add more debug printing.
+	* compare_parsers.tst.in: Move from MSTA/compare.tst.  Add
+	checking MSTA.  Add big test.
+	* yaep_part.sgml.in, yaep_part++.sgml.in: New.
+	* whole_gcc_test.i: New.
+

@@ -1714,65 +1714,31 @@ set_term_lookahead_eq (hash_table_entry_t s1, hash_table_entry_t s2)
 
 /* This page contains code for table of pairs (sit, dist).  */
 
-/* The following structure describes tuple (sit, dist).  */
-struct sit_dist
-{
-  struct sit *sit;
-  /* Next index is an index in SIT_DIST_VLO containing the next pair
-     with the same situation.  -1 means no such pair anymore.  */
-  int dist, next_index;
-};
-
-/* Index of first free pair in SIT_DIST_VLO.  */
-static int first_free_sit_dist_index;
-
 #ifndef __cplusplus
-/* Container of pairs (sit, dist).  */
-static vlo_t sit_dist_vlo;
-/* Vector implementing map: sit number -> pairs of the same sit with
-   different distances.  */
+/* Vector implementing map: sit number -> vlo of the distance check
+   indexed by the distance.  */
 static vlo_t sit_dist_vec_vlo;
-/* Vector used to check that an element in SIT_DIST_VEC_VLO is
-   valid.  */
-static vlo_t sit_dist_vec_check_vlo;
 #else
-static vlo_t *sit_dist_vlo;
 static vlo_t *sit_dist_vec_vlo;
-static vlo_t *sit_dist_vec_check_vlo;
 #endif
 
-/* The value used to check the validity.  */
+/* The value used to check the validity of elements of check_dist
+   structures.  */
 static int curr_sit_dist_vec_check;
 
 /* Initiate the set of pairs (sit, dist).  */
 static void
 sit_dist_set_init (void)
 {
-  VLO_CREATE (sit_dist_vlo, 2048);
   VLO_CREATE (sit_dist_vec_vlo, 8192);
-  VLO_CREATE (sit_dist_vec_check_vlo, 8192);
   curr_sit_dist_vec_check = 0;
-  first_free_sit_dist_index = 0;
 }
 
 /* Make the set empty.  */
 static void
 empty_sit_dist_set (void)
 {
-  int i, len, *check_vec;
-  
   curr_sit_dist_vec_check++;
-  /* Expand the set to accomadate all situations currently
-     existing.  */
-  /* Remeber N_ALL_SITS is the last situation number.  */
-#ifndef __cplusplus
-  if (expand_int_vlo (&sit_dist_vec_check_vlo, n_all_sits + 1))
-#else
-  if (expand_int_vlo (sit_dist_vec_check_vlo, n_all_sits + 1))
-#endif
-    VLO_EXPAND
-      (sit_dist_vec_vlo,
-       (n_all_sits + 1) * sizeof (int) - VLO_LENGTH (sit_dist_vec_vlo));
 }
 
 /* Insert pair (SIT, DIST) into the set.  If such pair exists return
@@ -1780,61 +1746,64 @@ empty_sit_dist_set (void)
 static int
 sit_dist_insert (struct sit *sit, int dist)
 {
-  int len, last_index, next_index, sit_number;
-  struct sit_dist *sit_dist, *sit_dist_vec;
+  int i, len, sit_number;
+  vlo_t *check_dist_vlo;
   
   sit_number = sit->sit_number;
-  sit_dist_vec = (struct sit_dist *) VLO_BEGIN (sit_dist_vlo);
-  if (((int *) VLO_BEGIN (sit_dist_vec_check_vlo)) [sit_number]
-      != curr_sit_dist_vec_check)
+  /* Expand the set to accommodate possibly a new situation.  */
+  len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t);
+  if (len <= sit_number)
     {
-      /* Start the list of pairs (sit, dist) with the same sit.  */
-      last_index = -1;
-      ((int *) VLO_BEGIN (sit_dist_vec_check_vlo)) [sit_number]
-	= curr_sit_dist_vec_check;
+      VLO_EXPAND (sit_dist_vec_vlo, (sit_number + 1 - len) * sizeof (vlo_t));
+      for (i = len; i <= sit_number; i++)
+#ifndef __cplusplus
+	VLO_CREATE (((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[i], 64);
+#else
+        ((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i] = new vlo (64);
+#endif
     }
-  else
+#ifndef __cplusplus
+  check_dist_vlo = &((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[sit_number];
+  len = VLO_LENGTH (*check_dist_vlo) / sizeof (int);
+  if (len <= dist)
     {
-      last_index = ((int *) VLO_BEGIN (sit_dist_vec_vlo)) [sit_number];
-      assert (last_index >= 0);
-      for (;;)
-	{
-	  assert (sit_dist_vec[last_index].sit == sit);
-	  if (sit_dist_vec[last_index].dist == dist)
-	    return FALSE;
-	  if ((next_index = sit_dist_vec[last_index].next_index) < 0)
-	    break;
-	  last_index = next_index;
-	}
+      VLO_EXPAND (*check_dist_vlo, (dist + 1 - len) * sizeof (int));
+      for (i = len; i <= dist; i++)
+	((int *) VLO_BEGIN (*check_dist_vlo))[i] = 0;
     }
-  /* Insert */
-  len = VLO_LENGTH (sit_dist_vlo);
-  if (first_free_sit_dist_index * sizeof (struct sit_dist) >= len)
-    {
-      /* Expand the container for the pairs.  */
-      VLO_EXPAND (sit_dist_vlo, sizeof (struct sit_dist));
-      sit_dist_vec = (struct sit_dist *) VLO_BEGIN (sit_dist_vlo);
-    }
-  sit_dist = &sit_dist_vec [first_free_sit_dist_index];
-  sit_dist->sit = sit;
-  sit_dist->dist = dist;
-  sit_dist->next_index = -1;
-  if (last_index >= 0)
-    sit_dist_vec[last_index].next_index = first_free_sit_dist_index;
-  else
-    ((int *) VLO_BEGIN (sit_dist_vec_vlo)) [sit_number]
-      = first_free_sit_dist_index;
-  first_free_sit_dist_index++;
+  if (((int *) VLO_BEGIN (*check_dist_vlo))[dist] == curr_sit_dist_vec_check)
+    return FALSE;
+  ((int *) VLO_BEGIN (*check_dist_vlo))[dist] = curr_sit_dist_vec_check;
   return TRUE;
+#else
+  check_dist_vlo = ((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[sit_number];
+  len = check_dist_vlo->length () / sizeof (int);
+  if (len <= dist)
+    {
+      check_dist_vlo->expand ((dist + 1 - len) * sizeof (int));
+      for (i = len; i <= dist; i++)
+	((int *) check_dist_vlo->begin ())[i] = 0;
+    }
+  if (((int *) check_dist_vlo->begin ())[dist] == curr_sit_dist_vec_check)
+    return FALSE;
+  ((int *) check_dist_vlo->begin ())[dist] = curr_sit_dist_vec_check;
+  return TRUE;
+#endif
 }
 
 /* Finish the set of pairs (sit, dist).  */
 static void
 sit_dist_set_fin (void)
 {
-  VLO_DELETE (sit_dist_vec_check_vlo);
+  int i, len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t);
+
+  for (i = 0; i < len; i++)
+#ifndef __cplusplus
+    VLO_DELETE (((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[i]);
+#else
+    delete ((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i];
+#endif
   VLO_DELETE (sit_dist_vec_vlo);
-  VLO_DELETE (sit_dist_vlo);
 }
 
 
@@ -5436,6 +5405,7 @@ make_parse (int *ambiguous_p)
   n_parse_term_nodes = n_parse_abstract_nodes = n_parse_alt_nodes = 0;
   set = pl [pl_curr];
   assert (grammar->axiom != NULL);
+  /* We have only one start situation: "$S : <start symb> $eof .".  */
   sit = (set->core->sits != NULL ? set->core->sits [0] : NULL);
   if (sit == NULL
 #ifndef ABSOLUTE_DISTANCES
@@ -5497,7 +5467,9 @@ make_parse (int *ambiguous_p)
       if ((grammar->debug_level > 2 && state->pos == state->rule->rhs_len)
 	  || grammar->debug_level > 3)
 	{
-	  fprintf (stderr, "Processing set = %d, sit = ", state->pl_ind);
+	  fprintf (stderr, "Processing top %d, set place = %d, sit = ",
+		   VLO_LENGTH (stack) / sizeof (struct parse_state *) - 1,
+		   state->pl_ind);
 	  rule_dot_print (stderr, state->rule, state->pos);
 	  fprintf (stderr, ", %d\n", state->orig);
 	}
@@ -5514,6 +5486,17 @@ make_parse (int *ambiguous_p)
       if (pos < 0)
 	{
 	  /* We've processed all rhs of the rule. */
+#if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
+	  if ((grammar->debug_level > 2 && state->pos == state->rule->rhs_len)
+	      || grammar->debug_level > 3)
+	    {
+	      fprintf (stderr, "Poping top %d, set place = %d, sit = ",
+		       VLO_LENGTH (stack) / sizeof (struct parse_state *) - 1,
+		       state->pl_ind);
+	      rule_dot_print (stderr, state->rule, 0);
+	      fprintf (stderr, ", %d\n", state->orig);
+	    }
+#endif
 	  parse_state_free (state);
 	  VLO_SHORTEN (stack, sizeof (struct parse_state *));
 	  if (VLO_LENGTH (stack) != 0)
@@ -5606,7 +5589,7 @@ make_parse (int *ambiguous_p)
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 	  if (grammar->debug_level > 3)
 	    {
-	      fprintf (stderr, "Trying set = %d, sit = ", pl_ind);
+	      fprintf (stderr, "    Trying set place = %d, sit = ", pl_ind);
 	      sit_print (stderr, sit, grammar->debug_level > 5);
 	      fprintf (stderr, ", %d\n", sit_orig);
 	    }
@@ -5711,7 +5694,8 @@ make_parse (int *ambiguous_p)
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 		      if (grammar->debug_level > 3)
 			{
-			  fprintf (stderr, "Adding set = %d, modified sit = ",
+			  fprintf (stderr, "  Adding top %d, set place = %d, modified sit = ",
+				   VLO_LENGTH (stack) / sizeof (struct parse_state *) - 1,
 				   sit_orig);
 			  rule_dot_print (stderr, state->rule, state->pos);
 			  fprintf (stderr, ", %d\n", state->orig);
@@ -5775,7 +5759,9 @@ make_parse (int *ambiguous_p)
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 		      if (grammar->debug_level > 3)
 			{
-			  fprintf (stderr, "Adding set = %d, sit = ", pl_ind);
+			  fprintf (stderr, "  Adding top %d, set place = %d, sit = ",
+				   VLO_LENGTH (stack) / sizeof (struct parse_state *) - 1,
+				   pl_ind);
 			  sit_print (stderr, sit, grammar->debug_level > 5);
 			  fprintf (stderr, ", %d\n", sit_orig);
 			}
@@ -5793,7 +5779,7 @@ make_parse (int *ambiguous_p)
 		      if (grammar->debug_level > 3)
 			{
 			  fprintf (stderr,
-				   "Found prev. translation: set = %d, sit = ",
+				   "  Found prev. translation: set place = %d, sit = ",
 				   pl_ind);
 			  sit_print (stderr, sit, grammar->debug_level > 5);
 			  fprintf (stderr, ", %d\n", sit_orig);
@@ -5825,7 +5811,9 @@ make_parse (int *ambiguous_p)
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
 		  if (grammar->debug_level > 3)
 		    {
-		      fprintf (stderr, "Adding set = %d, sit = ", pl_ind);
+		      fprintf (stderr, "  Adding top %d, set place = %d, sit = ",
+			       VLO_LENGTH (stack) / sizeof (struct parse_state *) - 1,
+			       pl_ind);
 		      sit_print (stderr, sit, grammar->debug_level > 5);
 		      fprintf (stderr, ", %d\n", sit_orig);
 		    }
