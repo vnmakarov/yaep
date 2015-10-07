@@ -1,0 +1,13 @@
+<!doctype linuxdoc system>
+<article>
+
+<!-- Title information -->
+
+<title>YAEP (Yet Another Earley Parser) - C++ interface
+<author>Vladimir Makarov, <tt>vmakarov@gcc.gnu.org</tt>
+<date>Oct 10, 2015
+<abstract>
+This document describes YAEP (Yet Another Earley Parser) written in C/C++.
+</abstract>
+%%%
+</article>
