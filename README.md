@@ -7,7 +7,7 @@
 # YAEP features:
   * It is sufficiently fast and does not require much memory.
     This is the **fastest** implementation of Earley parser which I
-    know (if you know a faster one, please let me know). It can parse **300K lines of
+    know (if you know a faster one, please send me a message). It can parse **300K lines of
     C program per second** on modern computers
     and allocates about **5MB memory for 10K line C program**.
   * It makes simple syntax directed translation.  So an
