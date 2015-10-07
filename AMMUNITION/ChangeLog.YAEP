@@ -1,5 +1,9 @@
 2015-10-06  Vladimir Makarov  <vmakarov@gcc.gnu.org>
 
+	* compare_parsers.tst.in: Use YAEPLIB and YAEPDIR.
+
+2015-10-06  Vladimir Makarov  <vmakarov@gcc.gnu.org>
+
 	* ChangeLog.YAEP: Start.
 	* yaep.c (struct sit_dist, first_free_sit_dist_index): Remove.
 	(sit_dist_vlo, sit_dist_vec_check_vlo): Ditto.

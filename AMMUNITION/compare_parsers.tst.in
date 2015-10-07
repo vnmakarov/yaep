@@ -51,6 +51,10 @@ MSTA=
 if test -f ./msta; then
     MSTA=./msta
 fi
+
+YAEPLIB=@YAEPLIB@
+YAEPDIR=@YAEPDIR@
+
 GCC='@CC@ -O3'
 TEST=__test
 TEST1=__test1
@@ -11105,6 +11109,8 @@ for i in 0 1 2 3 4 5 6 7 8 9;do cat $TEST1 >>$TEST;done
 
 rm $TEST1
 
+
+
 # Scanner Generation
 if $LEX -t ansic.l >ansic.c; then
   echo Scanner generation
@@ -11116,7 +11122,7 @@ fi
 if test x$BISON != x; then
   # BISON
   echo '  ' bison: pure parsing
-  if $BISON -y ansic.y && $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile <$TEST; then
+  if $BISON -y ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$TEST; then
     echo
   else
     echo Failure with $BISON
@@ -11127,7 +11133,7 @@ fi
 if test x$BISON != x; then
   # BISON
   echo Bison -- Big test
-  if $BISON -y ansic.y && $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile <$BIG_TEST; then
+  if $BISON -y ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$BIG_TEST; then
     echo
   else
     echo Failure with $BISON on the big test
@@ -11139,7 +11145,7 @@ if test x$YACC != x; then
   # YACC
   echo '  ' yacc: pure parsing
     
-  if $YACC ansic.y && $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile <$TEST; then
+  if $YACC ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$TEST; then
     echo
   else
     echo Failure with $YACC
@@ -11151,7 +11157,7 @@ if test x$YACC != x; then
   # YACC
   echo YACC -- Big test
     
-  if $YACC ansic.y && $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile <$BIG_TEST; then
+  if $YACC ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$BIG_TEST; then
     echo
   else
     echo Failure with $YACC on the big test
@@ -11162,7 +11168,7 @@ fi
 if test x$MSTA != x; then
     # MSTA
     echo '  ' msta: pure parsing
-    if $MSTA -yacc-file-names ansic.y && $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile <$TEST; then
+    if $MSTA -yacc-file-names ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$TEST; then
 	echo
     else
 	echo Failure with $MSTA
@@ -11173,7 +11179,7 @@ fi
 if test x$MSTA != x; then
     # MSTA
     echo Msta -- Big test
-    if $MSTA -yacc-file-names ansic.y && $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile <$BIG_TEST; then
+    if $MSTA -yacc-file-names ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$BIG_TEST; then
 	echo
     else
 	echo Failure with $MSTA on the big test
@@ -12055,7 +12061,7 @@ main (int argc, char **argv)
 EOF
 
 echo No Lookahead
-if $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile 0 0 <$TEST; then
+if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 0 0 <$TEST; then
   echo
 else
   echo Failure with 'YEAP (Yet Another Earley Parser)'
@@ -12063,7 +12069,7 @@ else
 fi
 
 echo Static Lookahead
-if $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile 1 0 <$TEST; then
+if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 1 0 <$TEST; then
   echo
 else
   echo Failure with 'YEAP (Yet Another Earley Parser)'
@@ -12071,7 +12077,7 @@ else
 fi
 
 echo Dynamic Lookahead
-if $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile 2 0 <$TEST; then
+if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 2 0 <$TEST; then
   echo
 else
   echo Failure with 'YEAP (Yet Another Earley Parser)'
@@ -12079,7 +12085,7 @@ else
 fi
 
 echo Static Lookahead -- Big test
-if $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -L../AMMUNITION test.c -lcocom -o $outfile && time $outfile 1 0 <$BIG_TEST; then
+if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 1 0 <$BIG_TEST; then
   echo
 else
   echo Failure with 'YEAP (Yet Another Earley Parser)'
@@ -13605,7 +13611,7 @@ else
     echo We need yacc, bison, or msta to test MARPA.
 fi
 
-if test -f test.c && $GCC -I@srcdir@ -I@srcdir@/../AMMUNITION -I$MARPA_DIR/include -L../AMMUNITION -L$MARPA_DIR/lib -L$MARPA_DIR/lib64 test.c -lcocom -lmarpa -o $outfile && time $outfile <$TEST; then
+if test -f test.c && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -I$MARPA_DIR/include -L$YAEPDIR -L$MARPA_DIR/lib -L$MARPA_DIR/lib64 test.c -l$YAEPLIB -lmarpa -o $outfile && time $outfile <$TEST; then
   echo
   if test x$MARPA_BIG_TEST != x; then
      if time $outfile < $BIG_TEST; then
