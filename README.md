@@ -1,9 +1,9 @@
 # YAEP -- standalone Earley parser library
   * **YAEP** is an abbreviation of Yet Another Ealrey Parser.
   * This standalone library is created for convenience.
-  * YEAP license is LGPL v.2. 
   * The parser development is actually done as a part of *Dino* language project.
     [Here is the link](https://github.com/dino-lang/dino)
+  * YEAP license is LGPL v.2. 
 # YAEP features:
   * It is sufficiently fast and does not require much memory.
     This is the **fastest** implementation of Earley parser which I
