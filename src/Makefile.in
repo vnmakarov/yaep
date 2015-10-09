@@ -84,7 +84,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 # The directory for installation of documentation
-docdir=@docdir@/cocom
+docdir=@docdir@/yaep
 
 # Utility for installing executables.
 INSTALL=@INSTALL@
@@ -152,9 +152,9 @@ source = $(srcdir)/allocate.h $(srcdir)/allocate.c $(srcdir)/allocate.cpp\
 
 additional_files = README INSTALL
 
-doc_files = yaep.txt yaep.info* yaep*.html\
+doc_files = yaep.txt yaep.info* yaep.html yaep-*.html\
             yaep.pdf yaep.dvi yaep.ps\
-            yaep++.txt yaep++.info* yaep++*.html\
+            yaep++.txt yaep++.info* yaep++.html yaep++-*.html\
             yaep++.pdf yaep++.dvi yaep++.ps
 
 # Files which are not in distribution
@@ -222,10 +222,10 @@ install: all
 	$(INSTALLDATA) cocom-config.h $(DESTDIR)/$(includedir)/cocom-config.h
 	$(INSTALLDATA) $(srcdir)/yaep.h $(DESTDIR)/$(includedir)/yaep.h
 	-mkdir -p $(DESTDIR)/$(docdir)
-	$(INSTALLDATA) $(srcdir)/yaep.txt $(srcdir)/yaep*.html\
+	$(INSTALLDATA) $(srcdir)/yaep.txt $(srcdir)/yaep.html  $(srcdir)/yaep-*.html\
           $(srcdir)/yaep.info* $(srcdir)/yaep.pdf\
           $(srcdir)/yaep.dvi $(srcdir)/yaep.ps\
-          $(srcdir)/yaep++.txt $(srcdir)/yaep++*.html\
+          $(srcdir)/yaep++.txt $(srcdir)/yaep++.html $(srcdir)/yaep++-*.html\
           $(srcdir)/yaep++.info* $(srcdir)/yaep++.pdf\
           $(srcdir)/yaep++.dvi $(srcdir)/yaep++.ps\
           $(DESTDIR)/$(docdir)
@@ -239,13 +239,15 @@ uninstall:
 	rm -f $(DESTDIR)/$(includedir)/yaep.h
 	-rmdir $(DESTDIR)/$(includedir)
 	rm -f $(DESTDIR)/$(docdir)/yaep.txt \
-          $(DESTDIR)/$(docdir)/yaep*.html\
+          $(DESTDIR)/$(docdir)/yaep.html\
+          $(DESTDIR)/$(docdir)/yaep-*.html\
           $(DESTDIR)/$(docdir)/yaep.info*\
           $(DESTDIR)/$(docdir)/yaep.pdf\
           $(DESTDIR)/$(docdir)/yaep.dvi\
           $(DESTDIR)/$(docdir)/yaep.ps\
           $(DESTDIR)/$(docdir)/yaep++.txt\
-          $(DESTDIR)/$(docdir)/yaep++*.html\
+          $(DESTDIR)/$(docdir)/yaep++.html\
+          $(DESTDIR)/$(docdir)/yaep++-*.html\
           $(DESTDIR)/$(docdir)/yaep++.info*\
           $(DESTDIR)/$(docdir)/yaep++.pdf\
           $(DESTDIR)/$(docdir)/yaep++.dvi\
