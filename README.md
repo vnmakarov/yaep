@@ -163,7 +163,7 @@ static void parse (void)
 * Conclusions:
   * YEAP without scanner is up to **20** times faster Marpa and requires
     up to **200** times less memory.
-   * Still it is **2.5** - **6** times slower (**1.6** - **3** times with
+  * Still it is **2.5** - **6** times slower (**1.6** - **3** times with
      taking scanner into account) than YACC.
 
 # Implementation details
@@ -193,10 +193,10 @@ static void parse (void)
   9. We **do use lookahead** and it speeds up the parser in almost 2 times.
      Which isopposite to researches showed the lookahead usage has little
      practical effect on the parsing efficiency.
- 10. We **don't use PEP** (Practical Earley Parser algorithm).  It would
+  10. We **don't use PEP** (Practical Earley Parser algorithm).  It would
      complicate the implementation much and, in my estimation, could give
      only a few percent speedup for our tests.
- 11. We **don't use Leo Joop's approach**.  Using right recursion creates
+  11. We **don't use Leo Joop's approach**.  Using right recursion creates
      the same number of start situations in overall as using the left
      recursion.  Simply Earley set corresponding to the end of right recursion
      contains a lot of start situations (created by the completer).
