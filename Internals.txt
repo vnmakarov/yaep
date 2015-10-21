@@ -1,0 +1,43 @@
+Here are some YAEP implementation details:
+
+  * All numbers below are given for our biggest C test (GCC as one file).
+
+  1. *Earley set* representation is very compact and only *set core*
+     pointer and vector of *distances* for start situations of the set core.
+  2. The distances are *relative*, not absolute.  The distance vector
+     is stored in *one exemplar*. In average, the distance vector is reused
+     22 times.
+  3. The same Earley sets are represented in *one exemplar* and parser list
+     consists of only pointers to the sets. In average one set occurs 20 times.
+  4. The *situation* is mostly a triple (rule, the dot place in the rule,
+     optional possible lookahead). In other words, the situation is the set
+     tuple in original Earley algorithm but without distances.  The same
+     situation is stored in *one exemplar* and only a pointer to it is used.
+  5. The *set core* is set of situations which can occur during YAEP work.
+  6. *Start situations* in the set core are situations produced by Earley
+     Scanningand Completion passes excluding situations added by the
+     completion pass from processing rules with empty right hand side.
+  7. Start situations and their distances *define* all the rest situations
+     and their distances created by predictor pass and completer pass
+     processing rules with empty right hand side.
+  8. More dynamic programming.  There are a lot of repeated parsing parts
+     in the input.  We build *map* (Earley set, input token, lookahead)
+     -> a few possible Earley sets (currently 3 sets) and try to reuse a set
+     from a map.  In 70% cases, the reuse is successful.
+  9. We *do use lookahead* and it speeds up the parser in almost 2 times.
+     Which is opposite to researches showed the lookahead usage has little
+     practical effect on the parsing efficiency.
+  10. We *don't use PEP* (Practical Earley Parser algorithm).  It would
+     complicate the implementation much and, in my estimation, could give
+     only a few percent speedup for our tests.
+  11. We *don't use Leo Joop's approach*.  Using right recursion creates
+     the same number of start situations in overall as using the left
+     recursion.  Simply Earley set corresponding to the end of right recursion
+     contains a lot of start situations (created by the completer).
+     * Moreover, using the right recursion considerably improves reuse
+       of a set from the map (see 8).  For example, parsing 1M token list
+       described by a grammar with the *right* recursion takes only
+       *0.14s vs 1.05s* for a grammar described with the *left* recursion.
+       Usage of the right recursion also results in *3 times* less
+       memory consumption.
+

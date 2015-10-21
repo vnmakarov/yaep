@@ -1,42 +1,42 @@
 # YAEP -- standalone Earley parser library
-  * **YAEP** is an abbreviation of Yet Another Ealrey Parser.
+  * **YAEP** is an abbreviation of Yet Another Earley Parser.
   * This standalone library is created for convenience.
-  * The parser development is actually done as a part of *Dino* language
-    project. [Here is the link](https://github.com/dino-lang/dino)
-  * YEAP license is LGPL v.2.
+  * The parser development is actually done as a part of the [*Dino* language
+    project](https://github.com/dino-lang/dino).
+  * YAEP is licensed under LGPL v.2.
 
 # YAEP features:
   * It is sufficiently fast and does not require much memory.
-    This is the **fastest** implementation of Earley parser which I
-    know (if you know a faster one, please send me a message). It can parse
+    This is the **fastest** implementation of the Earley parser which I
+    know of. If you know a faster one, please send me a message. It can parse
     **300K lines of C program per second** on modern computers
     and allocates about **5MB memory for 10K line C program**.
-  * It makes simple syntax directed translation.  So an
-    **abstract tree** is already the output of YAEP.
+  * YAEP does simple syntax directed translation, producing an **abstract
+    syntax tree** as its output.
   * It can parse input described by an **ambiguous** grammar.  In
-    this case the parse result can be an abstract tree or all
-    possible abstract trees.  Moreover it produces a compact
+    this case the parse result can be a single abstract tree or all
+    possible abstract trees. YAEP produces a compact
     representation of all possible parse trees by using DAG instead
     of real trees.
-  * It can parse input described by an ambiguous grammar
-    according to the **abstract node costs**.  In this case the parse
+  * YAEP can parse input described by an ambiguous grammar
+    according to **abstract node costs**.  In this case the parse
     result can be a **minimal cost** abstract tree or all possible
     minimal cost abstract trees.  This feature can be used to code
     selection task in compilers.
-  * It can make **syntax error recovery**.  Moreover its error
-    recovery algorithms finds error recovery with **minimal** number of
-    ignored tokens.  It permits to implement parsers with very good
+  * It can perform **syntax error recovery**.  Moreover its error
+    recovery algorithm finds error recovery with a **minimal** number of
+    ignored tokens.  This permits implementing parsers with very good
     error recovery and reporting.
   * It has **fast startup**.  There is only a tiny and insignificant delay
     between processing grammar and the start of parsing.
-  * A grammar for YAEP can be described through function calls or through
-    YACC-like description.
+  * A grammar for YAEP can be constructed through function calls or using
+    a YACC-like description syntax.
  
 # Usage example:
-* Here is a small simple example how to use YAEP to parse expressions.
-  We omitted functions `read_token`, `syntax_error_func`, and `parse_alloc_func`
-  used to provide tokens, print syntax error messages, and allocate memory
-  for the parser.
+* The following is a small example of how to use YAEP to parse expressions.
+  We have omitted the functions `read_token`, `syntax_error_func`,
+  and `parse_alloc_func` which are needed to provide tokens, print syntax
+  error messages, and allocate memory for the parser.
 
 ```
 static const char *description =
@@ -73,10 +73,11 @@ static void parse (void)
   earley_free_grammar (g);
 }
 ```
-  * To add error recovery, please just add a reserved symbol ``error`` to
-    the rules. Skipped terminals during error recovery will be represented by
-    abstract node error. For example, if you want error-recovery on expression
-    and statement level for a programming language grammar, the rules could look
+  * To add error recovery, just add a reserved symbol ``error`` to
+    the rules. Skipped terminals during error recovery will be
+    represented in the resulting abstract tree by a node called ``error``.
+    For example, if you want to include expression- and statement-level
+    error-recovery in a programming language grammar, the rules could look
     like the following:
 ```
   stmt : IF '(' expr ')' stmt ELSE stmt # if (2 4 6)
@@ -88,57 +89,60 @@ static void parse (void)
        | error # 0
        ;
 ``` 
-  * For more details, please see a documentation in directory ``src``
-    or YEAP tests in file ``yaep.tst.in``.
+  * For more details, please see the documentation in directory ``src/``,
+    or the YAEP examples in file ``yaep.tst.in``.
 
-# Installing
+# Installing:
   * ``<YAEP source path>/configure --srcdir=<YAEP source path> --prefix=<YAEP install directory>``
   * ``cd src``
   * ``make``
-  * optional ``make test`` 
+  * ``make test`` (optional) 
   * ``make install``
 
-# Speed of YACC, MARPA, YAEP, and GCC parser.
+# Speed comparison of YACC, MARPA, YAEP, and GCC parsers:
 
 * Tested parsers:
   * YACC 1.9 from Linux Fedora Core 21.
-  * MARPA C Library, version 8.3.0. A popular Earley's parser using Practical
-    Earley parser algorithm and Leo Joop's approach.
-  * GCC-4.9.2.
-  * YAEP as Oct. 2015.
+  * MARPA C Library, version 8.3.0. A popular Earley parser implementation
+    using the Practical Earley Parser algorithm and Leo Joop's approach.
+  * The C parser in GCC-4.9.2.
+  * YAEP as of Oct. 2015.
 * Grammar:
-  * The base test grammar is **ANSI C** grammar which is mostly
+  * The base test grammar is the **ANSI C** grammar which is mostly
     a left recursion grammar.
-  * For MARPA and YAEP, the grammar is lightly ambiguous as a typename
-    is also an identifier.
-  * For YACC description, typename is a separate token different from
-    other identifiers.  YACC description contains only small number of
-    actions to give a feedback to the scanner how to treat the next identifier
-    (as a typename or identifier itself).
+  * For MARPA and YAEP, the grammar is slightly ambiguous as typenames
+    are represented with the same kind of token as identifiers.
+  * For the YACC description, typename is a separate token type distinct from
+    other identifiers.  The YACC description does not contain any actions except
+    for a small number needed to give feedback to the scanner on how to treat
+    the next identifier (as a typename or regular identifier).
 * Scanning test files for YACC, MARPA, and YAEP:
-  * We prepared all tokens first and only after that we did parsing.
-  * For YACC, at this stage we does not differ identifier and typename yet. 
-* Tests
-  * The first test is made from gen.c file of parser-generator MSTA.  The file
-    was concatenated 10 times and the result file size was 67K C lines.
-  * The second one is a pre-release version of gcc-4.0 for i686 as one file
+  * We prepare all tokens beforehand in order to exclude scanning time from our benchmark.
+  * For YACC, at the scanning stage we do not yet distinguish identifiers and typenames. 
+* Tests:
+  * The first test is based on the file ``gen.c`` from parser-generator MSTA.  The file
+    was concatenated 10 times and the resulting file size was 67K C lines.
+  * The second test is a pre-release version of gcc-4.0 for i686 with all the source
+    code combined into one file
     ([source](http://people.csail.mit.edu/smcc/projects/single-file-programs/)).
     The file size was 635K C lines.
-  * The files were pre-processed.
-  * Additional preparations were made for YACC, MARPA, and YAEP
+  * The C pre-processor was applied to the files.
+  * Additional preparations were made for YACC, MARPA, and YAEP:
     * GCC extensions (mostly attributes and asm) were removed from the
-      pre-processed files.  The removed code is a tiny and an insignificant
-      fraction of all code.
-    * A very small number of identifiers were renamed not to confuse the simple
-      YACC actions to differ typenames and identifiers.  So the result code
-      is not correct as C code but it is correct with syntactic point of view.
+      pre-processed files.  The removed code is a tiny and insignificant
+      fraction of the entire code.
+    * A very small number of identifiers were renamed to avoid confusing the simple
+      YACC actions to distinguish typenames and identifiers.  So the resulting code
+      is not correct as C code but it is correct from the syntactic point of view.
 * Measurements:
   * The result times are elapsed (wall) times.
-  * Memory requirements are measured by Linux ``sbrk`` difference before and
+  * Memory requirements are measured by comparing the output of Linux ``sbrk`` before and
     after parsing.
-  * For GCC, memory was max resident memory reported by ``/usr/bin/time``.
-* How to reproduce: please use shell script ``compare-parsers.tst``
+  * For GCC, memory was instead measured as max resident memory reported by ``/usr/bin/time``.
+* How to reproduce: please use the shell script ``compare-parsers.tst``
   from directory ``src``.
+
+
 * Results:
   * First file (**67K** lines).  Test machine is i7-2600 (4 x 3.4GHz)
     with 8GB memory under FC21.
@@ -162,54 +166,13 @@ static void parse (void)
 |YAEP                  |  1.43           | 1.68      |  142                 |
 
 * Conclusions:
-  * YEAP without scanner is up to **20** times faster Marpa and requires
+  * YAEP without a scanner is up to **20** times faster than Marpa and requires
     up to **200** times less memory.
-  * Still it is **2.5** - **6** times slower (**1.6** - **3** times with
-     taking scanner into account) than YACC.
-
-# Implementation details
-  * All numbers below are given for our biggest C test (GCC as one file).
-  1. **Earley set** representation is very compact and only **set core**
-     pointer and vector of **distances** for start situations of the set core.
-  2. The distances are **relative**, not absolute.  The distance vector
-     is stored in **one exemplar**. In average, the distance vector is reused
-     22 times.
-  3. The same Earley sets are represented in **one exemplar** and parser list
-     consists of only pointers to the sets. In average one set occurs 20 times.
-  4. The **situation** is mostly a triple (rule, the dot place in the rule,
-     optional possible lookahead). In other words, the situation is the set
-     tuple in original Earley algorithm but without distances.  The same
-     situation is stored in **one exemplar** and only pointer to it is used.
-  5. The **set core** is set of situations which can occur during YAEP work.
-  6. **Start situations** in the set core are situations produced by Earley
-     Scanningand Completion passes excluding situations added by the
-     completion pass from processing rules with empty right hand side.
-  7. Start situations and their distances **define** all the rest situations
-     and their distances created by predictor pass and completer pass
-     processing rules with empty right hand side.
-  8. More dynamic programming.  There are a lot of repeated parsing parts
-     in the input.  We build **map** (Earley set, input token, lookahead)
-     -> a few possible Earley sets (currently 3 sets) and try to reuse a set
-     from a map.  In 70% cases, the reuse is successful.
-  9. We **do use lookahead** and it speeds up the parser in almost 2 times.
-     Which isopposite to researches showed the lookahead usage has little
-     practical effect on the parsing efficiency.
-  10. We **don't use PEP** (Practical Earley Parser algorithm).  It would
-     complicate the implementation much and, in my estimation, could give
-     only a few percent speedup for our tests.
-  11. We **don't use Leo Joop's approach**.  Using right recursion creates
-     the same number of start situations in overall as using the left
-     recursion.  Simply Earley set corresponding to the end of right recursion
-     contains a lot of start situations (created by the completer).
-     * Moreover, using the right recursion considerably improves reuse
-       of a set from the map (see 8).  For example, parsing 1M token list
-       described by a grammar with the **right** recursion takes only
-       **0.14s vs 1.05s** for a grammar described with the **left** recursion.
-       Usage of the right recursion also results in **3 times** less
-       memory consumption.
+  * Still, it is **2.5** - **6** times slower (**1.6** - **3** times when
+     taking the scanner into account) than YACC.
 
 # Future directions
-  * Implement YACC-style description for operator precedence and associativity.
+  * Implement YACC-style description syntax for operator precedence and associativity.
   * Implement bindings for popular scripting languages.
-  * Introduce abstract node codes for faster work with abstract trees.
+  * Introduce abstract node codes (instead of string labels) for faster work with abstract trees.
   * Permit nested abstract nodes in simple translation.
