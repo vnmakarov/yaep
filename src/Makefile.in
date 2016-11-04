@@ -220,6 +220,7 @@ install: all
 	$(INSTALLDATA) $(Cpplibrary) $(DESTDIR)/$(libdir)/$(Cpplibrary)
 	-mkdir -p $(DESTDIR)/$(includedir)
 	$(INSTALLDATA) cocom-config.h $(DESTDIR)/$(includedir)/cocom-config.h
+	$(INSTALLDATA) $(srcdir)/allocate.h $(DESTDIR)/$(includedir)/allocate.h
 	$(INSTALLDATA) $(srcdir)/yaep.h $(DESTDIR)/$(includedir)/yaep.h
 	-mkdir -p $(DESTDIR)/$(docdir)
 	$(INSTALLDATA) $(srcdir)/yaep.txt $(srcdir)/yaep.html  $(srcdir)/yaep-*.html\
@@ -236,6 +237,7 @@ uninstall:
 	rm -f $(DESTDIR)/$(libdir)/$(Cpplibrary)
 	-rmdir $(DESTDIR)/$(libdir)
 	rm -f $(DESTDIR)/$(includedir)/cocom-config.h
+	rm -f $(DESTDIR)/$(includedir)/allocate.h
 	rm -f $(DESTDIR)/$(includedir)/yaep.h
 	-rmdir $(DESTDIR)/$(includedir)
 	rm -f $(DESTDIR)/$(docdir)/yaep.txt \

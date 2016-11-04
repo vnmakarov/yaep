@@ -1,3 +1,7 @@
+2016-11-04  Vladimir Makarov  <vmakarov@gcc.gnu.org>
+
+	* Makefile.in (install, uninstall): Process allocate.h
+
 2015-10-06  Vladimir Makarov  <vmakarov@gcc.gnu.org>
 
 	* compare_parsers.tst.in: Use YAEPLIB and YAEPDIR.
