@@ -1,0 +1,12 @@
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+
+script:
+  - ./configure
+  - cd src
+  - make
+  - make test
+  - sudo make install
