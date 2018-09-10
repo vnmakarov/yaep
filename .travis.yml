@@ -3,7 +3,16 @@ language: cpp
 matrix:
   include:
     - os: linux
+      compiler: gcc
+
     - os: osx
+      compiler: gcc
+
+    - os: linux
+      compiler: clang
+
+    - os: osx
+      compiler: clang
 
 script:
   - ./configure
