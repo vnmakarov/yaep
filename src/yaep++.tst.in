@@ -29,7 +29,7 @@
 #
 # Usage: yaep++.tst [start_test_number]
 #
-# The script outputs self-explanatory messages and returns zero exit code if 
+# The script outputs self-explanatory messages and returns zero exit code if
 # it is all ok.
 #
 
@@ -78,7 +78,7 @@ fi
 
 # Compilation of addfiles
 
-echo '      ' $YACC $srcdir/$sgramm.y '&' mv y.tab.c $sgramm.c  
+echo '      ' $YACC $srcdir/$sgramm.y '&' mv y.tab.c $sgramm.c
 if $YACC $srcdir/$sgramm.y && mv y.tab.c $sgramm.c; then
         result=ok
 else
@@ -5494,11 +5494,11 @@ if test $result = ok -a $start_test_number -le 41; then
 #define _BOOL         6006
 #define _COMPLEX      7006
 #define _IMAGINARY    8006
-		   
-struct lex {	   
-  short code;	   
-  short column;	   
-  int line;	   
+
+struct lex {
+  short code;
+  short column;
+  int line;
   const char *id;
   struct lex *next;
 };
