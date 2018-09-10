@@ -3,6 +3,7 @@ language: cpp
 matrix:
   include:
     - os: linux
+    - os: osx
 
 script:
   - ./configure
