@@ -518,6 +518,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -636,6 +637,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -765,6 +767,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -889,6 +892,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -1013,6 +1017,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -1137,6 +1142,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -1249,6 +1255,7 @@ test_read_token (void **attr)
 
 static const char *description = "TERM;\n";
 
+int
 main ()
 {
   yaep *e;
@@ -1361,6 +1368,7 @@ test_read_token (void **attr)
 
 static const char *description = "TERM ident; ident : ;\n";
 
+int
 main ()
 {
   yaep *e;
@@ -1485,6 +1493,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -1609,6 +1618,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -1732,6 +1742,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -1849,6 +1860,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -1987,6 +1999,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -2111,6 +2124,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -2236,6 +2250,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -2407,6 +2422,7 @@ test_read_token (void **attr)
     return -1;
 }
 
+int
 main ()
 {
   yaep *e;
@@ -2577,6 +2593,7 @@ test_read_token (void **attr)
     return -1;
 }
 
+int
 main ()
 {
   yaep *e;
@@ -2748,6 +2765,7 @@ test_read_token (void **attr)
     return -1;
 }
 
+int
 main ()
 {
   yaep *e;
@@ -2919,6 +2937,7 @@ test_read_token (void **attr)
     return -1;
 }
 
+int
 main ()
 {
   yaep *e;
@@ -3089,6 +3108,7 @@ test_read_token (void **attr)
     return -1;
 }
 
+int
 main ()
 {
   yaep *e;
@@ -3259,6 +3279,7 @@ test_read_token (void **attr)
     return -1;
 }
 
+int
 main ()
 {
   yaep *e;
@@ -3382,6 +3403,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main ()
 {
   yaep *e;
@@ -3506,6 +3528,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -3692,6 +3715,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -3873,6 +3897,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -4019,6 +4044,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -4176,6 +4202,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -4319,6 +4346,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -4459,6 +4487,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -4610,6 +4639,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -4744,6 +4774,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -4887,6 +4918,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -5029,6 +5061,7 @@ static const char *description =
 "  | '(' error ')' # 1\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -5172,6 +5205,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -5333,6 +5367,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -16734,6 +16769,7 @@ static const char *description =
 "                     ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   ticker_t *t;
@@ -16870,6 +16906,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -17016,6 +17053,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -17223,6 +17261,7 @@ test_read_token (void **attr)
     return -1;
 }
 
+int
 main ()
 {
   yaep *e;
@@ -17345,6 +17384,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -17494,6 +17534,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -17645,6 +17686,7 @@ static const char *description =
 "  ;\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -17784,6 +17826,7 @@ static const char *description =
 "   |\n"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
@@ -17916,6 +17959,7 @@ static const char *description =
 "opt : 'c'                   # optc (-)"
   ;
 
+int
 main (int argc, char **argv)
 {
   yaep *e;
