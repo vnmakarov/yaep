@@ -46,7 +46,7 @@
 
 #include "allocate.h"
 
-/* The following is a forward descration of grammar formed by function
+/* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
 struct grammar;
 
@@ -85,7 +85,7 @@ enum yaep_tree_node_type
   YAEP_ALT
 };
 
-/* The following node exists in one examplar. See comment to read_rule. */
+/* The following node exists in one example. See comment to read_rule. */
 struct yaep_nil
 {
   /* The following member is not used.  It is only to conform ANSI C
@@ -93,8 +93,8 @@ struct yaep_nil
   int dummy;
 };
 
-/* The following node exists in one examplar.  It is used as
-   transaltion of pseudo terminal `error'. */
+/* The following node exists in one example.  It is used as
+   translation of pseudo terminal `error'. */
 struct yaep_error
 {
   /* The following member is not used.  It is only to conform ANSI C
@@ -136,7 +136,7 @@ struct yaep_alt
   struct yaep_tree_node *next;
 };
 
-/* The folloiwing structure describes generalized node of the parse
+/* The following structure describes generalized node of the parse
    tree. */
 struct yaep_tree_node
 {
@@ -170,7 +170,7 @@ extern const char *yaep_error_message (struct grammar *g);
 
 /* The following function reads terminals/rules into grammar G and
    checks it depending on STRICT_P.  It returns zero if it is all ok.
-   Otherwise, the function returns error code occured (its code will
+   Otherwise, the function returns error code occurred (its code will
    be in yaep_error_code and message in yaep_error_message).
 
    READ_TERMINAL is function for reading terminals.  This function is
@@ -209,7 +209,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 					     int **transl));
 
 /* The following function is analogous to the previous one but it
-   parses grammar desrciption. */
+   parses grammar description. */
 extern int
 yaep_parse_grammar (struct grammar *g, int strict_p,
 		    const char *description);
@@ -220,12 +220,12 @@ yaep_parse_grammar (struct grammar *g, int strict_p,
    o lookahead_level means usage of static (if 1) or dynamic (2)
      lookahead to decrease size of sets.  Static lookaheads gives the
      best results with the point of space and speed, dynamic ones does
-     sligthly worse, and no usage of lookaheds does the worst.  The
+     slightly worse, and no usage of lookaheads does the worst.  The
      default value is 1.
 
    o debug_level says what debugging information to output (it works
      only if we compiled without defined macro NO_YAEP_DEBUG_PRINT).
-     The defualt value is 0.
+     The default value is 0.
 
    o one_parse_flag means building only one parse tree.  For
      unambiguous grammar the flag does not affect the result.  The
@@ -241,7 +241,7 @@ yaep_parse_grammar (struct grammar *g, int strict_p,
      (although syntax_error is called once).  The default value is 1.
 
    o recovery_match means how much subsequent tokens should be
-     successfuly shifted to finish error recovery.  The default value
+     successfully shifted to finish error recovery.  The default value
      is 3. */
 extern int yaep_set_lookahead_level (struct grammar *grammar, int level);
 extern int yaep_set_debug_level (struct grammar *grammar, int level);
@@ -255,7 +255,7 @@ extern int yaep_set_recovery_match (struct grammar *grammar, int n_toks);
    yaep_error_code).  If the code is zero, the function will also
    The *root will be NULL only if syntax error was occurred and error
    recovery was switched off).  The function sets up *AMBIGOUS_P if we
-   found that the grammer is ambigous (it works even we asked only one
+   found that the grammar is ambiguous (it works even we asked only one
    parse tree without alternatives).
 
    The function READ_TOKEN provides input tokens.  It returns code the
