@@ -41,9 +41,9 @@
 #else
 #ifndef INT_MAX
 #define INT_MAX 2147483647
-#endif  
 #endif
- 
+#endif
+
 #include "allocate.h"
 
 /* The following is a forward descration of grammar formed by function
@@ -306,7 +306,7 @@ extern void yaep_free_grammar (struct grammar *grammar);
 class yaep
 {
   struct grammar *grammar;
-  
+
 public:
 
   /* The following constructor and destructor allocate and free memory
