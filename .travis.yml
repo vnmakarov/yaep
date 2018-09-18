@@ -19,3 +19,4 @@ script:
   - cd src
   - make
   - make test
+  - sudo env "PATH=$PATH" make install
