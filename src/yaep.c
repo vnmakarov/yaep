@@ -6023,12 +6023,13 @@ static
 void
 yaep_free_grammar (struct grammar *g)
 {
-  grammar = g;
-  if (grammar != NULL)
+  grammar = NULL;
+  if (g != NULL)
     {
-      rule_fin (grammar->rules_ptr);
-      term_set_fin (grammar->term_sets_ptr);
-      symb_fin (grammar->symbs_ptr);
+      rule_fin (g->rules_ptr);
+      term_set_fin (g->term_sets_ptr);
+      symb_fin (g->symbs_ptr);
+      FREE (g);
     }
 }
 
