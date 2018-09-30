@@ -81,7 +81,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 
 # The directory for installation of header files.
-includedir=@includedir@
+includedir=@includedir@/yaep
 
 # The directory for installation of documentation
 docdir=@docdir@/yaep
