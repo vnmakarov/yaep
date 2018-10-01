@@ -5458,9 +5458,11 @@ make_parse (int *ambiguous_p)
   empty_node = ((struct yaep_tree_node *)
 		(*parse_alloc) (sizeof (struct yaep_tree_node)));
   empty_node->type = YAEP_NIL;
+  empty_node->val.nil.used = 0;
   error_node = ((struct yaep_tree_node *)
 		(*parse_alloc) (sizeof (struct yaep_tree_node)));
   error_node->type = YAEP_ERROR;
+  error_node->val.error.used = 0;
   while (VLO_LENGTH (stack) != 0)
     {
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
@@ -5501,20 +5503,23 @@ make_parse (int *ambiguous_p)
 	  VLO_SHORTEN (stack, sizeof (struct parse_state *));
 	  if (VLO_LENGTH (stack) != 0)
 	    state = ((struct parse_state **) VLO_BOUND (stack)) [-1];
-	  if (parent_anode != NULL && rule->trans_len == 0 && anode == NULL)
+	  if (parent_anode != NULL && rule->trans_len == 0 && anode == NULL) {
 	    /* We do produce nothing but we should.  So write empty
                node. */
 	    place_translation (parent_anode->val.anode.children + parent_disp,
 			       empty_node);
-	  else if (anode != NULL)
+	    empty_node->val.nil.used = 1;
+	  } else if (anode != NULL)
 	    {
 	      /* Change NULLs into empty nodes.  We can not make it
                  the first time because when building several parses
                  the NULL means flag of absence of translations (see
                  function `place_translation'). */
 	      for (i = 0; i < rule->trans_len; i++)
-		if (anode ->val.anode.children [i] == NULL)
+		if (anode ->val.anode.children [i] == NULL) {
 		  anode->val.anode.children [i] = empty_node;
+		  empty_node->val.nil.used = 1;
+		}
 	    }
 	  continue;
 	}
@@ -5532,9 +5537,10 @@ make_parse (int *ambiguous_p)
 	    {
 	      /* We should generate and use the translation of the
                  terminal.  Add reference to the current node. */
-	      if (symb == grammar->term_error)
+	      if (symb == grammar->term_error) {
 		node = error_node;
-	      else if (!grammar->one_parse_p
+		error_node->val.error.used = 1;
+	      } else if (!grammar->one_parse_p
 		       && (node = term_node_array [pl_ind]) != NULL)
 		;
 	      else
@@ -5819,7 +5825,7 @@ make_parse (int *ambiguous_p)
 		    }
 #endif
 		}
-	      else
+	      else {
 		/* Empty rule should produce something not abtract
 		   node.  So place empty node. */
 		place_translation (anode == NULL
@@ -5827,6 +5833,8 @@ make_parse (int *ambiguous_p)
 				   + parent_disp
 				   : anode->val.anode.children + disp,
 				   empty_node);
+		empty_node->val.nil.used = 1;
+	      }
 	    } /* if (parent_anode != NULL && disp >= 0) */
 	  n_candidates++;
 	} /* For all reduces of the nonterminal. */
@@ -5867,6 +5875,17 @@ make_parse (int *ambiguous_p)
       fprintf (stderr, "}\n");
     }
 #endif
+
+  /* Free empty and error node if they have not been used */
+  if ( parse_free != NULL ) {
+    if ( !empty_node->val.nil.used ) {
+      parse_free( empty_node );
+    }
+    if ( !error_node->val.error.used ) {
+      parse_free( error_node );
+    }
+  }
+
   assert (result != NULL && (!grammar->one_parse_p || n_parse_alt_nodes == 0));
   return result;
 }

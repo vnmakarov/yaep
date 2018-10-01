@@ -88,18 +88,16 @@ enum yaep_tree_node_type
 /* The following node exists in one example. See comment to read_rule. */
 struct yaep_nil
 {
-  /* The following member is not used.  It is only to conform ANSI C
-     standard. */
-  int dummy;
+  /* Whether this node has been used in the parse tree. */
+  int used;
 };
 
 /* The following node exists in one example.  It is used as
    translation of pseudo terminal `error'. */
 struct yaep_error
 {
-  /* The following member is not used.  It is only to conform ANSI C
-     standard. */
-  int dummy;
+  /* Whether this node has been used in the parse tree. */
+  int used;
 };
 
 /* The following structure describes terminal node. */
