@@ -6026,6 +6026,7 @@ yaep_free_grammar (struct grammar *g)
   grammar = NULL;
   if (g != NULL)
     {
+      pl_fin();
       rule_fin (g->rules_ptr);
       term_set_fin (g->term_sets_ptr);
       symb_fin (g->symbs_ptr);
