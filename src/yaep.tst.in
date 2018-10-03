@@ -486,7 +486,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -603,7 +603,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -731,7 +731,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -854,7 +854,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -977,7 +977,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1100,7 +1100,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1223,7 +1223,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1334,7 +1334,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1445,7 +1445,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1568,7 +1568,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1691,7 +1691,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1813,7 +1813,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1940,7 +1940,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2066,7 +2066,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2189,7 +2189,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2313,7 +2313,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2334,7 +2334,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2374,7 +2374,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2483,7 +2483,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2503,7 +2503,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2543,7 +2543,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2652,7 +2652,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2673,7 +2673,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2713,7 +2713,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2822,7 +2822,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2843,7 +2843,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2883,7 +2883,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2992,7 +2992,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -3012,7 +3012,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -3052,7 +3052,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3161,7 +3161,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -3181,7 +3181,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -3221,7 +3221,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3330,7 +3330,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3452,7 +3452,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3637,7 +3637,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3822,7 +3822,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3967,7 +3967,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4122,7 +4122,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4265,7 +4265,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4403,7 +4403,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4550,7 +4550,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4682,7 +4682,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4824,7 +4824,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4968,7 +4968,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5109,7 +5109,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5269,7 +5269,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -16037,7 +16037,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
        start_recovered_tok_num - start_ignored_tok_num, start_ignored_tok_num);
 }
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -16792,7 +16792,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -16933,7 +16933,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17092,7 +17092,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -17112,7 +17112,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -17152,7 +17152,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17261,7 +17261,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17409,7 +17409,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17559,7 +17559,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17699,7 +17699,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17833,7 +17833,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {

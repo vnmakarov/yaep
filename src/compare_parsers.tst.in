@@ -11187,8 +11187,8 @@ if test x$MSTA != x; then
     fi
 fi
 
-# YEAP (Yet Another Earley Parser) from Ammunition
-echo '  ' 'YEAP (Yet Another Earley Parser)' from AMMUNITION: pure parsing
+# YAEP (Yet Another Earley Parser) from Ammunition
+echo '  ' 'YAEP (Yet Another Earley Parser)' from AMMUNITION: pure parsing
 
 cat >test.c <<'EOF'
 #include <limits.h>
@@ -12064,7 +12064,7 @@ echo No Lookahead
 if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 0 0 <$TEST; then
   echo
 else
-  echo Failure with 'YEAP (Yet Another Earley Parser)'
+  echo Failure with 'YAEP (Yet Another Earley Parser)'
   exit 1
 fi
 
@@ -12072,7 +12072,7 @@ echo Static Lookahead
 if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 1 0 <$TEST; then
   echo
 else
-  echo Failure with 'YEAP (Yet Another Earley Parser)'
+  echo Failure with 'YAEP (Yet Another Earley Parser)'
   exit 1
 fi
 
@@ -12080,7 +12080,7 @@ echo Dynamic Lookahead
 if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 2 0 <$TEST; then
   echo
 else
-  echo Failure with 'YEAP (Yet Another Earley Parser)'
+  echo Failure with 'YAEP (Yet Another Earley Parser)'
   exit 1
 fi
 
@@ -12088,7 +12088,7 @@ echo Static Lookahead -- Big test
 if $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile 1 0 <$BIG_TEST; then
   echo
 else
-  echo Failure with 'YEAP (Yet Another Earley Parser)'
+  echo Failure with 'YAEP (Yet Another Earley Parser)'
   exit 1
 fi
 
