@@ -6053,7 +6053,130 @@ yaep_free_grammar (struct grammar *g)
     }
 }
 
-
+static void free_tree_reduce( struct yaep_tree_node * node ) {
+  enum yaep_tree_node_type type;
+  struct yaep_tree_node ** childp;
+  size_t numChildren, pos, freePos;
+
+  assert( node != NULL );
+  assert( ( node->type & _yaep_VISITED ) == 0 );
+
+  type = node->type;
+  node->type = ( enum yaep_tree_node_type ) ( node->type | _yaep_VISITED );
+
+  switch ( type ) {
+    case YAEP_NIL:
+    case YAEP_ERROR:
+    case YAEP_TERM:
+      break;
+
+    case YAEP_ANODE:
+      if ( node->val.anode.name[0] == '\0' ) {
+	/* We have already seen the node name */
+	node->val.anode.name = NULL;
+      } else {
+	/* Mark the node name as seen */
+	node->val._anode_name.name[0] = '\0';
+      }
+      for ( numChildren = 0, childp = node->val.anode.children; *childp != NULL; ++numChildren, ++childp ) {
+	if ( ( *childp )->type & _yaep_VISITED ) {
+	  *childp = NULL;
+	} else {
+	  free_tree_reduce( *childp );
+	}
+      }
+      /* Compactify children array */
+      for ( freePos = 0, pos = 0; pos != numChildren; ++pos ) {
+	if ( node->val.anode.children[pos] != NULL ) {
+	  if ( freePos < pos ) {
+	    node->val.anode.children[freePos] = node->val.anode.children[pos];
+	    node->val.anode.children[pos] = NULL;
+	  }
+	  ++freePos;
+	}
+      }
+      break;
+
+    case YAEP_ALT:
+      if ( node->val.alt.node->type & _yaep_VISITED ) {
+	node->val.alt.node = NULL;
+      } else {
+	free_tree_reduce( node->val.alt.node );
+      }
+      while ( ( node->val.alt.next != NULL ) && ( node->val.alt.next->type & _yaep_VISITED ) ) {
+	assert( node->val.alt.next->type == ( YAEP_ALT | _yaep_VISITED ) );
+	node->val.alt.next = node->val.alt.next->val.alt.next;
+      }
+      if ( node->val.alt.next != NULL ) {
+	assert( ( node->val.alt.next->type & _yaep_VISITED ) == 0 );
+	free_tree_reduce( node->val.alt.next );
+      }
+      break;
+
+    default:
+      assert( "This should not happen" == NULL );
+  }
+}
+
+static void free_tree_sweep( struct yaep_tree_node * node, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * ) ) {
+  enum yaep_tree_node_type type;
+  struct yaep_tree_node * next;
+  struct yaep_tree_node ** childp;
+
+  if ( node == NULL ) {
+    return;
+  }
+
+  assert( node->type & _yaep_VISITED );
+  type = ( enum yaep_tree_node_type ) ( node->type &~ _yaep_VISITED );
+
+  switch ( type ) {
+    case YAEP_NIL:
+    case YAEP_ERROR:
+      break;
+
+    case YAEP_TERM:
+      if ( termcb != NULL ) {
+	termcb( &node->val.term );
+      }
+      break;
+
+    case YAEP_ANODE:
+      parse_free( node->val._anode_name.name );
+      for ( childp = node->val.anode.children; *childp != NULL; ++childp ) {
+	free_tree_sweep( *childp, parse_free, termcb );
+      }
+      break;
+
+    case YAEP_ALT:
+      free_tree_sweep( node->val.alt.node, parse_free, termcb );
+      next = node->val.alt.next;
+      parse_free( node );
+      free_tree_sweep( next, parse_free, termcb );
+      return; /* Tail recursion */
+
+    default:
+      assert( "This should not happen" == NULL );
+  }
+
+  parse_free( node );
+}
+
+#ifdef __cplusplus
+static
+#endif
+void yaep_free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * ) ) {
+  if ( ( root == NULL ) || ( parse_free == NULL ) ) {
+    return;
+  }
+
+  /* Since the parse tree is actually a DAG, we must carefully avoid
+   * double free errors. Therefore, we walk the parse tree twice.
+   * On the first walk, we reduce the DAG to an actual tree.
+   * On the second walk, we recursively free the tree nodes. */
+  free_tree_reduce( root );
+  free_tree_sweep( root, parse_free, termcb );
+}
 
 /* This page contains a test code for Earley's algorithm.  To use it,
    define macro YAEP_TEST during compilation. */

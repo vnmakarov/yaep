@@ -82,7 +82,9 @@ enum yaep_tree_node_type
   YAEP_ERROR,
   YAEP_TERM,
   YAEP_ANODE,
-  YAEP_ALT
+  YAEP_ALT,
+  _yaep_VISITED = 0x80, /* _yaep_VISITED is not part of the interface and for internal use only */
+  _yaep_MAX = 0xFF, /* _yaep_MAX is not part of the interface and is just here to ensure a logical OR of _yaep_VISITED with the other enum values does not produce an out-of-range enum */
 };
 
 /* The following node exists in one example. See comment to read_rule. */
@@ -123,6 +125,12 @@ struct yaep_anode
   struct yaep_tree_node **children;
 };
 
+/* The following structure is not part of the interface and for internal use only */
+struct _yaep_anode_name {
+  /* Allocated abstract node name. */
+  char * name;
+};
+
 /* The following structure describes alternatives in the parse tree.
    Which are presents only for ambiguous grammar. */
 struct yaep_alt
@@ -147,6 +155,7 @@ struct yaep_tree_node
     struct yaep_error error;
     struct yaep_term term;
     struct yaep_anode anode;
+    struct _yaep_anode_name _anode_name; /* Internal use only */
     struct yaep_alt alt;
   } val;
 };
@@ -298,6 +307,20 @@ extern int yaep_parse (struct grammar *grammar,
 
 /* The following function frees memory allocated for the grammar. */
 extern void yaep_free_grammar (struct grammar *grammar);
+
+/* The following function frees memory allocated for the parse tree.
+   It must be called after yaep_free_grammar().
+   ROOT must be the root of the parse tree as returned by yaep_parse().
+   If ROOT is a null pointer, no operation is performed.
+   Otherwise, the argument passed for PARSE_FREE must be the same as passed for
+   the parameter of the same name in yaep_parse().
+   If PARSE_FREE is a null pointer, no operation is performed,
+   in particular, no memory is freed.
+   Otherwise, if TERMCB is not a null pointer, it will be called
+   exactly once for each term node in the parse tree.
+   The TERMCB callback can be used by the caller
+   to free the term attributes. The term node itself must not be freed. */
+extern void yaep_free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * term ) );
 
 #else /* #ifndef __cplusplus */
 
