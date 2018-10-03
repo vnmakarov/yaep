@@ -44,8 +44,6 @@
 #endif
 #endif
 
-#include "allocate.h"
-
 /* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
 struct grammar;
