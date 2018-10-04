@@ -61,7 +61,7 @@
 
 SHELL=/bin/sh
 
-# The subdirectory used for copying sources and creation of 
+# The subdirectory used for copying sources and creation of
 # compressed distribution tar file.
 distdir = yaep-0.997
 
@@ -159,7 +159,7 @@ doc_files = yaep.txt yaep.info* yaep.html yaep-*.html\
 
 # Files which are not in distribution
 additional_rcs_files = yaep.sgml.in yaep_part.sgml.in\
-                       yaep++.sgml.in yaep_part++.sgml.in 
+                       yaep++.sgml.in yaep_part++.sgml.in
 
 # All C object files
 Cobjects = $(Cdir)/allocate.o  $(Cdir)/vlobject.o  $(Cdir)/objstack.o\
@@ -331,7 +331,7 @@ yaep.sgml: $(srcdir)/yaep.sgml.in $(srcdir)/yaep_part.sgml.in
 $(srcdir)/yaep.txt: yaep.sgml
 	linuxdoc -B txt --papersize=letter -f yaep.sgml
 	mv yaep.txt $(srcdir)
-	
+
 $(srcdir)/yaep.html: yaep.sgml
 	linuxdoc -B html --papersize=letter yaep.sgml
 	if test -f yaep-1.html;then\
@@ -340,7 +340,7 @@ $(srcdir)/yaep.html: yaep.sgml
 	  done;\
         fi
 	mv yaep.html $(srcdir)/yaep.html
-	
+
 $(srcdir)/yaep.info: yaep.sgml
 	linuxdoc -B info --papersize=letter yaep.sgml
 	if test -f yaep.info;then\
@@ -348,7 +348,7 @@ $(srcdir)/yaep.info: yaep.sgml
    	    mv $$i $(srcdir)/$$i;\
 	  done;\
         fi
-	
+
 $(srcdir)/yaep.dvi: yaep.sgml
 	linuxdoc -B latex --papersize=letter yaep.sgml
 	if test ! -f yaep.dvi\
@@ -381,7 +381,7 @@ $(srcdir)/yaep++.html: yaep++.sgml
 	  done;\
         fi
 	mv yaep++.html $(srcdir)/yaep++.html
-	
+
 $(srcdir)/yaep++.info: yaep++.sgml
 	linuxdoc -B info --papersize=letter yaep++.sgml
 	if test -f yaep++.info;then\
@@ -389,7 +389,7 @@ $(srcdir)/yaep++.info: yaep++.sgml
    	    mv $$i $(srcdir)/$$i;\
 	  done;\
         fi
-	
+
 $(srcdir)/yaep++.dvi: yaep++.sgml
 	linuxdoc -B latex --papersize=letter yaep++.sgml
 	if test ! -f yaep++.dvi\
@@ -430,7 +430,7 @@ depend : sgramm.c $(Cdir) $(Cxxdir)
                 | $(SED) 's%\$$(top_srcdir)/src/sgramm\.c%sgramm.c%g' \
                          >>Makefile.tmp;\
 	done
-	
+
 	@echo ++++ Adding Makefile dependencies for C++ ++++
 	for i in allocate.cpp vlobject.cpp objstack.cpp hashtab.cpp ticker.cpp yaep.cpp;\
 	do\
