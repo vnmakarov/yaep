@@ -448,6 +448,7 @@ fi
 # Test 6.
 if test $result = ok -a $start_test_number -le 6; then
         cat >$test_file <<'TEST6'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -565,6 +566,7 @@ fi
 # Test 7.
 if test $result = ok -a $start_test_number -le 7; then
         cat >$test_file <<'TEST7'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -693,6 +695,7 @@ fi
 # Test 8.
 if test $result = ok -a $start_test_number -le 8; then
         cat >$test_file <<'TEST8'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -816,6 +819,7 @@ fi
 # Test 9.
 if test $result = ok -a $start_test_number -le 9; then
         cat >$test_file <<'TEST9'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -939,6 +943,7 @@ fi
 # Test 10.
 if test $result = ok -a $start_test_number -le 10; then
         cat >$test_file <<'TEST10'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1062,6 +1067,7 @@ fi
 # Test 11.
 if test $result = ok -a $start_test_number -le 11; then
         cat >$test_file <<'TEST11'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1185,6 +1191,7 @@ fi
 # Test 12.
 if test $result = ok -a $start_test_number -le 12; then
         cat >$test_file <<'TEST12'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1296,6 +1303,7 @@ fi
 # Test 13.
 if test $result = ok -a $start_test_number -le 13; then
         cat >$test_file <<'TEST13'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1407,6 +1415,7 @@ fi
 # Test 14.
 if test $result = ok -a $start_test_number -le 14; then
         cat >$test_file <<'TEST14'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1530,6 +1539,7 @@ fi
 # Test 15.
 if test $result = ok -a $start_test_number -le 15; then
         cat >$test_file <<'TEST15'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1653,6 +1663,7 @@ fi
 # Test 16.
 if test $result = ok -a $start_test_number -le 16; then
         cat >$test_file <<'TEST16'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1775,6 +1786,7 @@ fi
 # Test 17.
 if test $result = ok -a $start_test_number -le 17; then
         cat >$test_file <<'TEST17'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1902,6 +1914,7 @@ fi
 # Test 18.
 if test $result = ok -a $start_test_number -le 18; then
         cat >$test_file <<'TEST18'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2028,6 +2041,7 @@ fi
 # Test 19.
 if test $result = ok -a $start_test_number -le 19; then
         cat >$test_file <<'TEST19'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2151,6 +2165,7 @@ fi
 # Test 20.
 if test $result = ok -a $start_test_number -le 20; then
         cat >$test_file <<'TEST20'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2275,6 +2290,7 @@ fi
 # Test 21.
 if test $result = ok -a $start_test_number -le 21; then
         cat >$test_file <<'TEST21'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2445,6 +2461,7 @@ fi
 # Test 22.
 if test $result = ok -a $start_test_number -le 22; then
         cat >$test_file <<'TEST22'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2614,6 +2631,7 @@ fi
 # Test 23.
 if test $result = ok -a $start_test_number -le 23; then
         cat >$test_file <<'TEST23'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2784,6 +2802,7 @@ fi
 # Test 24.
 if test $result = ok -a $start_test_number -le 24; then
         cat >$test_file <<'TEST24'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2954,6 +2973,7 @@ fi
 # Test 25.
 if test $result = ok -a $start_test_number -le 25; then
         cat >$test_file <<'TEST25'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3123,6 +3143,7 @@ fi
 # Test 26.
 if test $result = ok -a $start_test_number -le 26; then
         cat >$test_file <<'TEST26'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3292,6 +3313,7 @@ fi
 # Test 27.
 if test $result = ok -a $start_test_number -le 27; then
         cat >$test_file <<'TEST27'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3414,6 +3436,7 @@ fi
 # Test 28.
 if test $result = ok -a $start_test_number -le 28; then
         cat >$test_file <<'TEST28'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3599,6 +3622,7 @@ fi
 # Test 29.
 if test $result = ok -a $start_test_number -le 29; then
         cat >$test_file <<'TEST29'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3784,6 +3808,7 @@ fi
 # Test 30.
 if test $result = ok -a $start_test_number -le 30; then
         cat >$test_file <<'TEST30'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3929,6 +3954,7 @@ fi
 # Test 31.
 if test $result = ok -a $start_test_number -le 31; then
         cat >$test_file <<'TEST31'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4084,6 +4110,7 @@ fi
 # Test 32.
 if test $result = ok -a $start_test_number -le 32; then
         cat >$test_file <<'TEST32'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4227,6 +4254,7 @@ fi
 # Test 33.
 if test $result = ok -a $start_test_number -le 33; then
         cat >$test_file <<'TEST33'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4365,6 +4393,7 @@ fi
 # Test 34.
 if test $result = ok -a $start_test_number -le 34; then
         cat >$test_file <<'TEST34'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4512,6 +4541,7 @@ fi
 # Test 35.
 if test $result = ok -a $start_test_number -le 35; then
         cat >$test_file <<'TEST35'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4644,6 +4674,7 @@ fi
 # Test 36.
 if test $result = ok -a $start_test_number -le 36; then
         cat >$test_file <<'TEST36'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4786,6 +4817,7 @@ fi
 # Test 37.
 if test $result = ok -a $start_test_number -le 37; then
         cat >$test_file <<'TEST37'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4930,6 +4962,7 @@ fi
 # Test 38.
 if test $result = ok -a $start_test_number -le 38; then
         cat >$test_file <<'TEST38'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -5071,6 +5104,7 @@ fi
 # Test 39.
 if test $result = ok -a $start_test_number -le 39; then
         cat >$test_file <<'TEST39'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -5231,6 +5265,7 @@ fi
 # Test 40.
 if test $result = ok -a $start_test_number -le 40; then
         cat >$test_file <<'TEST40'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -16754,6 +16789,7 @@ fi
 # Test 42.
 if test $result = ok -a $start_test_number -le 42; then
         cat >$test_file <<'TEST42'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -16895,6 +16931,7 @@ fi
 # Test 43.
 if test $result = ok -a $start_test_number -le 43; then
         cat >$test_file <<'TEST43'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17054,6 +17091,7 @@ fi
 # Test 44.
 if test $result = ok -a $start_test_number -le 44; then
         cat >$test_file <<'TEST44'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17223,6 +17261,7 @@ fi
 # Test 45.
 if test $result = ok -a $start_test_number -le 45; then
         cat >$test_file <<'TEST45'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17371,6 +17410,7 @@ fi
 # Test 46.
 if test $result = ok -a $start_test_number -le 46; then
         cat >$test_file <<'TEST46'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17523,6 +17563,7 @@ fi
 # Test 47.
 if test $result = ok -a $start_test_number -le 47; then
         cat >$test_file <<'TEST47'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17663,6 +17704,7 @@ fi
 # Test 48.
 if test $result = ok -a $start_test_number -le 48; then
         cat >$test_file <<'TEST48'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17797,6 +17839,7 @@ fi
 # Test 49.
 if test $result = ok -a $start_test_number -le 49; then
         cat >$test_file <<'TEST49'
+#include<stdio.h>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
