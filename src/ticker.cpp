@@ -64,30 +64,6 @@ ticker::ticker (void)
   incremented_off_time = 0;
 }
 
-/* The following two functions allocate memory for ticker. */
-
-void *ticker::operator new (size_t size)
-{
-  return allocate::malloc (size);
-}
-
-void *ticker::operator new[] (size_t size)
-{
-  return allocate::malloc (size);
-}
-
-/* The following two functions free memory for ticker. */
-
-void ticker::operator delete (void *mem)
-{
-  allocate::free (mem);
-}
-
-void ticker::operator delete[] (void *mem)
-{
-  allocate::free (mem);
-}
-
 /* The following function switches off given ticker. */
 
 void

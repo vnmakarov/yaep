@@ -97,11 +97,6 @@ class ticker
 public:
   ticker (void);
 
-  void *operator new (size_t);
-  void *operator new[] (size_t);
-  void operator delete (void *);
-  void operator delete[] (void *);
-
   void ticker_on (void);
   void ticker_off (void);
   double active_time (void);

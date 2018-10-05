@@ -369,30 +369,6 @@ public:
 
   ~os (void);
 
-  /* The following two functions allocate memory for the descriptor. */
-
-  inline void *operator new (size_t size)
-    {
-      return allocate::malloc (size);
-    }
-
-  inline void *operator new[] (size_t size)
-    {
-      return allocate::malloc (size);
-    }
-
-  /* The following two functions free memory for the descriptor. */
-
-  inline void operator delete (void *mem)
-    {
-      allocate:: free (mem);
-    }
-
-  inline void operator delete[] (void *mem)
-    {
-      allocate:: free (mem);
-    }
-
   /* This function is used for freeing memory allocated for OS except
      for the first segment. */
 

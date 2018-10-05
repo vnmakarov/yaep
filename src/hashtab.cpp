@@ -124,32 +124,6 @@ hash_table::~hash_table (void)
   allocate::free (entries);
 }
 
-/* The following two functions allocate memory for hash table
-   descriptor. */
-
-void *hash_table::operator new (size_t size)
-{
-  return allocate::malloc (size);
-}
-
-void *hash_table::operator new[] (size_t size)
-{
-  return allocate::malloc (size);
-}
-
-/* The following two functions free memory for hash table
-   descriptor. */
-
-void hash_table::operator delete (void *mem)
-{
-  allocate::free (mem);
-}
-
-void hash_table::operator delete[] (void *mem)
-{
-  allocate::free (mem);
-}
-
 /* This function makes the table empty.  Naturally the hash table must
    already exist. */
 

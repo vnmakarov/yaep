@@ -195,11 +195,6 @@ public:
   /* Destructor. */
   ~hash_table (void);
 
-  void *operator new (size_t);
-  void *operator new[] (size_t);
-  void operator delete (void *);
-  void operator delete[] (void *);
-
   void empty (void);
 
   hash_table_entry_t *find_entry (hash_table_entry_t element, int reserve);
