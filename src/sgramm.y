@@ -415,27 +415,22 @@ static void free_sgrammar (void);
 
 /* The following is major function which parses the description and
    transforms it into IR. */
-static int
-set_sgrammar (const char *grammar)
-{
+static int set_sgrammar( struct grammar * g, const char * grammar ) {
   int i, j, num;
   struct sterm *term, *prev, *arr;
   int code = 256;
 
   ln = 1;
-  init_error_func_for_allocate
-    = change_allocation_error_function (error_func_for_allocate);
   if ((code = setjmp (error_longjump_buff)) != 0)
     {
       free_sgrammar ();
-      change_allocation_error_function (init_error_func_for_allocate);
       return code;
     }
-  OS_CREATE (stoks, 0);
-  VLO_CREATE (sterms, 0);
-  VLO_CREATE (srules, 0);
-  OS_CREATE (srhs, 0);
-  OS_CREATE (strans, 0);
+  OS_CREATE( stoks, g->alloc, 0 );
+  VLO_CREATE( sterms, g->alloc, 0 );
+  VLO_CREATE( srules, g->alloc, 0 );
+  OS_CREATE( srhs, g->alloc, 0 );
+  OS_CREATE( strans, g->alloc, 0 );
   curr_ch = grammar;
   yyparse ();
   /* sort array of syntax terminals by names. */
@@ -477,7 +472,6 @@ set_sgrammar (const char *grammar)
 	term->code = code++;
     }
   nsterm = nsrule = 0;
-  change_allocation_error_function (init_error_func_for_allocate);
   return 0;
 }
 
@@ -537,7 +531,7 @@ yaep_parse_grammar (struct grammar *g, int strict_p, const char *description)
   int code;
 
   assert (g != NULL);
-  if ((code = set_sgrammar (description)) != 0)
+  if ( ( code = set_sgrammar( g, description ) ) != 0 )
     return code;
   code = yaep_read_grammar (g, strict_p, sread_terminal, sread_rule);
   free_sgrammar ();

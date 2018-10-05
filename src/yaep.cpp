@@ -20,12 +20,7 @@
 
 */
 
-#define MALLOC(result, size) (result) = allocate::malloc (size)
-#define FREE(mem) allocate::free (mem)
-#define change_allocation_error_function(func) \
-        allocate::change_error_function(func)
-
-#define VLO_CREATE(v, len) (v) = new vlo (len)
+#define VLO_CREATE( v, allocator, len ) ( v ) = new vlo( allocator, len )
 #define VLO_DELETE(vlo) delete vlo
 #define VLO_LENGTH(vlo) (vlo)->length ()
 #define VLO_BEGIN(vlo) (vlo)->begin ()
@@ -35,7 +30,7 @@
 #define VLO_SHORTEN(vlo, size) (vlo)->shorten (size)
 #define VLO_NULLIFY(vlo) (vlo)->nullify ()
 
-#define OS_CREATE(o, len) o = new os (len)
+#define OS_CREATE( o, allocator, len ) ( o ) = new os( allocator, len )
 #define OS_EMPTY(os) (os)->empty ()
 #define OS_DELETE(os) delete os
 #define OS_TOP_BEGIN(os) (os)->top_begin ()
@@ -48,7 +43,7 @@
 #define OS_TOP_SHORTEN(os, size) (os)->top_shorten (size)
 #define OS_TOP_NULLIFY(os) (os)->top_nullify ()
 
-#define create_hash_table(size, hash, eq) new hash_table (size, hash, eq)
+#define create_hash_table( allocator, size, hash, eq ) new hash_table( allocator, size, hash, eq )
 #define empty_hash_table(tab) (tab)->empty ()
 #define delete_hash_table(tab) delete tab
 #define find_hash_table_entry(tab, el, res_p) (tab)->find_entry(el, res_p)
@@ -160,8 +155,12 @@ use_functions (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
   nterm = nrule = 0;
-  OS_CREATE (mem_os, 0);
+  OS_CREATE( mem_os, alloc, 0 );
   fprintf (stderr, "Use functions\n");
   e = new yaep ();
   if (e == NULL)
@@ -193,6 +192,7 @@ use_functions (int argc, char **argv)
     fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
   delete e;
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
 }
 
 static void
@@ -202,8 +202,12 @@ use_description (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
   fprintf (stderr, "Use description\n");
-  OS_CREATE (mem_os, 0);
+  OS_CREATE( mem_os, alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -233,6 +237,7 @@ use_description (int argc, char **argv)
     fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
   delete e;
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
 }
 
 #endif /* #ifdef YAEP_TEST */

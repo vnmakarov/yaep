@@ -196,6 +196,8 @@ struct grammar
   struct rules *rules_ptr;
   /* The following terminal sets used for this grammar. */
   struct term_sets *term_sets_ptr;
+  /* Allocator. */
+  YaepAllocator * alloc;
 };
 
 /* The following variable value is the reference for the current
@@ -411,16 +413,14 @@ symb_init (void)
   void *mem;
   struct symbs *result;
 
-  MALLOC (mem, sizeof (struct symbs));
+  mem = yaep_malloc( grammar->alloc, sizeof( struct symbs ) );
   result = (struct symbs *) mem;
-  OS_CREATE (result->symbs_os, 0);
-  VLO_CREATE (result->symbs_vlo, 1024);
-  VLO_CREATE (result->terms_vlo, 512);
-  VLO_CREATE (result->nonterms_vlo, 512);
-  result->repr_to_symb_tab
-    = create_hash_table (300, symb_repr_hash, symb_repr_eq);
-  result->code_to_symb_tab
-    = create_hash_table (200, symb_code_hash, symb_code_eq);
+  OS_CREATE( result->symbs_os, grammar->alloc, 0 );
+  VLO_CREATE( result->symbs_vlo, grammar->alloc, 1024 );
+  VLO_CREATE( result->terms_vlo, grammar->alloc, 512 );
+  VLO_CREATE( result->nonterms_vlo, grammar->alloc, 512 );
+  result->repr_to_symb_tab = create_hash_table( grammar->alloc, 300, symb_repr_hash, symb_repr_eq );
+  result->code_to_symb_tab = create_hash_table( grammar->alloc, 200, symb_code_hash, symb_code_eq );
 #ifdef SYMB_CODE_TRANS_VECT
   result->symb_code_trans_vect = NULL;
 #endif
@@ -604,7 +604,7 @@ symb_finish_adding_terms (void)
   if (max_code - min_code < SYMB_CODE_TRANS_VECT_SIZE)
     {
       symbs_ptr->symb_code_trans_vect_start = min_code;
-      MALLOC (mem, sizeof (struct symb *) * (max_code - min_code + 1));
+      mem = yaep_malloc( grammar->alloc, sizeof( struct symb * ) * ( max_code - min_code + 1 ) );
       symbs_ptr->symb_code_trans_vect = (struct symb **) mem;
       for (i = 0; (symb = term_get (i)) != NULL; i++)
 	symbs_ptr->symb_code_trans_vect [symb->u.term.code - min_code] = symb;
@@ -621,7 +621,7 @@ symb_empty (struct symbs *symbs)
 #ifdef SYMB_CODE_TRANS_VECT
   if (symbs_ptr->symb_code_trans_vect != NULL)
     {
-      FREE (symbs_ptr->symb_code_trans_vect);
+      yaep_free( grammar->alloc, symbs_ptr->symb_code_trans_vect );
       symbs_ptr->symb_code_trans_vect = NULL;
     }
 #endif
@@ -642,7 +642,7 @@ symb_fin (struct symbs *symbs)
     return;
 #ifdef SYMB_CODE_TRANS_VECT
   if (symbs_ptr->symb_code_trans_vect != NULL)
-    FREE (symbs_ptr->symb_code_trans_vect);
+    yaep_free( grammar->alloc, symbs_ptr->symb_code_trans_vect );
 #endif
   delete_hash_table (symbs_ptr->repr_to_symb_tab);
   delete_hash_table (symbs_ptr->code_to_symb_tab);
@@ -650,7 +650,7 @@ symb_fin (struct symbs *symbs)
   VLO_DELETE (symbs_ptr->terms_vlo);
   VLO_DELETE (symbs_ptr->symbs_vlo);
   OS_DELETE (symbs_ptr->symbs_os);
-  FREE (symbs);
+  yaep_free( grammar->alloc, symbs );
   symbs = NULL;
 }
 
@@ -738,12 +738,11 @@ term_set_init (void)
   void *mem;
   struct term_sets *result;
 
-  MALLOC (mem, sizeof (struct term_sets));
+  mem = yaep_malloc( grammar->alloc, sizeof( struct term_sets ) );
   result = (struct term_sets *) mem;
-  OS_CREATE (result->term_set_os, 0);
-  result->term_set_tab
-    = create_hash_table (1000, term_set_hash, term_set_eq);
-  VLO_CREATE (result->tab_term_set_vlo, 4096);
+  OS_CREATE( result->term_set_os, grammar->alloc, 0 );
+  result->term_set_tab = create_hash_table( grammar->alloc, 1000, term_set_hash, term_set_eq );
+  VLO_CREATE( result->tab_term_set_vlo, grammar->alloc, 4096 );
   result->n_term_sets = result->n_term_sets_size = 0;
   return result;
 }
@@ -940,7 +939,7 @@ term_set_fin (struct term_sets *term_sets)
   VLO_DELETE (term_sets->tab_term_set_vlo);
   delete_hash_table (term_sets->term_set_tab);
   OS_DELETE (term_sets->term_set_os);
-  FREE (term_sets);
+  yaep_free( grammar->alloc, term_sets );
   term_sets = NULL;
 }
 
@@ -1012,9 +1011,9 @@ rule_init (void)
   void *mem;
   struct rules *result;
 
-  MALLOC (mem, sizeof (struct rules));
+  mem = yaep_malloc( grammar->alloc, sizeof( struct rules ) );
   result = (struct rules *) mem;
-  OS_CREATE (result->rules_os, 0);
+  OS_CREATE( result->rules_os, grammar->alloc, 0 );
   result->first_rule = result->curr_rule = NULL;
   result->n_rules = result->n_rhs_lens = 0;
   return result;
@@ -1172,7 +1171,7 @@ rule_fin (struct rules *rules)
   if (rules == NULL)
     return;
   OS_DELETE (rules->rules_os);
-  FREE (rules);
+  yaep_free( grammar->alloc, rules );
   rules = NULL;
 }
 
@@ -1212,7 +1211,7 @@ static vlo_t *toks_vlo;
 static void
 tok_init (void)
 {
-  VLO_CREATE (toks_vlo, YAEP_INIT_TOKENS_NUMBER * sizeof (struct tok));
+  VLO_CREATE( toks_vlo, grammar->alloc, YAEP_INIT_TOKENS_NUMBER * sizeof( struct tok ) );
   toks_len = 0;
 }
 
@@ -1302,8 +1301,8 @@ static void
 sit_init (void)
 {
   n_all_sits = 0;
-  OS_CREATE (sits_os, 0);
-  VLO_CREATE (sit_table_vlo, 4096);
+  OS_CREATE( sits_os, grammar->alloc, 0 );
+  VLO_CREATE( sit_table_vlo, grammar->alloc, 4096 );
   sit_table = (struct sit ***) VLO_BEGIN (sit_table_vlo);
 }
 
@@ -1730,7 +1729,7 @@ static int curr_sit_dist_vec_check;
 static void
 sit_dist_set_init (void)
 {
-  VLO_CREATE (sit_dist_vec_vlo, 8192);
+  VLO_CREATE( sit_dist_vec_vlo, grammar->alloc, 8192 );
   curr_sit_dist_vec_check = 0;
 }
 
@@ -1757,9 +1756,9 @@ sit_dist_insert (struct sit *sit, int dist)
       VLO_EXPAND (sit_dist_vec_vlo, (sit_number + 1 - len) * sizeof (vlo_t));
       for (i = len; i <= sit_number; i++)
 #ifndef __cplusplus
-	VLO_CREATE (((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[i], 64);
+	VLO_CREATE( ( ( vlo_t * ) VLO_BEGIN( sit_dist_vec_vlo ) )[i], grammar->alloc, 64 );
 #else
-        ((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i] = new vlo (64);
+        ( ( vlo_t ** ) VLO_BEGIN( sit_dist_vec_vlo ) )[i] = new vlo( grammar->alloc, 64 );
 #endif
     }
 #ifndef __cplusplus
@@ -1834,20 +1833,16 @@ set_init (int n_toks)
 {
   int n = n_toks >> 3;
   
-  OS_CREATE (set_cores_os, 0);
-  OS_CREATE (set_sits_os, 2048);
-  OS_CREATE (set_parent_indexes_os, 2048);
-  OS_CREATE (set_dists_os, 2048);
-  OS_CREATE (sets_os, 0);
-  OS_CREATE (set_term_lookahead_os, 0);
-  set_core_tab = create_hash_table (2000, set_core_hash, set_core_eq);
-  set_dists_tab = create_hash_table (n < 20000 ? 20000 : n,
-				     dists_hash, dists_eq);
-  set_tab = create_hash_table (n < 20000 ? 20000 : n, set_core_dists_hash,
-			       set_core_dists_eq);
-  set_term_lookahead_tab = create_hash_table (n < 30000 ? 30000 : n,
-					      set_term_lookahead_hash,
-					      set_term_lookahead_eq);
+  OS_CREATE( set_cores_os, grammar->alloc, 0 );
+  OS_CREATE( set_sits_os, grammar->alloc, 2048 );
+  OS_CREATE( set_parent_indexes_os, grammar->alloc, 2048 );
+  OS_CREATE( set_dists_os, grammar->alloc, 2048 );
+  OS_CREATE( sets_os, grammar->alloc, 0 );
+  OS_CREATE( set_term_lookahead_os, grammar->alloc, 0 );
+  set_core_tab = create_hash_table( grammar->alloc, 2000, set_core_hash, set_core_eq );
+  set_dists_tab = create_hash_table( grammar->alloc, n < 20000 ? 20000 : n, dists_hash, dists_eq );
+  set_tab = create_hash_table( grammar->alloc, n < 20000 ? 20000 : n, set_core_dists_hash, set_core_dists_eq );
+  set_term_lookahead_tab = create_hash_table( grammar->alloc, n < 30000 ? 30000 : n, set_term_lookahead_hash, set_term_lookahead_eq );
   n_set_cores = n_set_core_start_sits = 0;
   n_set_dists = n_set_dists_len = n_parent_indexes = 0;
   n_sets = n_sets_start_sits = 0;
@@ -1855,9 +1850,9 @@ set_init (int n_toks)
   sit_dist_set_init ();
 #ifdef TRANSITIVE_TRANSITION
   curr_sit_check = 0;
-  VLO_CREATE (core_symbol_check_vlo, 0);
-  VLO_CREATE (core_symbols_vlo, 0);
-  VLO_CREATE (core_symbol_queue_vlo, 0);
+  VLO_CREATE( core_symbol_check_vlo, grammar->alloc, 0 );
+  VLO_CREATE( core_symbols_vlo, grammar->alloc, 0 );
+  VLO_CREATE( core_symbol_queue_vlo, grammar->alloc, 0 );
   core_symbol_check = 0;
 #endif
 }
@@ -2177,7 +2172,7 @@ pl_create (void)
   void *mem;
 
   /* Because of error recovery we may have sets 2 times more than tokens. */
-  MALLOC (mem, sizeof (struct set *) * (toks_len + 1) * 2);
+  mem = yaep_malloc( grammar->alloc, sizeof( struct set * ) * ( toks_len + 1 ) * 2 );
   pl = (struct set **) mem;
   pl_curr = -1;
 }
@@ -2187,7 +2182,7 @@ static void
 pl_fin (void)
 {
   if (pl != NULL)
-    FREE (pl);
+    yaep_free( grammar->alloc, pl );
 }
 
 
@@ -2214,9 +2209,9 @@ static void
 vlo_array_init (void)
 {
 #ifndef __cplusplus
-  VLO_CREATE (vlo_array, 4096);
+  VLO_CREATE( vlo_array, grammar->alloc, 4096 );
 #else
-  vlo_array = new vlo (4096);
+  vlo_array = new vlo( grammar->alloc, 4096 );
 #endif
   vlo_array_len = 0;
 }
@@ -2236,7 +2231,7 @@ vlo_array_expand (void)
     {
       VLO_EXPAND (vlo_array, sizeof (vlo_t));
       vlo_ptr = &((vlo_t *) VLO_BEGIN (vlo_array)) [vlo_array_len];
-      VLO_CREATE (*vlo_ptr, 64);
+      VLO_CREATE( *vlo_ptr, grammar->alloc, 64 );
     }
   else 
     {
@@ -2250,7 +2245,7 @@ vlo_array_expand (void)
     {
       vlo_array->expand (sizeof (vlo_t *));
       vlo_ptr = &((vlo_t **) vlo_array->begin ()) [vlo_array_len];
-      *vlo_ptr = new vlo (64);
+      *vlo_ptr = new vlo( grammar->alloc, 64 );
     }
   else 
     {
@@ -2537,55 +2532,46 @@ static void
 core_symb_vect_init (void)
 {
 #ifndef __cplusplus
-  OS_CREATE (core_symb_vect_os, 0);
-  VLO_CREATE (new_core_symb_vect_vlo, 0);
-  OS_CREATE (vect_els_os, 0);
+  OS_CREATE( core_symb_vect_os, grammar->alloc, 0 );
+  VLO_CREATE( new_core_symb_vect_vlo, grammar->alloc, 0 );
+  OS_CREATE( vect_els_os, grammar->alloc, 0 );
 #else
-  core_symb_vect_os = new os (0);
-  new_core_symb_vect_vlo = new vlo (0);
-  vect_els_os = new os (0);
+  core_symb_vect_os = new os( grammar->alloc, 0 );
+  new_core_symb_vect_vlo = new vlo( grammar->alloc, 0 );
+  vect_els_os = new os( grammar->alloc, 0 );
 #endif
   vlo_array_init ();
 #ifdef USE_CORE_SYMB_HASH_TABLE
 #ifndef __cplusplus
-  core_symb_to_vect_tab = create_hash_table (3000, core_symb_vect_hash,
-					     core_symb_vect_eq);
+  core_symb_to_vect_tab = create_hash_table( grammar->alloc, 3000, core_symb_vect_hash, core_symb_vect_eq );
 #else
-  core_symb_to_vect_tab = new hash_table (3000, core_symb_vect_hash,
-					  core_symb_vect_eq);
+  core_symb_to_vect_tab = new hash_table( grammar->alloc, 3000, core_symb_vect_hash, core_symb_vect_eq );
 #endif
 #else
 #ifndef __cplusplus
-  VLO_CREATE (core_symb_table_vlo,  4096);
+  VLO_CREATE( core_symb_table_vlo, grammar->alloc, 4096 );
   core_symb_table
     = (struct core_symb_vect ***) VLO_BEGIN (core_symb_table_vlo);
-  OS_CREATE (core_symb_tab_rows, 8192);
+  OS_CREATE( core_symb_tab_rows, grammar->alloc, 8192 );
 #else
-  core_symb_table_vlo = new vlo (4096);
+  core_symb_table_vlo = new vlo( grammar->alloc, 4096 );
   core_symb_table = (struct core_symb_vect ***) core_symb_table_vlo->begin ();
-  core_symb_tab_rows = new os (8192);
+  core_symb_tab_rows = new os( grammar->alloc, 8192 );
 #endif
 #endif
 
 #ifndef __cplusplus
-  transition_els_tab
-    = create_hash_table (3000, transition_els_hash, transition_els_eq);
+  transition_els_tab = create_hash_table( grammar->alloc, 3000, transition_els_hash, transition_els_eq );
 #ifdef TRANSITIVE_TRANSITION
-  transitive_transition_els_tab
-    = create_hash_table (5000, transitive_transition_els_hash,
-			 transitive_transition_els_eq);
+  transitive_transition_els_tab = create_hash_table( grammar->alloc, 5000, transitive_transition_els_hash, transitive_transition_els_eq );
 #endif
-  reduce_els_tab
-    = create_hash_table (3000, reduce_els_hash, reduce_els_eq);
+  reduce_els_tab = create_hash_table( grammar->alloc, 3000, reduce_els_hash, reduce_els_eq );
 #else
-  transition_els_tab
-    = new hash_table (3000, transition_els_hash, transition_els_eq);
+  transition_els_tab = new hash_table( grammar->alloc, 3000, transition_els_hash, transition_els_eq );
 #ifdef TRANSITIVE_TRANSITION
-  transitive_transition_els_tab
-    = new hash_table (5000, transitive_transition_els_hash,
-		      transitive_transition_els_eq);
+  transitive_transition_els_tab = new hash_table( grammar->alloc, 5000, transitive_transition_els_hash, transitive_transition_els_eq );
 #endif
-  reduce_els_tab = new hash_table (3000, reduce_els_hash, reduce_els_eq);
+  reduce_els_tab = new hash_table( grammar->alloc, 3000, reduce_els_hash, reduce_els_eq );
 #endif
   n_core_symb_pairs = n_core_symb_vect_len = 0;
   n_transition_vects = n_transition_vect_len = 0;
@@ -2977,12 +2963,10 @@ yaep_error (int code, const char *format, ...)
   longjmp (error_longjump_buff, code);
 }
 
-static void (*init_error_func_for_allocate) (void);
-
 /* The following function processes allocation errors. */
-static void
-error_func_for_allocate (void)
-{
+static void error_func_for_allocate( void * ignored ) {
+  ( void ) ignored;
+
   yaep_error (YAEP_NO_MEMORY, "no memory");
 }
 
@@ -2993,20 +2977,25 @@ static
 struct grammar *
 yaep_create_grammar (void)
 {
+  YaepAllocator * allocator;
+
+  allocator = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( allocator == NULL ) {
+    return NULL;
+  }
   grammar = NULL;
-  init_error_func_for_allocate
-    = change_allocation_error_function (error_func_for_allocate);
+  grammar = ( struct grammar * ) yaep_malloc( allocator, sizeof( *grammar ) );
+  if ( grammar == NULL ) {
+    yaep_alloc_del( allocator );
+    return NULL;
+  }
+  grammar->alloc = allocator;
+  yaep_alloc_seterr( allocator, error_func_for_allocate, yaep_alloc_getuserptr( allocator ) );
   if (setjmp (error_longjump_buff) != 0)
     {
       yaep_free_grammar (grammar);
-      change_allocation_error_function (init_error_func_for_allocate);
       return NULL;
     }
-#ifndef __cplusplus
-  MALLOC (grammar, sizeof (struct grammar));
-#else
-  grammar = (struct grammar *) allocate::malloc (sizeof (struct grammar));
-#endif
   grammar->undefined_p = TRUE;
   grammar->error_code = 0;
   *grammar->error_message = '\0';
@@ -3308,8 +3297,6 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   int i, el, code;
 
   assert (g != NULL);
-  init_error_func_for_allocate
-    = change_allocation_error_function (error_func_for_allocate);
   grammar = g;
   symbs_ptr = g->symbs_ptr;
   term_sets_ptr = g->term_sets_ptr;
@@ -3317,7 +3304,6 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   if ((code = setjmp (error_longjump_buff)) != 0)
     {
       yaep_free_grammar (grammar);
-      change_allocation_error_function (init_error_func_for_allocate);
       return code;
     }
   if (!grammar->undefined_p)
@@ -3472,7 +3458,6 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 	}
     }
 #endif
-  change_allocation_error_function (init_error_func_for_allocate);
   grammar->undefined_p = FALSE;
   return 0;
 }
@@ -4315,7 +4300,7 @@ error_recovery (int *start, int *stop)
     fprintf (stderr, "\n++Error recovery start\n");
 #endif
   *stop = *start = -1;
-  OS_CREATE (recovery_state_tail_sets, 0);
+  OS_CREATE( recovery_state_tail_sets, grammar->alloc, 0 );
   VLO_NULLIFY (original_pl_tail_stack);
   VLO_NULLIFY (recovery_state_stack);
   start_pl_curr = pl_curr;
@@ -4572,8 +4557,8 @@ error_recovery (int *start, int *stop)
 static void
 error_recovery_init (void)
 {
-  VLO_CREATE (original_pl_tail_stack, 4096);
-  VLO_CREATE (recovery_state_stack, 4096);
+  VLO_CREATE( original_pl_tail_stack, grammar->alloc, 4096 );
+  VLO_CREATE( recovery_state_stack, grammar->alloc, 4096 );
 }
 
 /* Finalize work with error recovery. */
@@ -4806,14 +4791,12 @@ static void
 parse_state_init (void)
 {
   free_parse_state = NULL;
-  OS_CREATE (parse_state_os, 0);
+  OS_CREATE( parse_state_os, grammar->alloc, 0 );
   if (!grammar->one_parse_p)
 #ifndef __cplusplus
-    parse_state_tab
-      = create_hash_table (toks_len * 2, parse_state_hash, parse_state_eq);
+    parse_state_tab = create_hash_table( grammar->alloc, toks_len * 2, parse_state_hash, parse_state_eq );
 #else
-    parse_state_tab
-      = new hash_table (toks_len * 2, parse_state_hash, parse_state_eq);
+    parse_state_tab = new hash_table( grammar->alloc, toks_len * 2, parse_state_hash, parse_state_eq );
 #endif
 }
 
@@ -5105,15 +5088,12 @@ static void
 print_parse (FILE *f, struct yaep_tree_node *root)
 {
 #ifndef __cplusplus
-  trans_visit_nodes_tab = create_hash_table (toks_len * 2,
-					     trans_visit_node_hash,
-					     trans_visit_node_eq);
+  trans_visit_nodes_tab = create_hash_table( grammar->alloc, toks_len * 2, trans_visit_node_hash, trans_visit_node_eq );
 #else
-  trans_visit_nodes_tab = new hash_table (toks_len * 2, trans_visit_node_hash,
-					  trans_visit_node_eq);
+  trans_visit_nodes_tab = new hash_table( grammar->alloc, toks_len * 2, trans_visit_node_hash, trans_visit_node_eq );
 #endif
   n_trans_visit_nodes = 0;
-  OS_CREATE (trans_visit_nodes_os, 0);
+  OS_CREATE( trans_visit_nodes_os, grammar->alloc, 0 );
   print_node (f, root);
   OS_DELETE (trans_visit_nodes_os);
 #ifndef __cplusplus
@@ -5333,13 +5313,11 @@ find_minimal_translation (struct yaep_tree_node *root)
   if (parse_free != NULL)
     {
 #ifndef __cplusplus
-      reserv_mem_tab = create_hash_table (toks_len * 4, reserv_mem_hash,
-					  reserv_mem_eq);
+      reserv_mem_tab = create_hash_table( grammar->alloc, toks_len * 4, reserv_mem_hash, reserv_mem_eq );
 #else
-      reserv_mem_tab = new hash_table (toks_len * 4, reserv_mem_hash,
-				       reserv_mem_eq);
+      reserv_mem_tab = new hash_table( grammar->alloc, toks_len * 4, reserv_mem_hash, reserv_mem_eq );
 #endif
-      VLO_CREATE (tnodes_vlo, toks_len * 4 * sizeof (void *));
+      VLO_CREATE( tnodes_vlo, grammar->alloc, toks_len * 4 * sizeof( void * ) );
     }
   root = prune_to_minimal (root, &cost);
   traverse_pruned_translation (root);
@@ -5432,15 +5410,15 @@ make_parse (int *ambiguous_p)
 
       /* We need this array to reuse terminal nodes only for
          generation of several parses. */
-      MALLOC (mem, sizeof (struct yaep_tree_node *) * toks_len);
+      mem = yaep_malloc( grammar->alloc, sizeof( struct yaep_tree_node * ) * toks_len );
       term_node_array = (struct yaep_tree_node **) mem;
       for (i = 0; i < toks_len; i++)
 	term_node_array [i] = NULL;
       /* The following is used to check necessity to create current
          state with different pl_ind. */
-      VLO_CREATE (orig_states, 0);
+      VLO_CREATE( orig_states, grammar->alloc, 0 );
     }
-  VLO_CREATE (stack, 10000);
+  VLO_CREATE( stack, grammar->alloc, 10000 );
   VLO_EXPAND (stack, sizeof (struct parse_state *));
   state = parse_state_alloc ();
   ((struct parse_state **) VLO_BOUND (stack)) [-1] = state;
@@ -5846,7 +5824,7 @@ make_parse (int *ambiguous_p)
   if (!grammar->one_parse_p)
     {
       VLO_DELETE (orig_states);
-      FREE (term_node_array);
+      yaep_free( grammar->alloc, term_node_array );
     }
   parse_state_fin ();
   grammar->one_parse_p = saved_one_parse_p;
@@ -5929,8 +5907,6 @@ yaep_parse (struct grammar *g,
   syntax_error = error;
   parse_alloc = alloc;
   parse_free = free;
-  init_error_func_for_allocate
-    = change_allocation_error_function (error_func_for_allocate);
   *root = NULL;
   *ambiguous_p = FALSE;
   pl_init ();
@@ -5942,7 +5918,6 @@ yaep_parse (struct grammar *g,
 	yaep_parse_fin ();
       if (tok_init_p)
 	tok_fin ();
-      change_allocation_error_function (init_error_func_for_allocate);
       return code;
     }
   if (grammar->undefined_p)
@@ -6031,7 +6006,6 @@ yaep_parse (struct grammar *g,
 #endif
   yaep_parse_fin ();
   tok_fin ();
-  change_allocation_error_function (init_error_func_for_allocate);
   return 0;
 }
 
@@ -6042,15 +6016,19 @@ static
 void
 yaep_free_grammar (struct grammar *g)
 {
-  grammar = NULL;
+  YaepAllocator * allocator;
+
   if (g != NULL)
     {
+      allocator = g->alloc;
       pl_fin();
       rule_fin (g->rules_ptr);
       term_set_fin (g->term_sets_ptr);
       symb_fin (g->symbs_ptr);
-      FREE (g);
+      yaep_free( allocator, g );
+      yaep_alloc_del( allocator );
     }
+  grammar = NULL;
 }
 
 static void free_tree_reduce( struct yaep_tree_node * node ) {
@@ -6309,14 +6287,13 @@ use_functions (int argc, char **argv)
   int ambiguous_p;
 
   nterm = nrule = 0;
-  OS_CREATE (mem_os, 0);
   fprintf (stderr, "Use functions\n");
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "No memory\n");
-      OS_DELETE (mem_os);
       exit (1);
     }
+  OS_CREATE( mem_os, grammar->alloc, 0 );
   yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
     yaep_set_lookahead_level (g, atoi (argv [1]));
@@ -6338,8 +6315,8 @@ use_functions (int argc, char **argv)
   if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
 		  NULL, &root, &ambiguous_p))
     fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));
+  OS_DELETE( mem_os );
   yaep_free_grammar (g);
-  OS_DELETE (mem_os);
 }
 #endif
 
@@ -6366,13 +6343,12 @@ use_description (int argc, char **argv)
   int ambiguous_p;
 
   fprintf (stderr, "Use description\n");
-  OS_CREATE (mem_os, 0);
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
-      OS_DELETE (mem_os);
       exit (1);
     }
+  OS_CREATE( mem_os, grammar->alloc, 0 );
   yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
     yaep_set_lookahead_level (g, atoi (argv [1]));
@@ -6393,8 +6369,8 @@ use_description (int argc, char **argv)
   if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
 		  NULL, &root, &ambiguous_p))
     fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));
-  yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_free_grammar (g);
 }
 #endif
 

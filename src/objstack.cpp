@@ -77,13 +77,10 @@ _OS_memcpy (void *to, const void *from, size_t length)
 
 /* The constructor of OS with given initial segment length. */
 
-os::os (size_t initial_segment_length)
-{
+os::os( YaepAllocator * allocator, size_t initial_segment_length ) : os_alloc( allocator ) {
   if (initial_segment_length == 0)
     initial_segment_length = OS_DEFAULT_SEGMENT_LENGTH;
-  os_current_segment
-    = (class _os_segment *) allocate::malloc (initial_segment_length
-                                              + sizeof (class _os_segment));
+  os_current_segment = ( _os_segment * ) yaep_malloc( os_alloc, initial_segment_length + sizeof( _os_segment ) );
   os_current_segment->os_previous_segment = NULL;
   os_top_object_start
     = (char *) _OS_ALIGNED_ADDRESS (os_current_segment->os_segment_contest);
@@ -104,7 +101,7 @@ os::~os (void)
        current_segment = previous_segment)
     {
       previous_segment = current_segment->os_previous_segment;
-      allocate::free (current_segment);
+      yaep_free( os_alloc, current_segment );
     }
 }
 
@@ -123,7 +120,7 @@ os::empty (void)
       previous_segment = current_segment->os_previous_segment;
       if (previous_segment == NULL)
         break;
-      allocate::free (current_segment);
+      yaep_free( os_alloc, current_segment );
       current_segment = previous_segment;
     }
   os_current_segment = current_segment;
@@ -175,9 +172,7 @@ os::_OS_expand_memory (size_t additional_length)
   segment_length += segment_length / 2 + 1;
   if (segment_length < OS_DEFAULT_SEGMENT_LENGTH)
     segment_length = OS_DEFAULT_SEGMENT_LENGTH;
-  new_segment
-    = ((class _os_segment *)
-       allocate::malloc (segment_length + sizeof (class _os_segment)));
+  new_segment = ( _os_segment * ) yaep_malloc( os_alloc, segment_length + sizeof( _os_segment ) );
   new_os_top_object_start
     = (char *) _OS_ALIGNED_ADDRESS (new_segment->os_segment_contest);
   _OS_memcpy (new_os_top_object_start, os_top_object_start,
@@ -186,7 +181,7 @@ os::_OS_expand_memory (size_t additional_length)
       == (char *) _OS_ALIGNED_ADDRESS (os_current_segment->os_segment_contest))
     {
       previous_segment = os_current_segment->os_previous_segment;
-      allocate::free (os_current_segment);
+      yaep_free( os_alloc, os_current_segment );
     }
   else
     previous_segment = os_current_segment;

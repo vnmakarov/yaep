@@ -450,6 +450,8 @@ if test $result = ok -a $start_test_number -le 6; then
         cat >$test_file <<'TEST6'
 #include<stdio.h>
 #include <stdlib.h>
+
+#include"allocate.h"
 #include "objstack.h"
 #include "yaep.h"
 
@@ -521,7 +523,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -538,6 +544,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST6
@@ -639,7 +646,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -668,6 +679,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST7
@@ -768,7 +780,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -791,6 +807,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST8
@@ -892,7 +909,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -915,6 +936,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST9
@@ -1016,7 +1038,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1039,6 +1065,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST10
@@ -1140,7 +1167,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1163,6 +1194,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST11
@@ -1252,7 +1284,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1275,6 +1311,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST12
@@ -1364,7 +1401,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1387,6 +1428,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST13
@@ -1488,7 +1530,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1511,6 +1557,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST14
@@ -1612,7 +1659,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1635,6 +1686,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST15
@@ -1735,7 +1787,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1758,6 +1814,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST16
@@ -1852,7 +1909,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -1886,6 +1947,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST17
@@ -1990,7 +2052,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -2013,6 +2079,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST18
@@ -2114,7 +2181,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -2137,6 +2208,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST19
@@ -2239,7 +2311,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -2262,6 +2338,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST20
@@ -2410,7 +2487,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -2433,6 +2514,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST21
@@ -2580,7 +2662,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -2603,6 +2689,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST22
@@ -2751,7 +2838,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -2774,6 +2865,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST23
@@ -2922,7 +3014,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -2945,6 +3041,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST24
@@ -3092,7 +3189,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -3115,6 +3216,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST25
@@ -3262,7 +3364,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -3285,6 +3391,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST26
@@ -3385,7 +3492,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -3408,6 +3519,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST27
@@ -3509,7 +3621,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -3543,6 +3659,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST28
@@ -3695,7 +3812,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -3729,6 +3850,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST29
@@ -3876,7 +3998,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -3916,6 +4042,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST30
@@ -4022,7 +4149,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -4062,6 +4193,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST31
@@ -4179,7 +4311,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -4219,6 +4355,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST32
@@ -4322,7 +4459,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -4362,6 +4503,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST33
@@ -4462,7 +4604,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -4502,6 +4648,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST34
@@ -4613,7 +4760,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -4646,6 +4797,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST35
@@ -4747,7 +4899,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -4780,6 +4936,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST36
@@ -4890,7 +5047,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -4926,6 +5087,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST37
@@ -5032,7 +5194,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -5068,6 +5234,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST38
@@ -5175,7 +5342,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -5215,6 +5386,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST39
@@ -5336,7 +5508,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -5376,6 +5552,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST40
@@ -15941,10 +16118,8 @@ eq (hash_table_entry_t el1, hash_table_entry_t el2)
   return strcmp ((char *) el1, (char *) el2) == 0;
 }
 
-static void
-initiate_typedefs (void)
-{
-  table = create_hash_table (50000, hash, eq);
+static void initiate_typedefs( YaepAllocator * alloc ) {
+  table = create_hash_table( alloc, 50000, hash, eq );
 }
 
 /* Now we ignore level */
@@ -16001,16 +16176,14 @@ get_lex (void)
 
 #include "ansic.c"
 
-static void
-store_lexs (void)
-{
+static void store_lexs( YaepAllocator * alloc ) {
   struct lex lex, *prev;
   int code;
 #ifdef DEBUG
   int nt = 0;
 #endif
 
-  OS_CREATE (lexs, 0);
+  OS_CREATE( lexs, alloc, 0 );
   list = NULL;
   prev = NULL;
   while ((code = yylex ()) > 0) {
@@ -16718,9 +16891,13 @@ main (int argc, char **argv)
   char *start = sbrk (0);
 #endif
 
-  OS_CREATE (mem_os, 0);
-  store_lexs ();
-  initiate_typedefs ();
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
+  store_lexs( alloc );
+  initiate_typedefs( alloc );
   curr = NULL;
   t = create_ticker ();
   if ((g = yaep_create_grammar ()) == NULL)
@@ -16761,6 +16938,7 @@ main (int argc, char **argv)
   printf ("all time %.2f\n", active_time (t));
 #endif
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST41
@@ -16857,7 +17035,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -16897,6 +17079,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST42
@@ -17003,7 +17186,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -17043,6 +17230,7 @@ main (int argc, char **argv)
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST43
@@ -17210,7 +17398,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -17233,6 +17425,7 @@ main ()
     }
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST44
@@ -17332,7 +17525,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -17374,6 +17571,7 @@ main (int argc, char **argv)
   fprintf (stderr, "cost = %d\n", root->val.anode.cost);
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST45
@@ -17481,7 +17679,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  OS_CREATE (mem_os, 0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  OS_CREATE( mem_os, alloc, 0 );
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
@@ -17523,6 +17725,7 @@ main (int argc, char **argv)
   fprintf (stderr, "cost = %d\n", root->val.anode.cost);
   yaep_free_grammar (g);
   OS_DELETE (mem_os);
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST46
@@ -17970,6 +18173,7 @@ fi
 
 if test $result = ok; then
         echo $script_file: it is all ok
+	cp yaep_allocate.o yaep++_allocate.o
         rm -f $addfiles $test_file $outfile $sgramm.c $temp_file $temp3_file $TEST ansic.c ansic.l
         exit 0
 else

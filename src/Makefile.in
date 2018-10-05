@@ -140,7 +140,7 @@ srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 
 # All hand written source files of the packages.
-source = $(srcdir)/allocate.h $(srcdir)/allocate.c $(srcdir)/allocate.cpp\
+source = $(srcdir)/allocate.h $(srcdir)/allocate.c \
 	 $(srcdir)/vlobject.h $(srcdir)/vlobject.c $(srcdir)/vlobject.cpp\
          $(srcdir)/objstack.h $(srcdir)/objstack.c $(srcdir)/objstack.cpp\
 	 $(srcdir)/hashtab.h $(srcdir)/hashtab.c $(srcdir)/hashtab.cpp\
@@ -188,6 +188,9 @@ $(Clibrary): $(Cobjects)
 	rm -f $(Clibrary)
 	$(AR) rc $(Clibrary) $(Cobjects)
 	$(RANLIB) $(Clibrary)
+
+$(Cxxdir)/allocate.o: $(Cxxdir) $(Cdir)/allocate.o
+	cp $(Cdir)/allocate.o $(Cxxdir)
 
 $(Cpplibrary): $(Cppobjects)
 	rm -f $(Cpplibrary)
@@ -430,7 +433,7 @@ depend : sgramm.c $(Cdir) $(Cxxdir)
 	done
 	
 	@echo ++++ Adding Makefile dependencies for C++ ++++
-	for i in allocate.cpp vlobject.cpp objstack.cpp hashtab.cpp ticker.cpp yaep.cpp;\
+	for i in vlobject.cpp objstack.cpp hashtab.cpp ticker.cpp yaep.cpp;\
 	do\
 	   echo $(Cxxdir)/`gcc -MM -iquote -I$(srcdir)/../src $(CFLAGS) $(srcdir)/../src/$$i` | $(SED) 's/\\//g'\
                 | $(SED) `echo 's%$(top_srcdir)/%$$(top_srcdir)/%g'\
@@ -464,8 +467,6 @@ C/ticker.o: $(top_srcdir)/src/../src/ticker.c cocom-config.h  $(top_srcdir)/src/
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/../src/ticker.c
 C/yaep.o: $(top_srcdir)/src/../src/yaep.c cocom-config.h  $(top_srcdir)/src/../src/allocate.h $(top_srcdir)/src/../src/hashtab.h  $(top_srcdir)/src/../src/vlobject.h $(top_srcdir)/src/../src/objstack.h  $(top_srcdir)/src/../src/yaep.h sgramm.c
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/../src/yaep.c
-C++/allocate.o: $(top_srcdir)/src/../src/allocate.cpp cocom-config.h  $(top_srcdir)/src/../src/allocate.h
-	$(CXX) -c $(CXXFLAGS) -o $@ $(top_srcdir)/src/../src/allocate.cpp
 C++/vlobject.o: $(top_srcdir)/src/../src/vlobject.cpp cocom-config.h  $(top_srcdir)/src/../src/allocate.h $(top_srcdir)/src/../src/vlobject.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $(top_srcdir)/src/../src/vlobject.cpp
 C++/objstack.o: $(top_srcdir)/src/../src/objstack.cpp cocom-config.h  $(top_srcdir)/src/../src/allocate.h $(top_srcdir)/src/../src/objstack.h

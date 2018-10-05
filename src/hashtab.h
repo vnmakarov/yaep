@@ -39,6 +39,8 @@
 
 #include <stdlib.h>
 
+#include"allocate.h"
+
 /* The hash table element is represented by the following type. */
 
 typedef const void *hash_table_entry_t;
@@ -75,6 +77,8 @@ typedef struct
                       hash_table_entry_t el2_ptr);
   /* Table itself */
   hash_table_entry_t *entries;
+  /* Allocator */
+  YaepAllocator * alloc;
 } *hash_table_t;
 
 
@@ -90,10 +94,9 @@ extern int all_collisions;
 
 /* The prototypes of the package functions. */
 
-extern hash_table_t create_hash_table
-  (size_t size, unsigned (*hash_function) (hash_table_entry_t el_ptr),
-   int (*eq_function) (hash_table_entry_t el1_ptr,
-                       hash_table_entry_t el2_ptr));
+extern hash_table_t create_hash_table(
+  YaepAllocator * allocator, size_t size, unsigned int ( *hash_function )( hash_table_entry_t el_ptr ), int ( *eq_function )( hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr )
+);
 
 extern void empty_hash_table (hash_table_t htab);
 
@@ -174,6 +177,8 @@ class hash_table
                       hash_table_entry_t el2_ptr);
   /* Table itself */
   hash_table_entry_t *entries;
+  /* Allocator */
+  YaepAllocator * alloc;
 
   /* The following variable is used for debugging. Its value is number
      of all calls of `find_hash_table_entry' for all hash tables. */
@@ -188,10 +193,7 @@ class hash_table
 public:
 
   /* Constructor. */
-  hash_table
-    (size_t size, unsigned (*hash_function) (hash_table_entry_t el_ptr),
-     int (*eq_function) (hash_table_entry_t el1_ptr,
-                         hash_table_entry_t el2_ptr));
+  hash_table( YaepAllocator * allocator, size_t size, unsigned int ( *hash_function )( hash_table_entry_t el_ptr ), int ( *eq_function )( hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr ) );
   /* Destructor. */
   ~hash_table (void);
 

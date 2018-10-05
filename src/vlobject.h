@@ -98,6 +98,8 @@ typedef struct
   /* Pointer to first byte after the memory currently allocated for storing
      the VLO. */
   char *vlo_boundary;
+  /* Pointer to allocator. */
+  YaepAllocator * vlo_alloc;
 } vlo_t;
 
 
@@ -107,16 +109,18 @@ typedef struct
    VLO must be created before any using other macros of the package
    for work with given VLO.  The macro has not side effects. */
 
-#define VLO_CREATE(vlo, initial_length)\
+#define VLO_CREATE(vlo, allocator, initial_length)\
   do\
   {\
     vlo_t *_temp_vlo = &(vlo);\
     size_t temp_initial_length = (initial_length);\
+    YaepAllocator * _temp_alloc = ( allocator ); \
     temp_initial_length = (temp_initial_length != 0 ? temp_initial_length\
                                                     : VLO_DEFAULT_LENGTH);\
-    MALLOC (_temp_vlo->vlo_start, temp_initial_length);\
+    _temp_vlo->vlo_start = yaep_malloc( _temp_alloc, temp_initial_length ); \
     _temp_vlo->vlo_boundary = _temp_vlo->vlo_start + temp_initial_length;\
     _temp_vlo->vlo_free = _temp_vlo->vlo_start;\
+    _temp_vlo->vlo_alloc = _temp_alloc; \
   }\
   while (0)
 
@@ -131,12 +135,16 @@ typedef struct
   {\
     vlo_t *_temp_vlo = &(vlo);\
     assert (_temp_vlo->vlo_start != NULL);\
-    FREE (_temp_vlo->vlo_start);\
+    yaep_free( _temp_vlo->vlo_alloc,_temp_vlo->vlo_start );\
     _temp_vlo->vlo_start = NULL;\
   }\
   while (0)
 #else
-#define VLO_DELETE(vlo) FREE ((vlo).vlo_start)
+#define VLO_DELETE(vlo) \
+  do { \
+    vlo_t * _temp_vlo = &( vlo ); \
+    yaep_free( _temp_vlo->vlo_alloc, _temp_vlo->vlo_start ); \
+  } while( 0 )
 #endif /* #ifndef NDEBUG */
 
 /* This macro makes that length of VLO will be equal to zero (but
@@ -309,6 +317,8 @@ class vlo
   /* Pointer to first byte after the memory currently allocated for storing
      the VLO. */
   char *vlo_boundary;
+  /* Pointer to allocator. */
+  YaepAllocator * vlo_alloc;
 public:
   
   /* This function is used for creation of VLO with initial zero
@@ -316,11 +326,10 @@ public:
      to 0 the initial allocated memory length is equal to
      VLO_DEFAULT_LENGTH. */
   
-  inline vlo (size_t initial_length = VLO_DEFAULT_LENGTH)
-    {
+  explicit vlo( YaepAllocator * allocator, size_t initial_length = VLO_DEFAULT_LENGTH ) : vlo_alloc( allocator ) {
       initial_length = (initial_length != 0
                         ? initial_length : VLO_DEFAULT_LENGTH);
-      vlo_start = (char *) allocate::malloc (initial_length);
+      vlo_start = (char *) yaep_malloc( vlo_alloc, initial_length );
       vlo_boundary = vlo_start + initial_length;
       vlo_free = vlo_start;
     }
@@ -334,10 +343,10 @@ public:
     {
 #ifndef NDEBUG
       assert (vlo_start != NULL);
-      allocate::free (vlo_start);
+      yaep_free( vlo_alloc, vlo_start );
       vlo_start = NULL;
 #else
-      allocate::free (vlo_start);
+      yaep_free( vlo_alloc, vlo_start );
 #endif /* #ifndef NDEBUG */
     }
 

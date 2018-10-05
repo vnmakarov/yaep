@@ -43,7 +43,7 @@ CXX='@CXX@'
 YACC='@YACC@'
 CXX_options="@CFLAGS@ @DEFS@ -I. -I$srcdir/"
 source_yaep=$srcdir/yaep.cpp
-source_addfiles1="$srcdir/allocate.cpp $srcdir/vlobject.cpp $srcdir/hashtab.cpp $srcdir/objstack.cpp $srcdir/ticker.cpp"
+source_addfiles1="$srcdir/vlobject.cpp $srcdir/hashtab.cpp $srcdir/objstack.cpp $srcdir/ticker.cpp"
 source_addfiles="$source_addfiles1 $source_yaep"
 
 GCC=gcc
@@ -526,7 +526,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -544,6 +548,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST6
@@ -648,7 +653,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -678,6 +687,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST7
@@ -779,7 +789,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -803,6 +817,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST8
@@ -905,7 +920,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -929,6 +948,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST9
@@ -1031,7 +1051,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1055,6 +1079,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST10
@@ -1157,7 +1182,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1181,6 +1210,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST11
@@ -1271,7 +1301,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1295,6 +1329,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST12
@@ -1385,7 +1420,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1409,6 +1448,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST13
@@ -1511,7 +1551,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1535,6 +1579,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST14
@@ -1637,7 +1682,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1661,6 +1710,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST15
@@ -1762,7 +1812,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1786,6 +1840,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST16
@@ -1881,7 +1936,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1916,6 +1975,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST17
@@ -2021,7 +2081,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2045,6 +2109,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST18
@@ -2147,7 +2212,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2171,6 +2240,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST19
@@ -2274,7 +2344,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2298,6 +2372,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST20
@@ -2447,7 +2522,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2471,6 +2550,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST21
@@ -2619,7 +2699,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2643,6 +2727,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST22
@@ -2792,7 +2877,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2816,6 +2905,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST23
@@ -2965,7 +3055,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2989,6 +3083,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST24
@@ -3137,7 +3232,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3161,6 +3260,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST25
@@ -3309,7 +3409,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3333,6 +3437,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST26
@@ -3434,7 +3539,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3458,6 +3567,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST27
@@ -3560,7 +3670,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3595,6 +3709,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST28
@@ -3748,7 +3863,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3783,6 +3902,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST29
@@ -3931,7 +4051,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3972,6 +4096,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST30
@@ -4079,7 +4204,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4120,6 +4249,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST31
@@ -4238,7 +4368,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4279,6 +4413,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST32
@@ -4383,7 +4518,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4424,6 +4563,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST33
@@ -4525,7 +4665,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4566,6 +4710,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST34
@@ -4678,7 +4823,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4712,6 +4861,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST35
@@ -4814,7 +4964,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4848,6 +5002,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST36
@@ -4959,7 +5114,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4996,6 +5155,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST37
@@ -5103,7 +5263,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -5140,6 +5304,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST38
@@ -5248,7 +5413,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -5289,6 +5458,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST39
@@ -5411,7 +5581,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -5452,6 +5626,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST40
@@ -16047,10 +16222,8 @@ eq (hash_table_entry_t el1, hash_table_entry_t el2)
   return strcmp ((char *) el1, (char *) el2) == 0;
 }
 
-static void
-initiate_typedefs (void)
-{
-  table = new hash_table (50000, hash, eq);
+static void initiate_typedefs( YaepAllocator * alloc ) {
+  table = new hash_table( alloc, 50000, hash, eq );
 }
 
 /* Now we ignore level */
@@ -16103,16 +16276,14 @@ get_lex (void)
     return curr->code;
 }
 
-static void
-store_lexs (void)
-{
+static void store_lexs( YaepAllocator * alloc ) {
   struct lex lex, *prev;
   int code;
 #ifdef DEBUG
   int nt = 0;
 #endif
 
-  lexs = new os (0);
+  lexs = new os( alloc, 0 );
   list = NULL;
   prev = NULL;
   while ((code = yylex ()) > 0) {
@@ -16814,9 +16985,13 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   yaep *e;
 
-  mem_os = new os (0);
-  store_lexs ();
-  initiate_typedefs ();
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
+  store_lexs( alloc );
+  initiate_typedefs( alloc );
   curr = NULL;
   t = new ticker ();
   e = new yaep ();
@@ -16853,6 +17028,7 @@ main (int argc, char **argv)
   delete e;
   printf ("all time %.2f\n", t->active_time ());
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST41
@@ -16951,7 +17127,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -16992,6 +17172,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST42
@@ -17099,7 +17280,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17140,6 +17325,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST43
@@ -17308,7 +17494,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17332,6 +17522,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST44
@@ -17432,7 +17623,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17475,6 +17670,7 @@ main (int argc, char **argv)
   fprintf (stderr, "cost = %d\n", root->val.anode.cost);
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST45
@@ -17583,7 +17779,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17626,6 +17826,7 @@ main (int argc, char **argv)
   fprintf (stderr, "cost = %d\n", root->val.anode.cost);
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST46
