@@ -3303,7 +3303,6 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   rules_ptr = g->rules_ptr;
   if ((code = setjmp (error_longjump_buff)) != 0)
     {
-      yaep_free_grammar (grammar);
       return code;
     }
   if (!grammar->undefined_p)
