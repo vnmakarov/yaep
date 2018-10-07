@@ -376,6 +376,12 @@ public:
 	     void (*parse_free) (void *mem),
 	     struct yaep_tree_node **root,
 	     int *ambiguous_p);
+
+  /* See comments for function yaep_free_tree().
+     This is a static member function because the lifetime of the
+     parse tree exceeds the lifetime of the yaep instance it
+     came from. */
+  static void free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * term ) );
 };
 
 #endif /* #ifndef __cplusplus */

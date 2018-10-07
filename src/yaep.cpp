@@ -143,6 +143,10 @@ yaep::parse (int (*read_token) (void **attr),
 		       parse_alloc, parse_free, root, ambiguous_p);
 }
 
+void yaep::free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * term ) ) {
+  yaep_free_tree( root, parse_free, termcb );
+}
+
 
 #ifdef YAEP_TEST
 
