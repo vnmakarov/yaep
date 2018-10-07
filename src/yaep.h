@@ -283,13 +283,16 @@ extern int yaep_set_recovery_match (struct grammar *grammar, int n_toks);
    for parse tree representation.  After calling yaep_fin we free
    all memory allocated by yaep parser.  At this point it is
    convenient to free all memory but parse tree.  Therefore we require
-   the following function.  So the caller will be responsible to
+   the following function. If PARSE_ALLOC is a null pointer, then
+   PARSE_FREE must also be a null pointer. In this case, YAEP will
+   handle the memory management. Otherwise, the caller will be responsible to
    allocate and free memory for parse tree representation.  But the
    caller should not free the memory until yaep_fin is called.  The
    function may be called even during reading the grammar not only
    during the parsing.  Function PARSE_FREE is used by the parser to
-   free memory allocated by PARSE_ALLOC.  If it is NULL, the memory is
-   not freed. */
+   free memory allocated by PARSE_ALLOC. If PARSE_ALLOC is not NULL
+   but PARSE_FREE is, the memory is not freed. In this case, the
+   returned parse tree should also not be freed with yaep_free_tree(). */
 extern int yaep_parse (struct grammar *grammar,
 		       int (*read_token) (void **attr),
 		       void (*syntax_error) (int err_tok_num,
@@ -307,13 +310,13 @@ extern int yaep_parse (struct grammar *grammar,
 extern void yaep_free_grammar (struct grammar *grammar);
 
 /* The following function frees memory allocated for the parse tree.
-   It must be called after yaep_free_grammar().
+   It must not be called until after yaep_free_grammar() has been called.
    ROOT must be the root of the parse tree as returned by yaep_parse().
    If ROOT is a null pointer, no operation is performed.
    Otherwise, the argument passed for PARSE_FREE must be the same as passed for
-   the parameter of the same name in yaep_parse().
-   If PARSE_FREE is a null pointer, no operation is performed,
-   in particular, no memory is freed.
+   the parameter of the same name in yaep_parse() (but do not call this
+   function with PARSE_FREE a null pointer if you called yaep_parse()
+   with PARSE_ALLOC not a null pointer).
    Otherwise, if TERMCB is not a null pointer, it will be called
    exactly once for each term node in the parse tree.
    The TERMCB callback can be used by the caller

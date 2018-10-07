@@ -5868,6 +5868,23 @@ make_parse (int *ambiguous_p)
   return result;
 }
 
+static void * parse_alloc_default( int nmemb ) {
+  void * result;
+
+  assert( nmemb > 0 );
+
+  result = malloc( nmemb );
+  if ( result == NULL ) {
+    exit( 1 );
+  }
+
+  return result;
+}
+
+static void parse_free_default( void * mem ) {
+  free( mem );
+}
+
 /* The following function parses input according read grammar.
    ONE_PARSE_FLAG means build only one parse tree.  For unambiguous
    grammar the flag does not affect the result.  LA_LEVEL means usage
@@ -5897,7 +5914,18 @@ yaep_parse (struct grammar *g,
 {
   int code, tok_init_p, parse_init_p;
   int tab_collisions, tab_searches;
-  
+
+  /* Set up parse allocation */
+  if ( alloc == NULL ) {
+    if ( free != NULL ) {
+      /* Cannot allocate memory with a null function */
+      return YAEP_NO_MEMORY;
+    }
+    /* Set up defaults */
+    alloc = parse_alloc_default;
+    free = parse_free_default;
+  }
+
   grammar = g;
   assert (grammar != NULL);
   symbs_ptr = g->symbs_ptr;
@@ -6144,8 +6172,11 @@ static void free_tree_sweep( struct yaep_tree_node * node, void ( *parse_free )(
 static
 #endif
 void yaep_free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * ) ) {
-  if ( ( root == NULL ) || ( parse_free == NULL ) ) {
+  if ( root == NULL ) {
     return;
+  }
+  if ( parse_free == NULL ) {
+    parse_free = parse_free_default;
   }
 
   /* Since the parse tree is actually a DAG, we must carefully avoid
