@@ -55,10 +55,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
 #endif /* #ifdef HAVE_CONFIG_H */
 
 #include <string.h>
@@ -67,13 +63,7 @@
 
 #include "allocate.h"
 
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
 
 /* This auxiliary structure is used to evaluation of maximum
    alignment for objects. */
@@ -313,7 +303,7 @@ typedef struct
     assert (_temp_os->os_top_object_start != NULL);\
     if (_temp_os->os_top_object_free + _temp_length > _temp_os->os_boundary)\
       _OS_expand_memory (_temp_os, _temp_length);\
-    _OS_memcpy (_temp_os->os_top_object_free, (str), _temp_length);\
+    memcpy( _temp_os->os_top_object_free, ( str ), _temp_length ); \
     _temp_os->os_top_object_free += _temp_length;\
   }\
   while (0)
@@ -330,17 +320,13 @@ typedef struct
    Remember that they are internal functions - all work with OS is
    executed through the macros. */
 
-extern void _OS_create_function (os_t * os, size_t initial_segment_length);
-extern void _OS_delete_function (os_t * os);
-extern void _OS_empty_function (os_t * os);
-extern void _OS_add_string_function (os_t * os, const char *str);
-extern void _OS_expand_memory (os_t * os, size_t additional_length);
-extern void _OS_memcpy (void *to, const void *from, size_t length);
-
+extern void _OS_create_function (os_t *os, size_t initial_segment_length);
+extern void _OS_delete_function (os_t *os);
+extern void _OS_empty_function (os_t *os);
+extern void _OS_add_string_function (os_t *os, const char *str);
+extern void _OS_expand_memory (os_t *os, size_t additional_length);
 
 #else /* #ifndef __cplusplus */
-
-extern void _OS_memcpy (void *to, const void *from, size_t length);
 
 /* This class describes a descriptor of stack of objects.  All work
    with stack of objects is executed by member functions.  It should
@@ -505,7 +491,7 @@ public:
     assert (os_top_object_start != NULL);
     if (os_top_object_free + length > os_boundary)
       _OS_expand_memory (length);
-    _OS_memcpy (os_top_object_free, str, length);
+    memcpy (os_top_object_free, str, length);
     os_top_object_free += length;
   }
 

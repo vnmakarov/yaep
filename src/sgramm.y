@@ -29,13 +29,7 @@
 
 #include <ctype.h>
 
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
 
 /* The following is necessary if we use YAEP with byacc/bison/msta
    parser. */

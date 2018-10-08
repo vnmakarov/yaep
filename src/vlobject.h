@@ -49,10 +49,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
 #endif /* #ifdef HAVE_CONFIG_H */
 
 #include <stdlib.h>
@@ -60,13 +56,7 @@
 
 #include "allocate.h"
 
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
 
 
 /* Default initial size of memory is allocated for VLO when the object
@@ -275,7 +265,7 @@ typedef struct
     assert (_temp_vlo->vlo_start != NULL);\
     if (_temp_vlo->vlo_free + _temp_length > _temp_vlo->vlo_boundary)\
       _VLO_expand_memory (_temp_vlo, _temp_length);\
-    _VLO_memcpy (_temp_vlo->vlo_free, (str), _temp_length);\
+    memcpy( _temp_vlo->vlo_free, ( str ), _temp_length ); \
     _temp_vlo->vlo_free += _temp_length;\
   }\
   while (0)
@@ -293,16 +283,12 @@ typedef struct
    Remember that they are internal functions - all work with VLO is
    executed through the macros. */
 
-extern void _VLO_tailor_function (vlo_t * vlo);
-extern void _VLO_add_string_function (vlo_t * vlo, const char *str);
-extern void _VLO_expand_memory (vlo_t * vlo, size_t additional_length);
-extern void _VLO_memcpy (void *to, const void *from, size_t length);
-
+extern void _VLO_tailor_function (vlo_t *vlo);
+extern void _VLO_add_string_function (vlo_t *vlo, const char *str);
+extern void _VLO_expand_memory (vlo_t *vlo, size_t additional_length);
 
 #else /* #ifndef __cplusplus */
 
-
-extern void _VLO_memcpy (void *to, const void *from, size_t length);
 
 /* This type describes a descriptor of variable length object.  It
    should remember that work with the object through several
@@ -449,7 +435,7 @@ public:
     assert (vlo_start != NULL);
     if (vlo_free + length > vlo_boundary)
       _VLO_expand_memory (length);
-    _VLO_memcpy (vlo_free, str, length);
+    memcpy (vlo_free, str, length);
     vlo_free += length;
   }
 

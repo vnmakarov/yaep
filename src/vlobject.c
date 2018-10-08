@@ -38,13 +38,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
-#ifndef HAVE_MEMCPY
-#define HAVE_MEMCPY
-#endif
 #endif /* #ifdef HAVE_CONFIG_H */
 
 #include <string.h>
@@ -52,32 +45,7 @@
 #include "allocate.h"
 #include "vlobject.h"
 
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
-
-
-/* The following functions is for achieving more portability. */
-void
-_VLO_memcpy (void *to, const void *from, size_t length)
-{
-#ifdef HAVE_MEMCPY
-  memcpy (to, from, length);
-#else
-  char *cto = (char *) to;
-  const char *cfrom = (const char *) from;
-
-  while (length > 0)
-    {
-      *cto++ = *cfrom;
-      length--;
-    }
-#endif
-}
 
 /* The function implements macro `VLO_TAILOR'.  Length of memory
    allocated for VLO becames equal to VLO length (but memory for zero
@@ -120,7 +88,7 @@ _VLO_add_string_function (vlo_t * vlo, const char *str)
   length = strlen (str) + 1;
   if (vlo->vlo_free + length > vlo->vlo_boundary)
     _VLO_expand_memory (vlo, length);
-  _VLO_memcpy (vlo->vlo_free, str, length);
+  memcpy( vlo->vlo_free, str, length );
   vlo->vlo_free = vlo->vlo_free + length;
 }
 

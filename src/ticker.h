@@ -33,16 +33,9 @@
 
 #ifdef HAVE_CONFIG_H
 #include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#define HAVE_TIME_H
 #endif /* #ifdef HAVE_CONFIG_H */
 
-#ifdef HAVE_TIME_H
 #include <time.h>
-#else
-#include <sys/types.h>
-extern clock_t clock (void);
-#endif
 
 #ifndef __cplusplus
 

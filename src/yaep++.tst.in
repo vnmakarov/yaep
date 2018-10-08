@@ -7756,7 +7756,6 @@ typedef struct
 extern void _VLO_tailor_function (vlo_t *vlo);
 extern void _VLO_add_string_function (vlo_t *vlo, const char *str);
 extern void _VLO_expand_memory (vlo_t *vlo, size_t additional_length);
-extern void _VLO_memcpy (void *to, const void *from, size_t length);
 
 extern long int __sysconf (int);
 
@@ -8016,7 +8015,6 @@ extern void _OS_delete_function (os_t *os);
 extern void _OS_empty_function (os_t *os);
 extern void _OS_add_string_function (os_t *os, const char *str);
 extern void _OS_expand_memory (os_t *os, size_t additional_length);
-extern void _OS_memcpy (void *to, const void *from, size_t length);
 
 
 
@@ -10256,7 +10254,7 @@ add_vector_element (vlo_t *vector, int index, vector_element_t element_value)
 
   element.index = index;
   element.value = element_value;
-  do { vlo_t *_temp_vlo = &(*vector); size_t _temp_length = (sizeof (element_t)); ((void) ((_temp_vlo->vlo_start != ((void *)0)) ? 0 : (__assert_fail ("_temp_vlo->vlo_start != ((void *)0)", "__test.c", 724, ((const char *) 0)), 0))); if (_temp_vlo->vlo_free + _temp_length > _temp_vlo->vlo_boundary) _VLO_expand_memory (_temp_vlo, _temp_length); _VLO_memcpy (_temp_vlo->vlo_free, (&element), _temp_length); _temp_vlo->vlo_free += _temp_length; } while (0);
+  do { vlo_t *_temp_vlo = &(*vector); size_t _temp_length = (sizeof (element_t)); ((void) ((_temp_vlo->vlo_start != ((void *)0)) ? 0 : (__assert_fail ("_temp_vlo->vlo_start != ((void *)0)", "__test.c", 724, ((const char *) 0)), 0))); if (_temp_vlo->vlo_free + _temp_length > _temp_vlo->vlo_boundary) _VLO_expand_memory (_temp_vlo, _temp_length); memcpy( _temp_vlo->vlo_free, ( &element ), _temp_length ); _temp_vlo->vlo_free += _temp_length; } while (0);
   if (max_comb_vector_element_value < element_value)
     max_comb_vector_element_value = element_value;
   if (min_current_vector_index > index)
@@ -10424,7 +10422,7 @@ add_to_LR_sets_and_trie_nodes_vector (vlo_t *vector,
   IR_node_t current_trie_node;
   IR_node_t first_trie_node;
 
-  do { vlo_t *_temp_vlo = &(*vector); size_t _temp_length = (sizeof (IR_node_t)); ((void) ((_temp_vlo->vlo_start != ((void *)0)) ? 0 : (__assert_fail ("_temp_vlo->vlo_start != ((void *)0)", "__test.c", 892, ((const char *) 0)), 0))); if (_temp_vlo->vlo_free + _temp_length > _temp_vlo->vlo_boundary) _VLO_expand_memory (_temp_vlo, _temp_length); _VLO_memcpy (_temp_vlo->vlo_free, (&LR_set_or_trie_node), _temp_length); _temp_vlo->vlo_free += _temp_length; } while (0);
+  do { vlo_t *_temp_vlo = &(*vector); size_t _temp_length = (sizeof (IR_node_t)); ((void) ((_temp_vlo->vlo_start != ((void *)0)) ? 0 : (__assert_fail ("_temp_vlo->vlo_start != ((void *)0)", "__test.c", 892, ((const char *) 0)), 0))); if (_temp_vlo->vlo_free + _temp_length > _temp_vlo->vlo_boundary) _VLO_expand_memory (_temp_vlo, _temp_length); memcpy( _temp_vlo->vlo_free, ( &LR_set_or_trie_node ), _temp_length ); _temp_vlo->vlo_free += _temp_length; } while (0);
   if (((_IR_is_type [IR_NM_LR_set] [((LR_set_or_trie_node)->_IR_node_mode) /8] >> (((LR_set_or_trie_node)->_IR_node_mode) % 8)) & 1))
     first_trie_node = (((_IR_LR_set *) (LR_set_or_trie_node))->_IR_S_LR_set.LR_set_look_ahead_trie);
   else

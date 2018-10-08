@@ -38,13 +38,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
-#ifndef HAVE_MEMCPY
-#define HAVE_MEMCPY
-#endif
 #endif /* #ifdef HAVE_CONFIG_H */
 
 #include <string.h>
@@ -52,32 +45,7 @@
 
 #include "objstack.h"
 
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
-
-
-/* The following functions is for achieving more portability. */
-void
-_OS_memcpy (void *to, const void *from, size_t length)
-{
-#ifdef HAVE_MEMCPY
-  memcpy (to, from, length);
-#else
-  char *cto = (char *) to;
-  const char *cfrom = (const char *) from;
-
-  while (length > 0)
-    {
-      *cto++ = *cfrom;
-      length--;
-    }
-#endif
-}
 
 /* The function implements macro `OS_CREATE' (creation of stack of
    object).  OS must be created before any using other macros of the
@@ -162,7 +130,7 @@ _OS_add_string_function (os_t * os, const char *str)
   string_length = strlen (str) + 1;
   if (os->os_top_object_free + string_length > os->os_boundary)
     _OS_expand_memory (os, string_length);
-  _OS_memcpy (os->os_top_object_free, str, string_length);
+  memcpy( os->os_top_object_free, str, string_length );
   os->os_top_object_free = os->os_top_object_free + string_length;
 }
 
@@ -191,7 +159,7 @@ _OS_expand_memory (os_t * os, size_t additional_length)
     yaep_malloc (os->os_alloc, segment_length + sizeof (struct _os_segment));
   new_os_top_object_start =
     (char *) _OS_ALIGNED_ADDRESS (new_segment->os_segment_contest);
-  _OS_memcpy (new_os_top_object_start, os->os_top_object_start,
+  memcpy (new_os_top_object_start, os->os_top_object_start,
 	      os_top_object_length);
   if (os->os_top_object_start ==
       (char *) _OS_ALIGNED_ADDRESS (os->os_current_segment->

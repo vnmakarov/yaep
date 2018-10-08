@@ -31,18 +31,9 @@
 #ifdef HAVE_CONFIG_H
 #include "cocom-config.h"
 #else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
 #endif /* #ifdef HAVE_CONFIG_H */
 
-#ifdef HAVE_LIMITS_H
 #include <limits.h>
-#else
-#ifndef INT_MAX
-#define INT_MAX 2147483647
-#endif
-#endif
 
 /* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
