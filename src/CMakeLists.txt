@@ -46,3 +46,10 @@ set( YAEPXX_LIB_SOURCES
 add_library( yaep++_static ${YAEPXX_LIB_SOURCES} )
 add_dependencies( yaep++_static sgramm_c ) # FIXME: yaep.cpp includes sgramm.c via yaep.c; would be cleaner if sgramm was its own object
 set_target_properties( yaep++_static PROPERTIES OUTPUT_NAME ${YAEPXX_LIB_STATIC} )
+
+# Install
+set( YAEP_INCLUDE
+	yaep.h
+)
+install( TARGETS yaep_static yaep++_static DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+install( FILES ${YAEP_INCLUDE} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}" )
