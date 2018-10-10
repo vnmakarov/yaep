@@ -6,7 +6,12 @@ if( NOT ${BISON_sgramm_DEFINED} )
 endif()
 add_custom_target( sgramm_c DEPENDS ${BISON_sgramm_OUTPUTS} ) # FIXME: yaep.c includes sgramm.c directly, so we need a custom target
 
-# Now build library
+# Now build libraries
+include_directories(
+	${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# C
 set( YAEP_LIB ${PROJECT_NAME} )
 if( UNIX )
 	set( YAEP_LIB_STATIC ${YAEP_LIB} )
@@ -20,9 +25,24 @@ set( YAEP_LIB_SOURCES
 	vlobject.c
 	yaep.c
 )
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}
-)
 add_library( yaep_static ${YAEP_LIB_SOURCES} )
 add_dependencies( yaep_static sgramm_c ) # FIXME: yaep.c includes sgramm.c directly; would be cleaner if sgramm was its own object
 set_target_properties( yaep_static PROPERTIES OUTPUT_NAME ${YAEP_LIB_STATIC} )
+
+# C++
+set( YAEPXX_LIB "${PROJECT_NAME}++" )
+if( UNIX )
+	set( YAEPXX_LIB_STATIC ${YAEPXX_LIB} )
+else()
+	set( YAEPXX_LIB_STATIC "${YAEPXX_LIB}_static" )
+endif()
+set( YAEPXX_LIB_SOURCES
+	allocate.c
+	hashtab.cpp
+	objstack.cpp
+	vlobject.cpp
+	yaep.cpp
+)
+add_library( yaep++_static ${YAEPXX_LIB_SOURCES} )
+add_dependencies( yaep++_static sgramm_c ) # FIXME: yaep.cpp includes sgramm.c via yaep.c; would be cleaner if sgramm was its own object
+set_target_properties( yaep++_static PROPERTIES OUTPUT_NAME ${YAEPXX_LIB_STATIC} )
