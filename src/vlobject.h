@@ -47,10 +47,6 @@
 #ifndef __VLO__
 #define __VLO__
 
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#endif /* #ifdef HAVE_CONFIG_H */
-
 #include <stdlib.h>
 #include <string.h>
 

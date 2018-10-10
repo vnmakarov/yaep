@@ -26,11 +26,6 @@
 
 */
 
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#endif /* #ifdef HAVE_CONFIG_H */
-
 #include <stdio.h>
 #include "allocate.h"
 #include "ticker.h"

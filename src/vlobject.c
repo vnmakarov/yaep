@@ -35,11 +35,6 @@
 
 */
 
-
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#endif /* #ifdef HAVE_CONFIG_H */
-
 #include <string.h>
 
 #include "allocate.h"

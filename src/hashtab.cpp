@@ -43,12 +43,6 @@
 
 */
 
-
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#endif /* #ifdef HAVE_CONFIG_H */
-
-
 #include "allocate.h"
 #include "hashtab.h"
 

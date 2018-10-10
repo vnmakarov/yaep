@@ -32,11 +32,6 @@
 #ifndef __HASH_TABLE__
 #define __HASH_TABLE__
 
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#endif /* #ifdef HAVE_CONFIG_H */
-
 #include <stdlib.h>
 
 #include"allocate.h"
