@@ -13,7 +13,6 @@
 /src/libyaep.a
 /src/sgramm.c
 /src/yaep++.tst
-/src/yaep.tst
 
 # Build directories
 /build*
