@@ -25,7 +25,7 @@ set( YAEP_LIB_SOURCES
 	vlobject.c
 	yaep.c
 )
-add_library( yaep_static ${YAEP_LIB_SOURCES} )
+add_library( yaep_static STATIC ${YAEP_LIB_SOURCES} )
 add_dependencies( yaep_static sgramm_c ) # FIXME: yaep.c includes sgramm.c directly; would be cleaner if sgramm was its own object
 set_target_properties( yaep_static PROPERTIES OUTPUT_NAME ${YAEP_LIB_STATIC} )
 
@@ -43,7 +43,7 @@ set( YAEPXX_LIB_SOURCES
 	vlobject.cpp
 	yaep.cpp
 )
-add_library( yaep++_static ${YAEPXX_LIB_SOURCES} )
+add_library( yaep++_static STATIC ${YAEPXX_LIB_SOURCES} )
 add_dependencies( yaep++_static sgramm_c ) # FIXME: yaep.cpp includes sgramm.c via yaep.c; would be cleaner if sgramm was its own object
 set_target_properties( yaep++_static PROPERTIES OUTPUT_NAME ${YAEPXX_LIB_STATIC} )
 
