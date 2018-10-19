@@ -93,8 +93,9 @@ static void parse (void)
     or the YAEP examples in file ``yaep.tst.in``.
 
 # Installing:
-  * ``<YAEP source path>/configure --srcdir=<YAEP source path> --prefix=<YAEP install directory>``
-  * ``cd src``
+  * ``mkdir build``
+  * ``cd build``
+  * ``cmake -DCMAKE_BUILD_TYPE=Release`` (make sure you have CMake installed)
   * ``make``
   * ``make test`` (optional) 
   * ``make install``
