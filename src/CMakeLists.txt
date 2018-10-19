@@ -54,6 +54,7 @@ set( YAEP_INCLUDE
 install( TARGETS yaep_static yaep++_static DESTINATION ${CMAKE_INSTALL_LIBDIR} )
 install( FILES ${YAEP_INCLUDE} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}" )
 
-# Build test binary from the same sources
+# Build test binaries from the same sources
 add_executable( yaep_test ${YAEP_LIB_SOURCES} )
-set_target_properties( yaep_test PROPERTIES COMPILE_FLAGS "-DYAEP_TEST -DYAEP_DEBUG" )
+add_executable( yaep++_test ${YAEPXX_LIB_SOURCES} )
+set_target_properties( yaep_test yaep++_test PROPERTIES COMPILE_FLAGS "-DYAEP_TEST -DYAEP_DEBUG" )
