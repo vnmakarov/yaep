@@ -201,7 +201,7 @@ use_functions (int argc, char **argv)
   ntok = 0;
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
 		&root, &ambiguous_p))
-    fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
+    fprintf (stderr, "yaep parse: %s\n", e->error_message ());
   delete e;
   OS_DELETE (mem_os);
   yaep_alloc_del (alloc);
