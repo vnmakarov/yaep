@@ -1,8 +1,0 @@
-Syntax error on token 5:ignore 4 tokens starting with token = 5
-Translation:
-      0: ABSTRACT: mult ( 1 2 )
-      1: ABSTRACT: plus ( 3 4 )
-      3: TERMINAL: code=97, repr='a'
-      4: TERMINAL: code=97, repr='a'
-      2: ERROR
-

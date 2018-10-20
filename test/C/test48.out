@@ -1,7 +1,0 @@
-Translation:
-      0: ABSTRACT: prog ( 1 )
-      1: ABSTRACT: print ( 2 )
-      2: ABSTRACT: string ( 3 4 )
-      3: TERMINAL: code=99, repr='c'
-      4: EMPTY
-

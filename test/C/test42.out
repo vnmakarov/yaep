@@ -1,7 +1,0 @@
-Translation:
-      0: ABSTRACT: mult ( 1 2 )
-      1: ABSTRACT: plus ( 2 3 )
-      2: EMPTY
-      3: ABSTRACT: plus ( 2 4 )
-      4: TERMINAL: code=97, repr='a'
-
