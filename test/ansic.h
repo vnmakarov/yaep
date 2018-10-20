@@ -1,3 +1,6 @@
+#ifndef YAEP_TEST_ANSIC_H_
+#define YAEP_TEST_ANSIC_H_
+
 #define IDENTIFIER 1000
 #define SIGNED     2000
 #define CONST      3000
@@ -74,3 +77,5 @@ extern int line;
 
 extern int yylex (void);
 extern char *get_yytext (void);
+
+#endif

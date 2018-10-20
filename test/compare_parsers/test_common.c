@@ -1,3 +1,5 @@
+#define YAEP_TEST_ANSIC_H_ /* FIXME: avoid inclusion of ansic.h via ansic.c */
+
 struct lex {
   short code;
   short column;

@@ -6,17 +6,14 @@ if( SHELL STREQUAL "SHELL-NOTFOUND" )
 endif()
 
 # We need token generation from (f)lex for all tests
-find_package( FLEX )
 if( NOT FLEX_FOUND )
-	message( WARNING "(f)lex not found; needed for all ANSI-C comparison tests" )
 	return()
 endif()
-flex_target( flex_ansic ansic.l "${CMAKE_CURRENT_BINARY_DIR}/ansic.c" )
-add_custom_target( ansic_c DEPENDS ${FLEX_flex_ansic_OUTPUTS} )
 
 include_directories(
 	${PROJECT_SOURCE_DIR}/src
 	${PROJECT_SOURCE_DIR}/test
+	${PROJECT_BINARY_DIR}/test
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 link_directories(

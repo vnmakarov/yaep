@@ -334,23 +334,17 @@ rescape( TEST_OUTPUT "${TEST_OUTPUT}" )
 set_tests_properties( yaep++-test40 PROPERTIES PASS_REGULAR_EXPRESSION "^${TEST_OUTPUT}" )
 
 # Big ANSI-C test
-find_package( FLEX )
 find_program( SHELL bash )
 if( FLEX_FOUND AND NOT ( SHELL STREQUAL "SHELL-NOTFOUND" ) )
-	flex_target( yaep++_test_ansic ansic.l "${CMAKE_CURRENT_BINARY_DIR}/ansic.c" )
-	add_custom_target( yaep++_test_ansic_c DEPENDS ${FLEX_yaep++_test_ansic_OUTPUTS} )
 	add_executable( test++41
 		test41.cpp
-		${CMAKE_CURRENT_BINARY_DIR}/ansic.c
 	)
-	add_dependencies( test++41 yaep++_test_ansic_c )
 	target_link_libraries( test++41
 		yaep++_static
 		ticker++
+		ansic_lib
 	)
-add_test( yaep++-test41 ${SHELL} -c "${CMAKE_CURRENT_BINARY_DIR}/test++41 1 0 < ${TEST_DATA_DIR}/test.i" )
-else()
-	message( WARNING "(f)lex or shell not found; not performing big C++ ANSI-C test" )
+	add_test( yaep++-test41 ${SHELL} -c "${CMAKE_CURRENT_BINARY_DIR}/test++41 1 0 < ${TEST_DATA_DIR}/test.i" )
 endif()
 
 # ambiguous grammar with empty nodes
