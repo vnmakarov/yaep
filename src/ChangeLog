@@ -1,3 +1,10 @@
+2018-10-21  Vladimir Makarov  <vmakarov@gcc.gnu.org>
+
+	* src/compare_parsers.tst.in: Add forward func decls.  Remove old
+	C style func decls.
+	* src/yaep.tst.in: Ditto.
+	* Merge: https://github.com/vnmakarov/yaep/pull/16
+
 2016-11-04  Vladimir Makarov  <vmakarov@gcc.gnu.org>
 
 	* Makefile.in (install, uninstall): Process allocate.h.
