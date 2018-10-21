@@ -145,6 +145,8 @@ typedef struct
   /* Pointer to first byte after the memory allocated for storing
      the OS segment and the top object. */
   char *os_boundary;
+  /* Pointer to allocator. */
+  YaepAllocator * os_alloc;
 } os_t;
 
 
@@ -155,8 +157,12 @@ typedef struct
    alignment.  OS must be created before any using other macros of the
    package for work with given OS.  The macro has not side effects. */
 
-#define OS_CREATE(os, initial_segment_length)\
-  _OS_create_function (&(os), initial_segment_length)
+#define OS_CREATE( os, allocator, initial_segment_length ) \
+  do { \
+    os_t * _temp_os = &( os ); \
+    _temp_os->os_alloc = allocator; \
+    _OS_create_function( _temp_os, initial_segment_length ); \
+  } while( 0 )
 
 /* This macro is used for freeing memory allocated for OS.  Any work
    (except for creation) with given OS is not possible after
@@ -354,6 +360,8 @@ class os
   /* Pointer to first byte after the memory allocated for storing the
      OS segment and the top object. */
   char *os_boundary;
+  /* Pointer to allocator. */
+  YaepAllocator * os_alloc;
 
 public:
 
@@ -363,35 +371,11 @@ public:
      `OS_DEFAULT_SEGMENT_LENGTH'.  But in any case the segment length
      is always not less than maximum alignment. */
 
-  os (size_t initial_segment_length = OS_DEFAULT_SEGMENT_LENGTH);
+  explicit os( YaepAllocator * allocator, size_t initial_segment_length = OS_DEFAULT_SEGMENT_LENGTH );
   
   /* This destructor is used for freeing memory allocated for OS. */
 
   ~os (void);
-
-  /* The following two functions allocate memory for the descriptor. */
-
-  inline void *operator new (size_t size)
-    {
-      return allocate::malloc (size);
-    }
-
-  inline void *operator new[] (size_t size)
-    {
-      return allocate::malloc (size);
-    }
-
-  /* The following two functions free memory for the descriptor. */
-
-  inline void operator delete (void *mem)
-    {
-      allocate:: free (mem);
-    }
-
-  inline void operator delete[] (void *mem)
-    {
-      allocate:: free (mem);
-    }
 
   /* This function is used for freeing memory allocated for OS except
      for the first segment. */
@@ -548,7 +532,7 @@ class _os_segment
 {
   class _os_segment *os_previous_segment;
   char os_segment_contest [_OS_ALIGNMENT];
-  friend os::os (size_t initial_segment_length);
+  friend os::os( YaepAllocator *, size_t );
   friend os::~os (void);
   friend void os::empty (void);
   friend void os::_OS_expand_memory (size_t additional_length);

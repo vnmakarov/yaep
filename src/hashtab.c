@@ -96,18 +96,15 @@ higher_prime_number (unsigned long number)
    hash table entries are EMPTY_ENTRY).  The function returns the
    created hash table. */
 
-hash_table_t
-create_hash_table (size_t size,
-                   unsigned (*hash_function) (hash_table_entry_t el_ptr),
-                   int (*eq_function) (hash_table_entry_t el1_ptr,
-                                       hash_table_entry_t el2_ptr))
-{
+hash_table_t create_hash_table(
+    YaepAllocator * allocator, size_t size, unsigned int ( *hash_function )( hash_table_entry_t el_ptr ), int (*eq_function) (hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr )
+) {
   hash_table_t result;
   hash_table_entry_t *entry_ptr;
 
   size = higher_prime_number (size);
-  MALLOC (result, sizeof (*result));
-  MALLOC (result->entries, size * sizeof (hash_table_entry_t));
+  result = yaep_malloc( allocator, sizeof( *result ) );
+  result->entries = yaep_malloc( allocator, size * sizeof( hash_table_entry_t ) );
   result->size = size;
   result->hash_function = hash_function;
   result->eq_function = eq_function;
@@ -115,6 +112,7 @@ create_hash_table (size_t size,
   result->number_of_deleted_elements = 0;
   result->searches = 0;
   result->collisions = 0;
+  result->alloc = allocator;
   for (entry_ptr = result->entries;
        entry_ptr < result->entries + size;
        entry_ptr++)
@@ -146,8 +144,8 @@ void
 delete_hash_table (hash_table_t htab)
 {
   assert (htab != NULL);
-  FREE (htab->entries);
-  FREE (htab);
+  yaep_free( htab->alloc, htab->entries );
+  yaep_free( htab->alloc, htab );
 }
 
 /* The following function changes size of memory allocated for the
@@ -164,8 +162,7 @@ expand_hash_table (hash_table_t htab)
   hash_table_entry_t *new_entry_ptr;
 
   assert (htab != NULL);
-  new_htab = create_hash_table (htab->number_of_elements * 2,
-                                htab->hash_function, htab->eq_function);
+  new_htab = create_hash_table( htab->alloc, htab->number_of_elements * 2, htab->hash_function, htab->eq_function );
   for (entry_ptr = htab->entries; entry_ptr < htab->entries + htab->size;
        entry_ptr++)
     if (*entry_ptr != EMPTY_ENTRY && *entry_ptr != DELETED_ENTRY)
@@ -175,9 +172,9 @@ expand_hash_table (hash_table_t htab)
         assert (*new_entry_ptr == EMPTY_ENTRY);
         *new_entry_ptr = (*entry_ptr);
       }
-  FREE (htab->entries);
+  yaep_free( htab->alloc, htab->entries );
   *htab = (*new_htab);
-  FREE (new_htab);
+  yaep_free( new_htab->alloc, new_htab );
 }
 
 /* The following variable is used for debugging. Its value is number

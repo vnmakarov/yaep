@@ -88,8 +88,7 @@ _OS_create_function (os_t *os, size_t initial_segment_length)
 {
   if (initial_segment_length == 0)
     initial_segment_length = OS_DEFAULT_SEGMENT_LENGTH;
-  MALLOC (os->os_current_segment,
-          initial_segment_length + sizeof (struct _os_segment));
+  os->os_current_segment = yaep_malloc( os->os_alloc, initial_segment_length + sizeof( struct _os_segment ) );
   os->os_current_segment->os_previous_segment = NULL;
   os->os_top_object_start
     = (char *) _OS_ALIGNED_ADDRESS (os->os_current_segment
@@ -115,7 +114,7 @@ _OS_delete_function (os_t *os)
        current_segment = previous_segment)
     {
       previous_segment = current_segment->os_previous_segment;
-      FREE (current_segment);
+      yaep_free( os->os_alloc, current_segment );
     }
 }
 
@@ -134,7 +133,7 @@ _OS_empty_function (os_t *os)
       previous_segment = current_segment->os_previous_segment;
       if (previous_segment == NULL)
         break;
-      FREE (current_segment);
+      yaep_free( os->os_alloc, current_segment );
       current_segment = previous_segment;
     }
   os->os_current_segment = current_segment;
@@ -186,7 +185,7 @@ _OS_expand_memory (os_t *os, size_t additional_length)
   segment_length += segment_length / 2 + 1;
   if (segment_length < OS_DEFAULT_SEGMENT_LENGTH)
     segment_length = OS_DEFAULT_SEGMENT_LENGTH;
-  MALLOC (new_segment, segment_length + sizeof (struct _os_segment));
+  new_segment = yaep_malloc( os->os_alloc, segment_length + sizeof( struct _os_segment ) );
   new_os_top_object_start
     = (char *) _OS_ALIGNED_ADDRESS (new_segment->os_segment_contest);
   _OS_memcpy (new_os_top_object_start, os->os_top_object_start,
@@ -196,7 +195,7 @@ _OS_expand_memory (os_t *os, size_t additional_length)
                                       ->os_segment_contest))
     {
       previous_segment = os->os_current_segment->os_previous_segment;
-      FREE (os->os_current_segment);
+      yaep_free( os->os_alloc, os->os_current_segment );
     }
   else
     previous_segment = os->os_current_segment;

@@ -44,8 +44,6 @@
 #endif
 #endif
 
-#include "allocate.h"
-
 /* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
 struct grammar;
@@ -82,24 +80,24 @@ enum yaep_tree_node_type
   YAEP_ERROR,
   YAEP_TERM,
   YAEP_ANODE,
-  YAEP_ALT
+  YAEP_ALT,
+  _yaep_VISITED = 0x80, /* _yaep_VISITED is not part of the interface and for internal use only */
+  _yaep_MAX = 0xFF, /* _yaep_MAX is not part of the interface and is just here to ensure a logical OR of _yaep_VISITED with the other enum values does not produce an out-of-range enum */
 };
 
 /* The following node exists in one example. See comment to read_rule. */
 struct yaep_nil
 {
-  /* The following member is not used.  It is only to conform ANSI C
-     standard. */
-  int dummy;
+  /* Whether this node has been used in the parse tree. */
+  int used;
 };
 
 /* The following node exists in one example.  It is used as
    translation of pseudo terminal `error'. */
 struct yaep_error
 {
-  /* The following member is not used.  It is only to conform ANSI C
-     standard. */
-  int dummy;
+  /* Whether this node has been used in the parse tree. */
+  int used;
 };
 
 /* The following structure describes terminal node. */
@@ -123,6 +121,12 @@ struct yaep_anode
   /* References for nodes for which the abstract node refers.  The end
      marker of the array is value NULL. */
   struct yaep_tree_node **children;
+};
+
+/* The following structure is not part of the interface and for internal use only */
+struct _yaep_anode_name {
+  /* Allocated abstract node name. */
+  char * name;
 };
 
 /* The following structure describes alternatives in the parse tree.
@@ -149,6 +153,7 @@ struct yaep_tree_node
     struct yaep_error error;
     struct yaep_term term;
     struct yaep_anode anode;
+    struct _yaep_anode_name _anode_name; /* Internal use only */
     struct yaep_alt alt;
   } val;
 };
@@ -278,13 +283,16 @@ extern int yaep_set_recovery_match (struct grammar *grammar, int n_toks);
    for parse tree representation.  After calling yaep_fin we free
    all memory allocated by yaep parser.  At this point it is
    convenient to free all memory but parse tree.  Therefore we require
-   the following function.  So the caller will be responsible to
+   the following function. If PARSE_ALLOC is a null pointer, then
+   PARSE_FREE must also be a null pointer. In this case, YAEP will
+   handle the memory management. Otherwise, the caller will be responsible to
    allocate and free memory for parse tree representation.  But the
    caller should not free the memory until yaep_fin is called.  The
    function may be called even during reading the grammar not only
    during the parsing.  Function PARSE_FREE is used by the parser to
-   free memory allocated by PARSE_ALLOC.  If it is NULL, the memory is
-   not freed. */
+   free memory allocated by PARSE_ALLOC. If PARSE_ALLOC is not NULL
+   but PARSE_FREE is, the memory is not freed. In this case, the
+   returned parse tree should also not be freed with yaep_free_tree(). */
 extern int yaep_parse (struct grammar *grammar,
 		       int (*read_token) (void **attr),
 		       void (*syntax_error) (int err_tok_num,
@@ -301,6 +309,20 @@ extern int yaep_parse (struct grammar *grammar,
 /* The following function frees memory allocated for the grammar. */
 extern void yaep_free_grammar (struct grammar *grammar);
 
+/* The following function frees memory allocated for the parse tree.
+   It must not be called until after yaep_free_grammar() has been called.
+   ROOT must be the root of the parse tree as returned by yaep_parse().
+   If ROOT is a null pointer, no operation is performed.
+   Otherwise, the argument passed for PARSE_FREE must be the same as passed for
+   the parameter of the same name in yaep_parse() (but do not call this
+   function with PARSE_FREE a null pointer if you called yaep_parse()
+   with PARSE_ALLOC not a null pointer).
+   Otherwise, if TERMCB is not a null pointer, it will be called
+   exactly once for each term node in the parse tree.
+   The TERMCB callback can be used by the caller
+   to free the term attributes. The term node itself must not be freed. */
+extern void yaep_free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * term ) );
+
 #else /* #ifndef __cplusplus */
 
 class yaep
@@ -313,30 +335,6 @@ public:
      for the grammar. */
   yaep (void);
   ~yaep (void);
-
-  /* The following two functions allocate memory for the descriptor. */
-
-  inline void *operator new (size_t size)
-    {
-      return allocate::malloc (size);
-    }
-
-  inline void *operator new[] (size_t size)
-    {
-      return allocate::malloc (size);
-    }
-
-  /* The following two functions free memory for the descriptor. */
-
-  inline void operator delete (void *mem)
-    {
-      allocate:: free (mem);
-    }
-
-  inline void operator delete[] (void *mem)
-    {
-      allocate:: free (mem);
-    }
 
   /* This function is used for freeing memory allocated for OS except
      for the first segment. */
@@ -378,6 +376,12 @@ public:
 	     void (*parse_free) (void *mem),
 	     struct yaep_tree_node **root,
 	     int *ambiguous_p);
+
+  /* See comments for function yaep_free_tree().
+     This is a static member function because the lifetime of the
+     parse tree exceeds the lifetime of the yaep instance it
+     came from. */
+  static void free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * term ) );
 };
 
 #endif /* #ifndef __cplusplus */

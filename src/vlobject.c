@@ -94,7 +94,7 @@ _VLO_tailor_function (vlo_t *vlo)
   vlo_length = VLO_LENGTH (*vlo);
   if (vlo_length == 0)
     vlo_length = 1;
-  REALLOC (new_vlo_start, vlo->vlo_start, vlo_length);
+  new_vlo_start = yaep_realloc( vlo->vlo_alloc, vlo->vlo_start, vlo_length );
   if (new_vlo_start != vlo->vlo_start)
     {
       vlo->vlo_free += new_vlo_start - vlo->vlo_start;
@@ -138,7 +138,7 @@ _VLO_expand_memory (vlo_t *vlo, size_t additional_length)
   assert (vlo->vlo_start != NULL);
   vlo_length = VLO_LENGTH (*vlo) + additional_length;
   vlo_length += vlo_length / 2 + 1;
-  REALLOC (new_vlo_start, vlo->vlo_start, vlo_length);
+  new_vlo_start = yaep_realloc( vlo->vlo_alloc, vlo->vlo_start, vlo_length );
   if (new_vlo_start != vlo->vlo_start)
     {
       vlo->vlo_free += new_vlo_start - vlo->vlo_start;

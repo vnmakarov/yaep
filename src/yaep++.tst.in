@@ -43,7 +43,7 @@ CXX='@CXX@'
 YACC='@YACC@'
 CXX_options="@CFLAGS@ @DEFS@ -I. -I$srcdir/"
 source_yaep=$srcdir/yaep.cpp
-source_addfiles1="$srcdir/allocate.cpp $srcdir/vlobject.cpp $srcdir/hashtab.cpp $srcdir/objstack.cpp $srcdir/ticker.cpp"
+source_addfiles1="$srcdir/vlobject.cpp $srcdir/hashtab.cpp $srcdir/objstack.cpp $srcdir/ticker.cpp"
 source_addfiles="$source_addfiles1 $source_yaep"
 
 GCC=gcc
@@ -452,6 +452,7 @@ fi
 # Test 6.
 if test $result = ok -a $start_test_number -le 6; then
         cat >$test_file <<'TEST6'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -490,7 +491,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -525,7 +526,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -543,6 +548,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST6
@@ -573,6 +579,7 @@ fi
 if test $(uname) != Darwin && \
    test $result = ok -a $start_test_number -le 7; then
         cat >$test_file <<'TEST7'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -611,7 +618,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -646,7 +653,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -676,6 +687,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST7
@@ -703,6 +715,7 @@ fi
 # Test 8.
 if test $result = ok -a $start_test_number -le 8; then
         cat >$test_file <<'TEST8'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -741,7 +754,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -776,7 +789,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -800,6 +817,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST8
@@ -828,6 +846,7 @@ fi
 # Test 9.
 if test $result = ok -a $start_test_number -le 9; then
         cat >$test_file <<'TEST9'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -866,7 +885,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -901,7 +920,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -925,6 +948,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST9
@@ -953,6 +977,7 @@ fi
 # Test 10.
 if test $result = ok -a $start_test_number -le 10; then
         cat >$test_file <<'TEST10'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -991,7 +1016,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1026,7 +1051,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1050,6 +1079,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST10
@@ -1078,6 +1108,7 @@ fi
 # Test 11.
 if test $result = ok -a $start_test_number -le 11; then
         cat >$test_file <<'TEST11'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1116,7 +1147,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1151,7 +1182,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1175,6 +1210,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST11
@@ -1203,6 +1239,7 @@ fi
 # Test 12.
 if test $result = ok -a $start_test_number -le 12; then
         cat >$test_file <<'TEST12'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1241,7 +1278,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1264,7 +1301,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1288,6 +1329,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST12
@@ -1316,6 +1358,7 @@ fi
 # Test 13.
 if test $result = ok -a $start_test_number -le 13; then
         cat >$test_file <<'TEST13'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1354,7 +1397,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1377,7 +1420,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1401,6 +1448,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST13
@@ -1429,6 +1477,7 @@ fi
 # Test 14.
 if test $result = ok -a $start_test_number -le 14; then
         cat >$test_file <<'TEST14'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1467,7 +1516,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1502,7 +1551,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1526,6 +1579,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST14
@@ -1554,6 +1608,7 @@ fi
 # Test 15.
 if test $result = ok -a $start_test_number -le 15; then
         cat >$test_file <<'TEST15'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1592,7 +1647,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1627,7 +1682,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1651,6 +1710,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST15
@@ -1679,6 +1739,7 @@ fi
 # Test 16.
 if test $result = ok -a $start_test_number -le 16; then
         cat >$test_file <<'TEST16'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1717,7 +1778,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1751,7 +1812,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1775,6 +1840,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST16
@@ -1803,6 +1869,7 @@ fi
 # Test 17.
 if test $result = ok -a $start_test_number -le 17; then
         cat >$test_file <<'TEST17'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1841,7 +1908,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -1869,7 +1936,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -1904,6 +1975,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST17
@@ -1932,6 +2004,7 @@ fi
 # Test 18.
 if test $result = ok -a $start_test_number -le 18; then
         cat >$test_file <<'TEST18'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -1970,7 +2043,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2008,7 +2081,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2032,6 +2109,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST18
@@ -2060,6 +2138,7 @@ fi
 # Test 19.
 if test $result = ok -a $start_test_number -le 19; then
         cat >$test_file <<'TEST19'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2098,7 +2177,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2133,7 +2212,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2157,6 +2240,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST19
@@ -2185,6 +2269,7 @@ fi
 # Test 20.
 if test $result = ok -a $start_test_number -le 20; then
         cat >$test_file <<'TEST20'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2223,7 +2308,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2259,7 +2344,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2283,6 +2372,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST20
@@ -2311,6 +2401,7 @@ fi
 # Test 21.
 if test $result = ok -a $start_test_number -le 21; then
         cat >$test_file <<'TEST21'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2349,7 +2440,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2370,7 +2461,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2410,7 +2501,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2431,7 +2522,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2455,6 +2550,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST21
@@ -2483,6 +2579,7 @@ fi
 # Test 22.
 if test $result = ok -a $start_test_number -le 22; then
         cat >$test_file <<'TEST22'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2521,7 +2618,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2541,7 +2638,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2581,7 +2678,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2602,7 +2699,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2626,6 +2727,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST22
@@ -2654,6 +2756,7 @@ fi
 # Test 23.
 if test $result = ok -a $start_test_number -le 23; then
         cat >$test_file <<'TEST23'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2692,7 +2795,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2713,7 +2816,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2753,7 +2856,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2774,7 +2877,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2798,6 +2905,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST23
@@ -2826,6 +2934,7 @@ fi
 # Test 24.
 if test $result = ok -a $start_test_number -le 24; then
         cat >$test_file <<'TEST24'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -2864,7 +2973,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -2885,7 +2994,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -2925,7 +3034,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -2946,7 +3055,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -2970,6 +3083,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST24
@@ -2998,6 +3112,7 @@ fi
 # Test 25.
 if test $result = ok -a $start_test_number -le 25; then
         cat >$test_file <<'TEST25'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3036,7 +3151,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -3056,7 +3171,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -3096,7 +3211,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3117,7 +3232,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3141,6 +3260,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST25
@@ -3169,6 +3289,7 @@ fi
 # Test 26.
 if test $result = ok -a $start_test_number -le 26; then
         cat >$test_file <<'TEST26'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3207,7 +3328,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -3227,7 +3348,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -3267,7 +3388,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3288,7 +3409,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3312,6 +3437,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST26
@@ -3340,6 +3466,7 @@ fi
 # Test 27.
 if test $result = ok -a $start_test_number -le 27; then
         cat >$test_file <<'TEST27'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3378,7 +3505,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3412,7 +3539,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3436,6 +3567,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST27
@@ -3464,6 +3596,7 @@ fi
 # Test 28.
 if test $result = ok -a $start_test_number -le 28; then
         cat >$test_file <<'TEST28'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3502,7 +3635,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3537,7 +3670,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3572,6 +3709,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST28
@@ -3651,6 +3789,7 @@ fi
 # Test 29.
 if test $result = ok -a $start_test_number -le 29; then
         cat >$test_file <<'TEST29'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3689,7 +3828,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3724,7 +3863,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3759,6 +3902,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST29
@@ -3838,6 +3982,7 @@ fi
 # Test 30.
 if test $result = ok -a $start_test_number -le 30; then
         cat >$test_file <<'TEST30'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -3876,7 +4021,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -3906,7 +4051,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -3947,6 +4096,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST30
@@ -3985,6 +4135,7 @@ fi
 # Test 31.
 if test $result = ok -a $start_test_number -le 31; then
         cat >$test_file <<'TEST31'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4023,7 +4174,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4053,7 +4204,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4094,6 +4249,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST31
@@ -4142,6 +4298,7 @@ fi
 # Test 32.
 if test $result = ok -a $start_test_number -le 32; then
         cat >$test_file <<'TEST32'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4180,7 +4337,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4211,7 +4368,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4252,6 +4413,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST32
@@ -4287,6 +4449,7 @@ fi
 # Test 33.
 if test $result = ok -a $start_test_number -le 33; then
         cat >$test_file <<'TEST33'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4325,7 +4488,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4355,7 +4518,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4396,6 +4563,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST33
@@ -4427,6 +4595,7 @@ fi
 # Test 34.
 if test $result = ok -a $start_test_number -le 34; then
         cat >$test_file <<'TEST34'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4465,7 +4634,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4496,7 +4665,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4537,6 +4710,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST34
@@ -4576,6 +4750,7 @@ fi
 # Test 35.
 if test $result = ok -a $start_test_number -le 35; then
         cat >$test_file <<'TEST35'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4614,7 +4789,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4648,7 +4823,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4682,6 +4861,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST35
@@ -4710,6 +4890,7 @@ fi
 # Test 36.
 if test $result = ok -a $start_test_number -le 36; then
         cat >$test_file <<'TEST36'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4748,7 +4929,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4783,7 +4964,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4817,6 +5002,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST36
@@ -4854,6 +5040,7 @@ fi
 # Test 37.
 if test $result = ok -a $start_test_number -le 37; then
         cat >$test_file <<'TEST37'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -4892,7 +5079,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -4927,7 +5114,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -4964,6 +5155,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST37
@@ -5000,6 +5192,7 @@ fi
 # Test 38.
 if test $result = ok -a $start_test_number -le 38; then
         cat >$test_file <<'TEST38'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -5038,7 +5231,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5070,7 +5263,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -5107,6 +5304,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST38
@@ -5143,6 +5341,7 @@ fi
 # Test 39.
 if test $result = ok -a $start_test_number -le 39; then
         cat >$test_file <<'TEST39'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -5181,7 +5380,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5214,7 +5413,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -5255,6 +5458,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST39
@@ -5305,6 +5509,7 @@ fi
 # Test 40.
 if test $result = ok -a $start_test_number -le 40; then
         cat >$test_file <<'TEST40'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -5343,7 +5548,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -5376,7 +5581,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -5417,6 +5626,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST40
@@ -16012,10 +16222,8 @@ eq (hash_table_entry_t el1, hash_table_entry_t el2)
   return strcmp ((char *) el1, (char *) el2) == 0;
 }
 
-static void
-initiate_typedefs (void)
-{
-  table = new hash_table (50000, hash, eq);
+static void initiate_typedefs( YaepAllocator * alloc ) {
+  table = new hash_table( alloc, 50000, hash, eq );
 }
 
 /* Now we ignore level */
@@ -16068,16 +16276,14 @@ get_lex (void)
     return curr->code;
 }
 
-static void
-store_lexs (void)
-{
+static void store_lexs( YaepAllocator * alloc ) {
   struct lex lex, *prev;
   int code;
 #ifdef DEBUG
   int nt = 0;
 #endif
 
-  lexs = new os (0);
+  lexs = new os( alloc, 0 );
   list = NULL;
   prev = NULL;
   while ((code = yylex ()) > 0) {
@@ -16139,7 +16345,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
        start_recovered_tok_num - start_ignored_tok_num, start_ignored_tok_num);
 }
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -16779,9 +16985,13 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   yaep *e;
 
-  mem_os = new os (0);
-  store_lexs ();
-  initiate_typedefs ();
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
+  store_lexs( alloc );
+  initiate_typedefs( alloc );
   curr = NULL;
   t = new ticker ();
   e = new yaep ();
@@ -16818,6 +17028,7 @@ main (int argc, char **argv)
   delete e;
   printf ("all time %.2f\n", t->active_time ());
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST41
@@ -16847,6 +17058,7 @@ fi
 # Test 42.
 if test $result = ok -a $start_test_number -le 42; then
         cat >$test_file <<'TEST42'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -16885,7 +17097,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -16915,7 +17127,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -16956,6 +17172,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST42
@@ -16990,6 +17207,7 @@ fi
 # Test 43.
 if test $result = ok -a $start_test_number -le 43; then
         cat >$test_file <<'TEST43'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17028,7 +17246,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17062,7 +17280,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17103,6 +17325,7 @@ main (int argc, char **argv)
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST43
@@ -17151,6 +17374,7 @@ fi
 # Test 44.
 if test $result = ok -a $start_test_number -le 44; then
         cat >$test_file <<'TEST44'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17189,7 +17413,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    terminal. */
 static int nterm;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_terminal (int *code)
 {
@@ -17209,7 +17433,7 @@ read_terminal (int *code)
    terminal. */
 static int nrule;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
 {
@@ -17249,7 +17473,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17270,7 +17494,11 @@ main ()
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17294,6 +17522,7 @@ main ()
     }
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST44
@@ -17322,6 +17551,7 @@ fi
 # Test 45.
 if test $result = ok -a $start_test_number -le 45; then
         cat >$test_file <<'TEST45'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17360,7 +17590,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17393,7 +17623,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17436,6 +17670,7 @@ main (int argc, char **argv)
   fprintf (stderr, "cost = %d\n", root->val.anode.cost);
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST45
@@ -17472,6 +17707,7 @@ fi
 # Test 46.
 if test $result = ok -a $start_test_number -le 46; then
         cat >$test_file <<'TEST46'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17510,7 +17746,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17543,7 +17779,11 @@ main (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  mem_os = new os (0);
+  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
+  if ( alloc == NULL ) {
+    exit( 1 );
+  }
+  mem_os = new os( alloc, 0 );
   e = new yaep ();
   if (e == NULL)
     {
@@ -17586,6 +17826,7 @@ main (int argc, char **argv)
   fprintf (stderr, "cost = %d\n", root->val.anode.cost);
   delete e;
   delete mem_os;
+  yaep_alloc_del( alloc );
   exit (0);
 }
 TEST46
@@ -17626,6 +17867,7 @@ fi
 # Test 47.
 if test $result = ok -a $start_test_number -le 47; then
         cat >$test_file <<'TEST47'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17662,7 +17904,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17768,6 +18010,7 @@ fi
 # Test 48.
 if test $result = ok -a $start_test_number -le 48; then
         cat >$test_file <<'TEST48'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17804,7 +18047,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {
@@ -17904,6 +18147,7 @@ fi
 # Test 49.
 if test $result = ok -a $start_test_number -le 49; then
         cat >$test_file <<'TEST49'
+#include<cstdio>
 #include <stdlib.h>
 #include "objstack.h"
 #include "yaep.h"
@@ -17940,7 +18184,7 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
    token. */
 static int ntok;
 
-/* The following function imported by YEAP (see comments in the interface file). */
+/* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
 {

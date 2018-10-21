@@ -1,228 +1,255 @@
-/* FILE NAME:   allocate.h
+/**
+ * @file allocate.h
+ *
+ * Memory allocation with error handling.
+ */
 
-   Copyright (C) 1997-2015 Vladimir Makarov.
+#ifndef YAEP_ALLOCATE_H_
+#define YAEP_ALLOCATE_H_
 
-   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
-
-   This is part of package allocate; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public License
-   as published by the Free Software Foundation; either version 2, or
-   (at your option) any later version.
-
-   This software is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public
-   License along with GNU CC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
-   MA 02111-1307, USA.
-
-   TITLE:       Allocation package include file
-
-   DESCRIPTION:
-       This is header file contains macros and the ANSI C prototype
-       definitions for the allocation package  (allocation with fixing
-       error) and class for the allocation package (allocation with
-       fixing error).
-
-   SPECIAL CONSIDERATION:
-         The function which processes allocation error should never
-       return control back because after calling the function the
-       function `abort' is always called in the debug regime.
-         Defining macro `NDEBUG' (e.g. by option `-D' in C/C++ compiler
-       command line) before the package macros usage disables to
-       fix some internal errors and errors of usage of the package.
-
-*/
-
-
-#ifndef __ALLOCATE__
-#define __ALLOCATE__
-
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
-#endif /* #ifdef HAVE_CONFIG_H */
-
-#include <stdlib.h>
-#include <stdio.h>
-
-#ifdef HAVE_ASSERT_H
-#include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifndef __cplusplus
+#include<stddef.h>
 
-/* This macro is analogous to ANSI C library function `malloc'.  But
-   the macro has another way of passing input and output data and has
-   automatic reaction on the situation `no memory'.  The macro has not
-   side effects. */
+/**
+ * Type for functions behaving like standard malloc().
+ *
+ * @sa #Yaep_calloc()
+ * @sa #Yaep_realloc()
+ * @sa #Yaep_free()
+ */
+typedef void * ( *Yaep_malloc )( size_t );
 
-#define MALLOC(ptr, size)\
-  do\
-  {\
-    void *_memory;\
-    _memory = malloc (size);\
-    if (_memory == NULL)\
-      {\
-        _allocation_error_function ();\
-        assert (0 /* FALSE */);\
-      }\
-    (ptr) = _memory;\
-  }\
-  while (0)
+/**
+ * Type for functions behaving like standard calloc().
+ *
+ * @sa #Yaep_malloc()
+ * @sa #Yaep_realloc()
+ * @sa #Yaep_free()
+ */
+typedef void * ( *Yaep_calloc )( size_t, size_t );
 
-/* This macro is analogous to ANSI C library function `calloc'.  But
-   the macro has another way of passing input and output data and has
-   automatic reaction on the situation `no memory'.  The macro has not
-   side effects. */
+/**
+ * Type for functions behaving like standard realloc().
+ *
+ * @sa #Yaep_malloc()
+ * @sa #Yaep_calloc()
+ * @sa #Yaep_free()
+ */
+typedef void * ( *Yaep_realloc )( void *, size_t );
 
-#define CALLOC(ptr, nel, size)\
-  do\
-  {\
-    void *_memory;\
-    _memory = calloc ((nel), (size));\
-    if (_memory == NULL)\
-      {\
-        _allocation_error_function ();\
-        assert (0 /* FALSE */);\
-      }\
-    (ptr) = _memory;\
-  }\
-  while (0)
+/**
+ * Type for functions behaving like standard free().
+ *
+ * @sa #Yaep_malloc()
+ * @sa #Yaep_calloc()
+ * @sa #Yaep_realloc()
+ */
+typedef void ( *Yaep_free )( void * ptr );
 
-/* This macro is analogous to ANSI C library function `free'.  But the
-   macro can accept NULL pointer value.  In this case the macro does
-   nothing.  The macro has not side effects. */
+/**
+ * Callback type for allocation errors.
+ *
+ * It is not necessary for callbacks of this type
+ * to return to the caller.
+ *
+ * @param userptr Pointer provided earlier by the caller.
+ *
+ * @sa #yaep_alloc_geterrfunc()
+ * @sa #yaep_alloc_seterr()
+ */
+typedef void ( *Yaep_alloc_error )( void * userptr );
 
-#define FREE(ptr)\
-  do\
-  {\
-    void *_memory = (void *) (ptr);\
-    if (_memory != NULL)\
-      free (_memory);\
-  }\
-  while (0)
+/**
+ * YAEP allocator type.
+ *
+ * @sa #yaep_alloc_new()
+ */
+typedef struct YaepAllocator YaepAllocator;
 
-/* This macro is analogous to ANSI C library function `realloc'.  But
-   the macro has another way of passing input and output data and has
-   automatic reaction on the situation `no memory'.  The macro has not
-   side effects. */
+/**
+ * Default error handling function.
+ *
+ * This function writes an error message to @ stderr
+ * and exits the program.
+ *
+ * @param ignored Ignored parameter.
+ *
+ * @sa #yaep_alloc_seterr()
+ */
+void yaep_alloc_defaulterrfunc( void * ignored );
 
-#define REALLOC(new, old, size)\
-  do\
-  {\
-    void *_memory;\
-    _memory = realloc ((old), (size));\
-    if (_memory == NULL)\
-      {\
-        _allocation_error_function ();\
-        assert (0 /* FALSE */);\
-      }\
-    (new) = _memory;\
-  }\
-  while (0)
+/**
+ * Creates a new allocator.
+ *
+ * The new allocator uses #yaep_alloc_defaulterrfunc()
+ * and a null user pointer.
+ *
+ * @param mallocf Pointer to function which behaves like @c malloc().
+ * 	If this is a null pointer, @c malloc() is used instead.
+ * @param callocf Pointer to function which behaves like @c calloc().
+ * 	If this is a null pointer, a function which behaves like @c calloc()
+ * 	and is compatible with the provided @c mallocf is used instead.
+ * @param reallocf Pointer to function which behaves analogously to
+ * 	@c realloc() with respect to @c mallocf and @c callocf.
+ * 	If this is a null pointer, and @c malloc() and @c calloc() are used
+ * 	for @c mallocf and @c callocf, respectively,
+ * 	then @c realloc() is used instead.
+ * 	Everything else is an error.
+ * @param freef Pointer to function which can free memory returned by
+ * 	@c mallocf, @c callocf, and @c reallocf.
+ * 	If this is a null pointer, and @c malloc(), @c calloc(), and
+ * 	@c realloc() are used for @c mallocf, @c callocf, and @c reallocf,
+ * 	respectively, then @c free() is used instead.
+ * 	Everything else is an error.
+ *
+ * @return On success, a pointer to the new allocator is returned.\n
+ * 	On error, a null pointer is returned.
+ *
+ * @sa #yaep_alloc_del()
+ * @sa #yaep_alloc_seterr()
+ * @sa #yaep_alloc_defaulterrfunc()
+ */
+YaepAllocator * yaep_alloc_new( Yaep_malloc mallocf, Yaep_calloc callocf, Yaep_realloc reallocf, Yaep_free freef );
 
-/* The following function is to be used only by the package macros.
-   Remember that she is internal function - all work with her is
-   executed through the macros. */
+/**
+ * Destroys an allocator.
+ *
+ * @param allocator Pointer to allocator.
+ *
+ * @sa #yaep_alloc_new()
+ */
+void yaep_alloc_del( YaepAllocator * allocator );
 
-extern void _allocation_error_function (void);
+/**
+ * Allocates memory.
+ *
+ * @param allocator Pointer to allocator.
+ * @param size Number of bytes to allocate.
+ *
+ * @return On success, a pointer to the allocated memory is returned.
+ * 	If @c size was zero, this may be a null pointer.\n
+ * 	On error, the allocator's error function is called.
+ * 	If that function returns, a null pointer is returned.
+ *
+ * @sa #yaep_free()
+ * @sa #yaep_realloc()
+ * @sa #yaep_calloc()
+ * @sa #yaep_alloc_seterr()
+ */
+void * yaep_malloc( YaepAllocator * allocator, size_t size );
 
-extern void default_allocation_error_function (void);
+/**
+ * Allocates zero-initialised memory.
+ *
+ * @param allocator Pointer to allocator.
+ * @param nmemb Number of elements to allocate.
+ * @param size Element size in bytes.
+ *
+ * @return On success, a pointer to <code>nmemb * size</code> bytes
+ * 	of newly allocated, zero-initialised  memory is returned.
+ * 	If <code>nmemb * size</code> was zero, this may be a null pointer.\n
+ * 	On error, the allocator's error function is called.
+ * 	If that function returns, a null pointer is returned.
+ *
+ * @sa #yaep_free()
+ * @sa #yaep_realloc()
+ * @sa #yaep_malloc()
+ * @sa #yaep_alloc_seterr()
+ */
+void * yaep_calloc( YaepAllocator * allocator, size_t nmemb, size_t size );
 
-extern void
-  (*change_allocation_error_function (void (*error_function) (void))) (void);
+/**
+ * Resizes memory.
+ *
+ * @param allocator Pointer to allocator previously used to
+ * 	allocate @c ptr.
+ * @param ptr Pointer to memory previously returned by
+ * 	#yaep_malloc(), #yaep_calloc(), or #yaep_realloc().
+ * 	If this is a null pointer, this function behaves like #yaep_malloc().
+ * @param size New memory size in bytes.
+ *
+ * @return On success, a pointer to @c size bytes of allocated memory
+ * 	is returned, the contents of which is equal to the contents of
+ * 	@c ptr immediately before the call, up to the smaller size of
+ * 	both blocks.\n
+ * 	On error, the allocator's error function is called.
+ * 	If that function returns, a null pointer is returned.
+ *
+ * @sa #yaep_free()
+ * @sa #yaep_malloc()
+ * @sa #yaep_calloc()
+ * @sa #yaep_alloc_seterr()
+ */
+void * yaep_realloc( YaepAllocator * allocator, void * ptr, size_t size );
 
+/**
+ * Frees previously allocated memory.
+ *
+ * @param allocator Pointer to allocator previously used to
+ * 	allocate @c ptr.
+ * @param ptr Pointer to memory to be freed.
+ * 	If this is a null pointer, no operation is performed.
+ *
+ * @sa #yaep_malloc()
+ * @sa #yaep_calloc()
+ * @sa #yaep_realloc()
+ */
+void yaep_free( YaepAllocator * allocator, void * ptr );
 
+/**
+ * Obtains the current error function of an allocator.
+ *
+ * @param allocator Pointer to allocator.
+ *
+ * @return On success, a pointer to the error function of the
+ * 	specified allocator is returned.
+ * 	If no error function has ever been set for this allocator,
+ * 	this is #yaep_alloc_defaulterrfunc().\n
+ * 	On error, a null pointer is returned.
+ *
+ * @sa #yaep_alloc_getuserptr()
+ * @sa #yaep_alloc_seterr()
+ * @sa #yaep_alloc_defaulterrfunc()
+ */
+Yaep_alloc_error yaep_alloc_geterrfunc( YaepAllocator * allocator );
 
-#else /* #ifndef __cplusplus */
+/**
+ * Obtains the current user-provided pointer.
+ *
+ * @param allocator Pointer to allocator.
+ *
+ * @return On success, the user-provided pointer of the
+ * 	specified allocator is returned.
+ * 	If no pointer has ever been set for this allocator,
+ * 	a pointer to the allocator itself is returned.\n
+ * 	On error, a null pointer is returned.
+ *
+ * @sa #yaep_alloc_seterr()
+ */
+void * yaep_alloc_getuserptr( YaepAllocator * allocator );
 
+/**
+ * Sets the error function and user-provided pointer of an allocator.
+ *
+ * The error function is called by the allocator with the user-provided
+ * pointer as argument whenever an allocation error occurs.
+ *
+ * @param allocator Pointer to allocator.
+ * @param errfunc Pointer to error function.
+ * 	If this is a null pointer, #yaep_alloc_defaulterrfunc() will be used.
+ * @param userptr User-provided pointer.
+ * 	The allocator will never attempt to dereference this pointer.
+ *
+ * @sa #yaep_alloc_geterrfunc()
+ * @sa #yaep_alloc_getuserptr()
+ */
+void yaep_alloc_seterr( YaepAllocator * allocator, Yaep_alloc_error errfunc, void * userptr );
 
-
-class allocate
-{
-  /* The following function is to be used only by the package
-     functions. */
-  static void allocation_error_function (void);
-  allocate (void) {}
-  allocate (const allocate& a) {}
-
-public:
-
-  /* This function is analogous to ANSI C library function `malloc'.
-     But the function has automatic reaction on the situation `no
-     memory'. */
-
-  static inline void *malloc (size_t size)
-    {
-      void *memory;
-
-      memory = ::malloc (size);
-      if (memory == NULL)
-        {
-          allocation_error_function ();
-          assert (0 /* FALSE */);
-        }
-      return memory;
-    }
-
-  /* This function is analogous to ANSI C library function `calloc'.
-     But the function has automatic reaction on the situation `no
-     memory'. */
-
-  static inline void *calloc (size_t nmemb, size_t size)
-    {
-      void *memory;
-      
-      memory = ::calloc (nmemb, size);
-      if (memory == NULL)
-        {
-          allocation_error_function ();
-          assert (0 /* FALSE */);
-        }
-      return memory;
-    }
-
-  /* This function is analogous to ANSI C library function `free'.
-     But the function can accept NULL pointer value.  In this case the
-     function does nothing. */
-
-  static inline void free (void *ptr)
-    {
-      if (ptr != NULL)
-        ::free (ptr);
-    }
-
-  static inline void *realloc (void *old, size_t size)
-    {
-      void *memory;
-      
-      memory = ::realloc (old, size);
-      if (memory == NULL)
-        {
-          allocation_error_function ();
-          assert (0 /* FALSE */);
-        }
-      return memory;
-    }
-
-  friend void no_warning (void);
-  static void default_error_function (void);
-  static void (*change_error_function (void (*error_function) (void))) (void);
-};
-
-
+#ifdef __cplusplus
+}
 #endif
 
-
-#endif /* #ifndef __ALLOCATE__ */
+#endif
