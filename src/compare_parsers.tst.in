@@ -156,6 +156,10 @@ static int level = 0;
 
 #include "test_common.c"
 
+int get_lex (void);
+void yyerror (const char *s);
+void comment (void);
+
 #define yylex get_lex
 #include "y.tab.c"
 #undef yylex
@@ -216,7 +220,8 @@ static void store_lexs( YaepAllocator * alloc ) {
   }
 }
 
-main()
+void
+main (void)
 {
   ticker_t t;
   int code;
@@ -696,8 +701,8 @@ identifier
 extern int column;
 extern int line;
 
-yyerror(s)
-char *s;
+void
+yyerror(const char *s)
 {
    fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
 }
@@ -720,7 +725,9 @@ IS			(u|U|l|L)*
 
 #define ECHO
 
-void count();
+void count (void);
+void comment (void);
+int check_type (void);
 %}
 
 %%
@@ -831,12 +838,14 @@ void count();
 
 %%
 
-yywrap()
+int
+yywrap (void)
 {
 	return(1);
 }
 
-comment()
+void
+comment (void)
 {
 	char c, c1;
 
@@ -854,7 +863,8 @@ loop:
 		/*putchar(c1)*/;
 }
 
-void count()
+void
+count (void)
 {
 	int i;
 
@@ -872,7 +882,8 @@ void count()
 	ECHO;
 }
 
-int check_type()
+int
+check_type (void)
 {
 /*
 * pseudo code --- this is what it should check
@@ -11995,6 +12006,7 @@ static const char *description =
 #include <unistd.h>
 #endif
 
+void
 main (int argc, char **argv)
 {
   ticker_t t;
@@ -13568,6 +13580,7 @@ marpa_parse (Marpa_Grammar *g)
     }
 }
 
+void
 main (int argc, char **argv)
 {
   ticker_t t;

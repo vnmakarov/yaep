@@ -517,7 +517,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -640,7 +641,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -774,7 +776,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -903,7 +906,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1032,7 +1036,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1161,7 +1166,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1278,7 +1284,8 @@ test_read_token (void **attr)
 
 static const char *description = "TERM;\n";
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1395,7 +1402,8 @@ test_read_token (void **attr)
 
 static const char *description = "TERM ident; ident : ;\n";
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1524,7 +1532,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1653,7 +1662,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1781,7 +1791,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -1903,6 +1914,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -2046,7 +2058,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -2175,7 +2188,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -2305,7 +2319,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -2481,7 +2496,8 @@ test_read_token (void **attr)
     return -1;
 }
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -2656,7 +2672,8 @@ test_read_token (void **attr)
     return -1;
 }
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -2832,7 +2849,8 @@ test_read_token (void **attr)
     return -1;
 }
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -3008,7 +3026,8 @@ test_read_token (void **attr)
     return -1;
 }
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -3183,7 +3202,8 @@ test_read_token (void **attr)
     return -1;
 }
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -3358,7 +3378,8 @@ test_read_token (void **attr)
     return -1;
 }
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -3486,7 +3507,8 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -3615,6 +3637,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -3806,6 +3829,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -3992,6 +4016,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -4143,6 +4168,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -4305,6 +4331,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -4453,6 +4480,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -4598,6 +4626,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -4754,6 +4783,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -4893,6 +4923,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -5041,6 +5072,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -5188,6 +5220,7 @@ static const char *description =
 "  | '(' error ')' # 1\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -5336,6 +5369,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -5502,6 +5536,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -5621,7 +5656,10 @@ IS			(u|U|l|L)*
 
 #define ECHO
 
-void count();
+void count (void);
+void comment (void);
+int check_type (void);
+
 %}
 
 %%
@@ -5732,12 +5770,14 @@ void count();
 
 %%
 
-yywrap()
+int
+yywrap (void)
 {
 	return(1);
 }
 
-comment()
+void
+comment (void)
 {
 	char c, c1;
 
@@ -5755,7 +5795,8 @@ loop:
 		/*putchar(c1)*/;
 }
 
-void count()
+void
+count (void)
 {
 	int i;
 
@@ -5773,7 +5814,8 @@ void count()
 	ECHO;
 }
 
-int check_type()
+int
+check_type (void)
 {
 /*
 * pseudo code --- this is what it should check
@@ -16881,6 +16923,7 @@ static const char *description =
 #include <unistd.h>
 #endif
 
+void
 main (int argc, char **argv)
 {
   ticker_t t;
@@ -17029,6 +17072,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -17180,6 +17224,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -17392,7 +17437,8 @@ test_read_token (void **attr)
     return -1;
 }
 
-main ()
+void
+main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;
@@ -17519,6 +17565,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -17673,6 +17720,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -17829,6 +17877,7 @@ static const char *description =
 "  ;\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -17968,6 +18017,7 @@ static const char *description =
 "   |\n"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
@@ -18100,6 +18150,7 @@ static const char *description =
 "opt : 'c'                   # optc (-)"
   ;
 
+void
 main (int argc, char **argv)
 {
   struct grammar *g;
