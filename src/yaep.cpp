@@ -101,27 +101,32 @@ yaep::set_lookahead_level (int level)
   return yaep_set_lookahead_level (this->grammar, level);
 }
 
-int yaep::set_debug_level (int level)
+int
+yaep::set_debug_level (int level)
 {
   return yaep_set_debug_level (this->grammar, level);
 }
 
-int yaep::set_one_parse_flag (int flag)
+int
+yaep::set_one_parse_flag (int flag)
 {
   return yaep_set_one_parse_flag (this->grammar, flag);
 }
 
-int yaep::set_cost_flag (int flag)
+int
+yaep::set_cost_flag (int flag)
 {
   return yaep_set_cost_flag (this->grammar, flag);
 }
 
-int yaep::set_error_recovery_flag (int flag)
+int
+yaep::set_error_recovery_flag (int flag)
 {
   return yaep_set_error_recovery_flag (this->grammar, flag);
 }
 
-int yaep::set_recovery_match (int n_toks)
+int
+yaep::set_recovery_match (int n_toks)
 {
   return yaep_set_recovery_match (this->grammar, n_toks);
 }
@@ -136,15 +141,17 @@ yaep::parse (int (*read_token) (void **attr),
 				   void *start_recovered_tok_attr),
 	     void *(*parse_alloc) (int nmemb),
 	     void (*parse_free) (void *mem),
-	     struct yaep_tree_node **root,
-	     int *ambiguous_p)
+	     struct yaep_tree_node **root, int *ambiguous_p)
 {
   return yaep_parse (this->grammar, read_token, syntax_error,
-		       parse_alloc, parse_free, root, ambiguous_p);
+		     parse_alloc, parse_free, root, ambiguous_p);
 }
 
-void yaep::free_tree( struct yaep_tree_node * root, void ( *parse_free )( void * ), void ( *termcb )( struct yaep_term * term ) ) {
-  yaep_free_tree( root, parse_free, termcb );
+void
+yaep::free_tree (struct yaep_tree_node *root, void (*parse_free) (void *),
+		 void (*termcb) (struct yaep_term * term))
+{
+  yaep_free_tree (root, parse_free, termcb);
 }
 
 
@@ -159,12 +166,13 @@ use_functions (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
-  if ( alloc == NULL ) {
-    exit( 1 );
-  }
+  YaepAllocator *alloc = yaep_alloc_new (NULL, NULL, NULL, NULL);
+  if (alloc == NULL)
+    {
+      exit (1);
+    }
   nterm = nrule = 0;
-  OS_CREATE( mem_os, alloc, 0 );
+  OS_CREATE (mem_os, alloc, 0);
   fprintf (stderr, "Use functions\n");
   e = new yaep ();
   if (e == NULL)
@@ -175,15 +183,15 @@ use_functions (int argc, char **argv)
     }
   e->set_one_parse_flag (FALSE);
   if (argc > 1)
-    e->set_lookahead_level (atoi (argv [1]));
+    e->set_lookahead_level (atoi (argv[1]));
   if (argc > 2)
-    e->set_debug_level (atoi (argv [2]));
+    e->set_debug_level (atoi (argv[2]));
   else
     e->set_debug_level (3);
   if (argc > 3)
-    e->set_error_recovery_flag (atoi (argv [3]));
+    e->set_error_recovery_flag (atoi (argv[3]));
   if (argc > 4)
-    e->set_one_parse_flag (atoi (argv [4]));
+    e->set_one_parse_flag (atoi (argv[4]));
   if (e->read_grammar (TRUE, read_terminal, read_rule) != 0)
     {
       fprintf (stderr, "%s\n", e->error_message ());
@@ -192,11 +200,11 @@ use_functions (int argc, char **argv)
     }
   ntok = 0;
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
-		    &root, &ambiguous_p))
+		&root, &ambiguous_p))
     fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
   delete e;
   OS_DELETE (mem_os);
-  yaep_alloc_del( alloc );
+  yaep_alloc_del (alloc);
 }
 
 static void
@@ -206,12 +214,13 @@ use_description (int argc, char **argv)
   struct yaep_tree_node *root;
   int ambiguous_p;
 
-  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
-  if ( alloc == NULL ) {
-    exit( 1 );
-  }
+  YaepAllocator *alloc = yaep_alloc_new (NULL, NULL, NULL, NULL);
+  if (alloc == NULL)
+    {
+      exit (1);
+    }
   fprintf (stderr, "Use description\n");
-  OS_CREATE( mem_os, alloc, 0 );
+  OS_CREATE (mem_os, alloc, 0);
   e = new yaep ();
   if (e == NULL)
     {
@@ -221,15 +230,15 @@ use_description (int argc, char **argv)
     }
   e->set_one_parse_flag (FALSE);
   if (argc > 1)
-    e->set_lookahead_level (atoi (argv [1]));
+    e->set_lookahead_level (atoi (argv[1]));
   if (argc > 2)
-    e->set_debug_level (atoi (argv [2]));
+    e->set_debug_level (atoi (argv[2]));
   else
     e->set_debug_level (3);
   if (argc > 3)
-    e->set_error_recovery_flag (atoi (argv [3]));
+    e->set_error_recovery_flag (atoi (argv[3]));
   if (argc > 4)
-    e->set_one_parse_flag (atoi (argv [4]));
+    e->set_one_parse_flag (atoi (argv[4]));
   if (e->parse_grammar (TRUE, description) != 0)
     {
       fprintf (stderr, "%s\n", e->error_message ());
@@ -241,7 +250,7 @@ use_description (int argc, char **argv)
     fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
   delete e;
   OS_DELETE (mem_os);
-  yaep_alloc_del( alloc );
+  yaep_alloc_del (alloc);
 }
 
 #endif /* #ifdef YAEP_TEST */

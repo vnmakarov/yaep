@@ -1,5 +1,16 @@
 2018-10-21  Vladimir Makarov  <vmakarov@gcc.gnu.org>
 
+	* allocate.[ch]: Use GNU style format.
+	* compare_parsers.tst.in: Ditto.
+	* hashtab.{c,cpp}: Ditto.
+	* objstack.{c,h,cpp}: Ditto.
+	* sgramm.y: Ditto.
+	* vlobject.{c,h,cpp}: Ditto.
+	* yaep.{c,cpp}: Ditto.
+	* yaep[++].tst.in: Ditto.
+
+2018-10-21  Vladimir Makarov  <vmakarov@gcc.gnu.org>
+
 	* src/compare_parsers.tst.in: Add forward func decls.  Remove old
 	C style func decls.
 	* src/yaep.tst.in: Ditto.

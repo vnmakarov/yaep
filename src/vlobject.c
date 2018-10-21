@@ -65,7 +65,7 @@
 void
 _VLO_memcpy (void *to, const void *from, size_t length)
 {
-#ifdef HAVE_MEMCPY 
+#ifdef HAVE_MEMCPY
   memcpy (to, from, length);
 #else
   char *cto = (char *) to;
@@ -85,7 +85,7 @@ _VLO_memcpy (void *to, const void *from, size_t length)
    may be changed after the call. */
 
 void
-_VLO_tailor_function (vlo_t *vlo)
+_VLO_tailor_function (vlo_t * vlo)
 {
   size_t vlo_length;
   char *new_vlo_start;
@@ -94,7 +94,7 @@ _VLO_tailor_function (vlo_t *vlo)
   vlo_length = VLO_LENGTH (*vlo);
   if (vlo_length == 0)
     vlo_length = 1;
-  new_vlo_start = yaep_realloc( vlo->vlo_alloc, vlo->vlo_start, vlo_length );
+  new_vlo_start = yaep_realloc (vlo->vlo_alloc, vlo->vlo_start, vlo_length);
   if (new_vlo_start != vlo->vlo_start)
     {
       vlo->vlo_free += new_vlo_start - vlo->vlo_start;
@@ -108,7 +108,7 @@ _VLO_tailor_function (vlo_t *vlo)
    Remember that the VLO place may be changed after the call. */
 
 void
-_VLO_add_string_function (vlo_t *vlo, const char *str)
+_VLO_add_string_function (vlo_t * vlo, const char *str)
 {
   size_t length;
 
@@ -130,7 +130,7 @@ _VLO_add_string_function (vlo_t *vlo, const char *str)
    Remember that the VLO place may be changed after the call. */
 
 void
-_VLO_expand_memory (vlo_t *vlo, size_t additional_length)
+_VLO_expand_memory (vlo_t * vlo, size_t additional_length)
 {
   size_t vlo_length;
   char *new_vlo_start;
@@ -138,7 +138,7 @@ _VLO_expand_memory (vlo_t *vlo, size_t additional_length)
   assert (vlo->vlo_start != NULL);
   vlo_length = VLO_LENGTH (*vlo) + additional_length;
   vlo_length += vlo_length / 2 + 1;
-  new_vlo_start = yaep_realloc( vlo->vlo_alloc, vlo->vlo_start, vlo_length );
+  new_vlo_start = yaep_realloc (vlo->vlo_alloc, vlo->vlo_start, vlo_length);
   if (new_vlo_start != vlo->vlo_start)
     {
       vlo->vlo_free += new_vlo_start - vlo->vlo_start;

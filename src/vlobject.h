@@ -99,7 +99,7 @@ typedef struct
      the VLO. */
   char *vlo_boundary;
   /* Pointer to allocator. */
-  YaepAllocator * vlo_alloc;
+  YaepAllocator *vlo_alloc;
 } vlo_t;
 
 
@@ -293,9 +293,9 @@ typedef struct
    Remember that they are internal functions - all work with VLO is
    executed through the macros. */
 
-extern void _VLO_tailor_function (vlo_t *vlo);
-extern void _VLO_add_string_function (vlo_t *vlo, const char *str);
-extern void _VLO_expand_memory (vlo_t *vlo, size_t additional_length);
+extern void _VLO_tailor_function (vlo_t * vlo);
+extern void _VLO_add_string_function (vlo_t * vlo, const char *str);
+extern void _VLO_expand_memory (vlo_t * vlo, size_t additional_length);
 extern void _VLO_memcpy (void *to, const void *from, size_t length);
 
 
@@ -318,46 +318,47 @@ class vlo
      the VLO. */
   char *vlo_boundary;
   /* Pointer to allocator. */
-  YaepAllocator * vlo_alloc;
+  YaepAllocator *vlo_alloc;
 public:
-  
+
   /* This function is used for creation of VLO with initial zero
      length.  If initial length of memory needed for the VLO is equal
      to 0 the initial allocated memory length is equal to
      VLO_DEFAULT_LENGTH. */
-  
-  explicit vlo( YaepAllocator * allocator, size_t initial_length = VLO_DEFAULT_LENGTH ) : vlo_alloc( allocator ) {
-      initial_length = (initial_length != 0
-                        ? initial_length : VLO_DEFAULT_LENGTH);
-      vlo_start = (char *) yaep_malloc( vlo_alloc, initial_length );
-      vlo_boundary = vlo_start + initial_length;
-      vlo_free = vlo_start;
-    }
+
+  explicit vlo (YaepAllocator * allocator, size_t initial_length = VLO_DEFAULT_LENGTH):vlo_alloc (allocator)
+  {
+    initial_length = (initial_length != 0
+		      ? initial_length : VLO_DEFAULT_LENGTH);
+    vlo_start = (char *) yaep_malloc (vlo_alloc, initial_length);
+    vlo_boundary = vlo_start + initial_length;
+    vlo_free = vlo_start;
+  }
 
 
   /* This function is used for freeing memory allocated for VLO.  Any
      work (except for creation) with given VLO is not possible after
      evaluation of this function. */
 
-  inline ~vlo (void)
-    {
+  inline ~ vlo (void)
+  {
 #ifndef NDEBUG
-      assert (vlo_start != NULL);
-      yaep_free( vlo_alloc, vlo_start );
-      vlo_start = NULL;
+    assert (vlo_start != NULL);
+    yaep_free (vlo_alloc, vlo_start);
+    vlo_start = NULL;
 #else
-      yaep_free( vlo_alloc, vlo_start );
+    yaep_free (vlo_alloc, vlo_start);
 #endif /* #ifndef NDEBUG */
-    }
+  }
 
   /* This function makes that length of VLO will be equal to zero (but
      memory for VLO is not freed and not reallocated). */
 
   inline void nullify (void)
-    {
-      assert (vlo_start != NULL);
-      vlo_free = vlo_start;
-    }
+  {
+    assert (vlo_start != NULL);
+    vlo_free = vlo_start;
+  }
 
 
   /* The following function makes that length of memory allocated for
@@ -369,10 +370,10 @@ public:
   /* This function returns current length of VLO. */
 
   inline size_t length (void)
-    {
-      assert (vlo_start != NULL);
-      return vlo_free - vlo_start;
-    }
+  {
+    assert (vlo_start != NULL);
+    return vlo_free - vlo_start;
+  }
 
 
   /* This function returns pointer (of type `void *') to the first byte
@@ -380,77 +381,77 @@ public:
      after any addition. */
 
   inline void *begin (void)
-    {
-      assert (vlo_start != NULL);
-      return (void *) vlo_start;
-    }
-  
+  {
+    assert (vlo_start != NULL);
+    return (void *) vlo_start;
+  }
+
   /* This function returns pointer (of type `void *') to the last byte
      of VLO.  Remember also that the VLO may change own place after
      any addition. */
 
   inline void *end (void)
-    {
-      assert (vlo_start != NULL);
-      return (void *) (vlo_free - 1);
-    }
+  {
+    assert (vlo_start != NULL);
+    return (void *) (vlo_free - 1);
+  }
 
   /* This function returns pointer (of type `void *') to the next byte
      of the last byte of VLO.  Remember also that the VLO may change
      own place after any addition. */
 
   inline void *bound (void)
-    {
-      assert (vlo_start != NULL);
-      return (void *) vlo_free;
-    }
+  {
+    assert (vlo_start != NULL);
+    return (void *) vlo_free;
+  }
 
   /* This function removes N bytes from the end of VLO.  VLO is nullified
      if its length is less than N. */
 
   inline void shorten (size_t n)
-    {
-      assert (vlo_start != NULL);
-      if (length () < n)
-        vlo_free = vlo_start;
-      else
-        vlo_free -= n;
-    }
+  {
+    assert (vlo_start != NULL);
+    if (length () < n)
+      vlo_free = vlo_start;
+    else
+      vlo_free -= n;
+  }
 
 
   /* This function increases length of VLO.  The values of bytes added
      to the end of VLO will be not defined. */
 
   void expand (size_t length)
-    {
-      assert (vlo_start != NULL);
-      if (vlo_free + length > vlo_boundary)
-        _VLO_expand_memory (length);
-      vlo_free += length;
-    }
+  {
+    assert (vlo_start != NULL);
+    if (vlo_free + length > vlo_boundary)
+      _VLO_expand_memory (length);
+    vlo_free += length;
+  }
 
 
   /* This function adds a byte to the end of VLO. */
 
   inline void add_byte (int b)
-    {
-      assert (vlo_start != NULL);
-      if (vlo_free >= vlo_boundary)
-        _VLO_expand_memory (1);
-      *vlo_free++ = b;
-    }
+  {
+    assert (vlo_start != NULL);
+    if (vlo_free >= vlo_boundary)
+      _VLO_expand_memory (1);
+    *vlo_free++ = b;
+  }
 
 
   /* This function adds memory bytes to the end of VLO. */
 
   inline void add_memory (const void *str, size_t length)
-    {
-      assert (vlo_start != NULL);
-      if (vlo_free + length > vlo_boundary)
-        _VLO_expand_memory (length);
-      _VLO_memcpy (vlo_free, str, length);
-      vlo_free += length;
-    }
+  {
+    assert (vlo_start != NULL);
+    if (vlo_free + length > vlo_boundary)
+      _VLO_expand_memory (length);
+    _VLO_memcpy (vlo_free, str, length);
+    vlo_free += length;
+  }
 
 
   /* This function adds C string (with end marker '\0') to the end of

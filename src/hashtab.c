@@ -84,10 +84,10 @@ higher_prime_number (unsigned long number)
   for (number = (number / 2) * 2 + 3;; number += 2)
     {
       for (i = 3; i * i <= number; i += 2)
-        if (number % i == 0)
-          break;
+	if (number % i == 0)
+	  break;
       if (i * i > number)
-        return number;
+	return number;
     }
 }
 
@@ -96,15 +96,19 @@ higher_prime_number (unsigned long number)
    hash table entries are EMPTY_ENTRY).  The function returns the
    created hash table. */
 
-hash_table_t create_hash_table(
-    YaepAllocator * allocator, size_t size, unsigned int ( *hash_function )( hash_table_entry_t el_ptr ), int (*eq_function) (hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr )
-) {
+hash_table_t
+create_hash_table (YaepAllocator * allocator, size_t size,
+		   unsigned int (*hash_function) (hash_table_entry_t el_ptr),
+		   int (*eq_function) (hash_table_entry_t el1_ptr,
+				       hash_table_entry_t el2_ptr))
+{
   hash_table_t result;
   hash_table_entry_t *entry_ptr;
 
   size = higher_prime_number (size);
-  result = yaep_malloc( allocator, sizeof( *result ) );
-  result->entries = yaep_malloc( allocator, size * sizeof( hash_table_entry_t ) );
+  result = yaep_malloc (allocator, sizeof (*result));
+  result->entries =
+    yaep_malloc (allocator, size * sizeof (hash_table_entry_t));
   result->size = size;
   result->hash_function = hash_function;
   result->eq_function = eq_function;
@@ -114,8 +118,7 @@ hash_table_t create_hash_table(
   result->collisions = 0;
   result->alloc = allocator;
   for (entry_ptr = result->entries;
-       entry_ptr < result->entries + size;
-       entry_ptr++)
+       entry_ptr < result->entries + size; entry_ptr++)
     *entry_ptr = EMPTY_ENTRY;
   return result;
 }
@@ -132,8 +135,7 @@ empty_hash_table (hash_table_t htab)
   htab->number_of_elements = 0;
   htab->number_of_deleted_elements = 0;
   for (entry_ptr = htab->entries;
-       entry_ptr < htab->entries + htab->size;
-       entry_ptr++)
+       entry_ptr < htab->entries + htab->size; entry_ptr++)
     *entry_ptr = EMPTY_ENTRY;
 }
 
@@ -144,8 +146,8 @@ void
 delete_hash_table (hash_table_t htab)
 {
   assert (htab != NULL);
-  yaep_free( htab->alloc, htab->entries );
-  yaep_free( htab->alloc, htab );
+  yaep_free (htab->alloc, htab->entries);
+  yaep_free (htab->alloc, htab);
 }
 
 /* The following function changes size of memory allocated for the
@@ -162,19 +164,21 @@ expand_hash_table (hash_table_t htab)
   hash_table_entry_t *new_entry_ptr;
 
   assert (htab != NULL);
-  new_htab = create_hash_table( htab->alloc, htab->number_of_elements * 2, htab->hash_function, htab->eq_function );
+  new_htab =
+    create_hash_table (htab->alloc, htab->number_of_elements * 2,
+		       htab->hash_function, htab->eq_function);
   for (entry_ptr = htab->entries; entry_ptr < htab->entries + htab->size;
        entry_ptr++)
     if (*entry_ptr != EMPTY_ENTRY && *entry_ptr != DELETED_ENTRY)
       {
-        new_entry_ptr = find_hash_table_entry (new_htab, *entry_ptr,
-                                               1 /* TRUE */);
-        assert (*new_entry_ptr == EMPTY_ENTRY);
-        *new_entry_ptr = (*entry_ptr);
+	new_entry_ptr = find_hash_table_entry (new_htab, *entry_ptr,
+					       1 /* TRUE */ );
+	assert (*new_entry_ptr == EMPTY_ENTRY);
+	*new_entry_ptr = (*entry_ptr);
       }
-  yaep_free( htab->alloc, htab->entries );
+  yaep_free (htab->alloc, htab->entries);
   *htab = (*new_htab);
-  yaep_free( new_htab->alloc, new_htab );
+  yaep_free (new_htab->alloc, new_htab);
 }
 
 /* The following variable is used for debugging. Its value is number
@@ -201,7 +205,7 @@ int all_collisions = 0;
 
 hash_table_entry_t *
 find_hash_table_entry (hash_table_t htab,
-                       hash_table_entry_t element, int reserve)
+		       hash_table_entry_t element, int reserve)
 {
   hash_table_entry_t *entry_ptr;
   hash_table_entry_t *first_deleted_entry_ptr;
@@ -216,12 +220,12 @@ find_hash_table_entry (hash_table_t htab,
   htab->searches++;
   all_searches++;
   first_deleted_entry_ptr = NULL;
-  for (;;htab->collisions++, all_collisions++)
+  for (;; htab->collisions++, all_collisions++)
     {
       entry_ptr = htab->entries + hash_value;
       if (*entry_ptr == EMPTY_ENTRY)
-        {
-          if (reserve)
+	{
+	  if (reserve)
 	    {
 	      htab->number_of_elements++;
 	      if (first_deleted_entry_ptr != NULL)
@@ -230,18 +234,18 @@ find_hash_table_entry (hash_table_t htab,
 		  *entry_ptr = EMPTY_ENTRY;
 		}
 	    }
-          break;
-        }
+	  break;
+	}
       else if (*entry_ptr != DELETED_ENTRY)
-        {
-          if ((*htab->eq_function) (*entry_ptr, element))
-            break;
-        }
+	{
+	  if ((*htab->eq_function) (*entry_ptr, element))
+	    break;
+	}
       else if (first_deleted_entry_ptr == NULL)
 	first_deleted_entry_ptr = entry_ptr;
       hash_value += secondary_hash_value;
       if (hash_value >= htab->size)
-        hash_value -= htab->size;
+	hash_value -= htab->size;
     }
   return entry_ptr;
 }
@@ -253,7 +257,7 @@ find_hash_table_entry (hash_table_t htab,
 
 void
 remove_element_from_hash_table_entry (hash_table_t htab,
-                                      hash_table_entry_t element)
+				      hash_table_entry_t element)
 {
   hash_table_entry_t *entry_ptr;
 

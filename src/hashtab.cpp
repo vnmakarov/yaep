@@ -84,10 +84,10 @@ higher_prime_number (unsigned long number)
   for (number = (number / 2) * 2 + 3;; number += 2)
     {
       for (i = 3; i * i <= number; i += 2)
-        if (number % i == 0)
-          break;
+	if (number % i == 0)
+	  break;
       if (i * i > number)
-        return number;
+	return number;
     }
 }
 
@@ -95,12 +95,16 @@ higher_prime_number (unsigned long number)
    given source length.  Created hash table is initiated as empty (all
    the hash table entries are EMPTY_ENTRY). */
 
-hash_table::hash_table( YaepAllocator * allocator, size_t size, unsigned int ( *hash_function )( hash_table_entry_t el_ptr ), int ( *eq_function )( hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr ) )
-    : alloc( allocator ) {
-  hash_table_entry_t *entry_ptr;
+hash_table::hash_table (YaepAllocator * allocator, size_t size, unsigned int (*hash_function) (hash_table_entry_t el_ptr), int (*eq_function) (hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr)):alloc
+  (allocator)
+{
+  hash_table_entry_t *
+    entry_ptr;
 
   size = higher_prime_number (size);
-  entries = ( hash_table_entry_t * ) yaep_malloc( alloc, size * sizeof( hash_table_entry_t ) );
+  entries =
+    (hash_table_entry_t *) yaep_malloc (alloc,
+					size * sizeof (hash_table_entry_t));
   this->_size = size;
   this->hash_function = hash_function;
   this->eq_function = eq_function;
@@ -116,7 +120,7 @@ hash_table::hash_table( YaepAllocator * allocator, size_t size, unsigned int ( *
 
 hash_table::~hash_table (void)
 {
-  yaep_free( alloc, entries );
+  yaep_free (alloc, entries);
 }
 
 /* This function makes the table empty.  Naturally the hash table must
@@ -145,17 +149,19 @@ hash_table::expand_hash_table (void)
   hash_table_entry_t *entry_ptr;
   hash_table_entry_t *new_entry_ptr;
 
-  new_htab = new hash_table( alloc, number_of_elements * 2, hash_function, eq_function );
+  new_htab =
+    new hash_table (alloc, number_of_elements * 2, hash_function,
+		    eq_function);
   for (entry_ptr = entries; entry_ptr < entries + _size; entry_ptr++)
     if (*entry_ptr != EMPTY_ENTRY && *entry_ptr != DELETED_ENTRY)
       {
-        new_entry_ptr = new_htab->find_entry (*entry_ptr, 1 /* TRUE */);
-        assert (*new_entry_ptr == EMPTY_ENTRY);
-        *new_entry_ptr = (*entry_ptr);
+	new_entry_ptr = new_htab->find_entry (*entry_ptr, 1 /* TRUE */ );
+	assert (*new_entry_ptr == EMPTY_ENTRY);
+	*new_entry_ptr = (*entry_ptr);
       }
-  yaep_free( alloc, entries );
+  yaep_free (alloc, entries);
   *this = (*new_htab);
-  yaep_free( new_htab->alloc, new_htab );
+  yaep_free (new_htab->alloc, new_htab);
 }
 
 /* The following variable is used for debugging. Its value is number
@@ -194,12 +200,12 @@ hash_table::find_entry (hash_table_entry_t element, int reserve)
   searches++;
   all_searches++;
   first_deleted_entry_ptr = NULL;
-  for (;;collisions++, all_collisions++)
+  for (;; collisions++, all_collisions++)
     {
       entry_ptr = entries + hash_value;
       if (*entry_ptr == EMPTY_ENTRY)
-        {
-          if (reserve)
+	{
+	  if (reserve)
 	    {
 	      number_of_elements++;
 	      if (first_deleted_entry_ptr != NULL)
@@ -208,18 +214,18 @@ hash_table::find_entry (hash_table_entry_t element, int reserve)
 		  *entry_ptr = DELETED_ENTRY;
 		}
 	    }
-          break;
-        }
+	  break;
+	}
       else if (*entry_ptr != DELETED_ENTRY)
-        {
-          if ((*eq_function) (*entry_ptr, element))
-            break;
-        }
+	{
+	  if ((*eq_function) (*entry_ptr, element))
+	    break;
+	}
       else if (first_deleted_entry_ptr == NULL)
 	first_deleted_entry_ptr = entry_ptr;
       hash_value += secondary_hash_value;
       if (hash_value >= _size)
-        hash_value -= _size;
+	hash_value -= _size;
     }
   return entry_ptr;
 }

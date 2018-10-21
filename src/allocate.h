@@ -8,7 +8,8 @@
 #define YAEP_ALLOCATE_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include<stddef.h>
@@ -20,7 +21,7 @@ extern "C" {
  * @sa #Yaep_realloc()
  * @sa #Yaep_free()
  */
-typedef void * ( *Yaep_malloc )( size_t );
+typedef void *(*Yaep_malloc) (size_t);
 
 /**
  * Type for functions behaving like standard calloc().
@@ -29,7 +30,7 @@ typedef void * ( *Yaep_malloc )( size_t );
  * @sa #Yaep_realloc()
  * @sa #Yaep_free()
  */
-typedef void * ( *Yaep_calloc )( size_t, size_t );
+typedef void *(*Yaep_calloc) (size_t, size_t);
 
 /**
  * Type for functions behaving like standard realloc().
@@ -38,7 +39,7 @@ typedef void * ( *Yaep_calloc )( size_t, size_t );
  * @sa #Yaep_calloc()
  * @sa #Yaep_free()
  */
-typedef void * ( *Yaep_realloc )( void *, size_t );
+typedef void *(*Yaep_realloc) (void *, size_t);
 
 /**
  * Type for functions behaving like standard free().
@@ -47,7 +48,7 @@ typedef void * ( *Yaep_realloc )( void *, size_t );
  * @sa #Yaep_calloc()
  * @sa #Yaep_realloc()
  */
-typedef void ( *Yaep_free )( void * ptr );
+typedef void (*Yaep_free) (void *ptr);
 
 /**
  * Callback type for allocation errors.
@@ -60,7 +61,7 @@ typedef void ( *Yaep_free )( void * ptr );
  * @sa #yaep_alloc_geterrfunc()
  * @sa #yaep_alloc_seterr()
  */
-typedef void ( *Yaep_alloc_error )( void * userptr );
+typedef void (*Yaep_alloc_error) (void *userptr);
 
 /**
  * YAEP allocator type.
@@ -79,7 +80,7 @@ typedef struct YaepAllocator YaepAllocator;
  *
  * @sa #yaep_alloc_seterr()
  */
-void yaep_alloc_defaulterrfunc( void * ignored );
+void yaep_alloc_defaulterrfunc (void *ignored);
 
 /**
  * Creates a new allocator.
@@ -112,7 +113,8 @@ void yaep_alloc_defaulterrfunc( void * ignored );
  * @sa #yaep_alloc_seterr()
  * @sa #yaep_alloc_defaulterrfunc()
  */
-YaepAllocator * yaep_alloc_new( Yaep_malloc mallocf, Yaep_calloc callocf, Yaep_realloc reallocf, Yaep_free freef );
+YaepAllocator *yaep_alloc_new (Yaep_malloc mallocf, Yaep_calloc callocf,
+			       Yaep_realloc reallocf, Yaep_free freef);
 
 /**
  * Destroys an allocator.
@@ -121,7 +123,7 @@ YaepAllocator * yaep_alloc_new( Yaep_malloc mallocf, Yaep_calloc callocf, Yaep_r
  *
  * @sa #yaep_alloc_new()
  */
-void yaep_alloc_del( YaepAllocator * allocator );
+void yaep_alloc_del (YaepAllocator * allocator);
 
 /**
  * Allocates memory.
@@ -139,7 +141,7 @@ void yaep_alloc_del( YaepAllocator * allocator );
  * @sa #yaep_calloc()
  * @sa #yaep_alloc_seterr()
  */
-void * yaep_malloc( YaepAllocator * allocator, size_t size );
+void *yaep_malloc (YaepAllocator * allocator, size_t size);
 
 /**
  * Allocates zero-initialised memory.
@@ -159,7 +161,7 @@ void * yaep_malloc( YaepAllocator * allocator, size_t size );
  * @sa #yaep_malloc()
  * @sa #yaep_alloc_seterr()
  */
-void * yaep_calloc( YaepAllocator * allocator, size_t nmemb, size_t size );
+void *yaep_calloc (YaepAllocator * allocator, size_t nmemb, size_t size);
 
 /**
  * Resizes memory.
@@ -183,7 +185,7 @@ void * yaep_calloc( YaepAllocator * allocator, size_t nmemb, size_t size );
  * @sa #yaep_calloc()
  * @sa #yaep_alloc_seterr()
  */
-void * yaep_realloc( YaepAllocator * allocator, void * ptr, size_t size );
+void *yaep_realloc (YaepAllocator * allocator, void *ptr, size_t size);
 
 /**
  * Frees previously allocated memory.
@@ -197,7 +199,7 @@ void * yaep_realloc( YaepAllocator * allocator, void * ptr, size_t size );
  * @sa #yaep_calloc()
  * @sa #yaep_realloc()
  */
-void yaep_free( YaepAllocator * allocator, void * ptr );
+void yaep_free (YaepAllocator * allocator, void *ptr);
 
 /**
  * Obtains the current error function of an allocator.
@@ -214,7 +216,7 @@ void yaep_free( YaepAllocator * allocator, void * ptr );
  * @sa #yaep_alloc_seterr()
  * @sa #yaep_alloc_defaulterrfunc()
  */
-Yaep_alloc_error yaep_alloc_geterrfunc( YaepAllocator * allocator );
+Yaep_alloc_error yaep_alloc_geterrfunc (YaepAllocator * allocator);
 
 /**
  * Obtains the current user-provided pointer.
@@ -229,7 +231,7 @@ Yaep_alloc_error yaep_alloc_geterrfunc( YaepAllocator * allocator );
  *
  * @sa #yaep_alloc_seterr()
  */
-void * yaep_alloc_getuserptr( YaepAllocator * allocator );
+void *yaep_alloc_getuserptr (YaepAllocator * allocator);
 
 /**
  * Sets the error function and user-provided pointer of an allocator.
@@ -246,7 +248,8 @@ void * yaep_alloc_getuserptr( YaepAllocator * allocator );
  * @sa #yaep_alloc_geterrfunc()
  * @sa #yaep_alloc_getuserptr()
  */
-void yaep_alloc_seterr( YaepAllocator * allocator, Yaep_alloc_error errfunc, void * userptr );
+void yaep_alloc_seterr (YaepAllocator * allocator, Yaep_alloc_error errfunc,
+			void *userptr);
 
 #ifdef __cplusplus
 }

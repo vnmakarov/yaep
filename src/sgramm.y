@@ -251,7 +251,6 @@ cost :         { anode_cost = 1;}
      | NUMBER  { anode_cost = $1; }
      ;
 %%
-
 /* The following is current input character of the grammar
    description. */
 static const char *curr_ch;
@@ -297,13 +296,13 @@ yylex (void)
 	      curr_ch--;
 	      yyerror ("invalid input character /");
 	    }
-	  for (;;) 
+	  for (;;)
 	    {
 	      c = *curr_ch++;
 	      if (c == '\0')
-		  yyerror ("unfinished comment");
-              if (c == '\n')
-                ln++; 
+		yyerror ("unfinished comment");
+	      if (c == '\n')
+		ln++;
 	      if (c == '*')
 		{
 		  c = *curr_ch++;
@@ -350,7 +349,7 @@ yylex (void)
 	      while ((c = *curr_ch++) != '\0')
 		if (c == '\n')
 		  ln++;
-	        else if (c != '\t' && c != ' ')
+		else if (c != '\t' && c != ' ')
 		  break;
 	      if (c != ':')
 		curr_ch--;
@@ -364,21 +363,21 @@ yylex (void)
 	      curr_ch--;
 	      return NUMBER;
 	    }
-          else
-            {
-              n_errs++;
-              if (n_errs == 1)
-                {
-		  char str [100];
+	  else
+	    {
+	      n_errs++;
+	      if (n_errs == 1)
+		{
+		  char str[100];
 
-                  if (isprint (c))
+		  if (isprint (c))
 		    {
 		      sprintf (str, "invalid input character '%c'", c);
 		      yyerror (str);
 		    }
-                  else
-                    yyerror ("invalid input character");
-                }
+		  else
+		    yyerror ("invalid input character");
+		}
 	    }
 	}
     }
@@ -391,7 +390,7 @@ int
 yyerror (const char *str)
 {
   yaep_error (YAEP_DESCRIPTION_SYNTAX_ERROR_CODE,
-  	      "description syntax error on ln %d", ln);
+	      "description syntax error on ln %d", ln);
   return 0;
 }
 
@@ -415,7 +414,9 @@ static void free_sgrammar (void);
 
 /* The following is major function which parses the description and
    transforms it into IR. */
-static int set_sgrammar( struct grammar * g, const char * grammar ) {
+static int
+set_sgrammar (struct grammar *g, const char *grammar)
+{
   int i, j, num;
   struct sterm *term, *prev, *arr;
   int code = 256;
@@ -426,11 +427,11 @@ static int set_sgrammar( struct grammar * g, const char * grammar ) {
       free_sgrammar ();
       return code;
     }
-  OS_CREATE( stoks, g->alloc, 0 );
-  VLO_CREATE( sterms, g->alloc, 0 );
-  VLO_CREATE( srules, g->alloc, 0 );
-  OS_CREATE( srhs, g->alloc, 0 );
-  OS_CREATE( strans, g->alloc, 0 );
+  OS_CREATE (stoks, g->alloc, 0);
+  VLO_CREATE (sterms, g->alloc, 0);
+  VLO_CREATE (srules, g->alloc, 0);
+  OS_CREATE (srhs, g->alloc, 0);
+  OS_CREATE (strans, g->alloc, 0);
   curr_ch = grammar;
   yyparse ();
   /* sort array of syntax terminals by names. */
@@ -445,17 +446,18 @@ static int set_sgrammar( struct grammar * g, const char * grammar ) {
       if (prev == NULL || strcmp (prev->repr, term->repr) != 0)
 	{
 	  prev = term;
-	  arr [j++] = *term;
+	  arr[j++] = *term;
 	}
       else if (term->code != -1 && prev->code != -1
 	       && prev->code != term->code)
 	{
-	  char str [YAEP_MAX_ERROR_MESSAGE_LENGTH / 2];
-	  
+	  char str[YAEP_MAX_ERROR_MESSAGE_LENGTH / 2];
+
 	  strncpy (str, prev->repr, sizeof (str));
-	  str [sizeof (str) - 1] = '\0';
+	  str[sizeof (str) - 1] = '\0';
 	  yaep_error (YAEP_REPEATED_TERM_CODE,
-		      "term %s described repeatedly with different code", str);
+		      "term %s described repeatedly with different code",
+		      str);
 	}
       else if (prev->code != -1)
 	prev->code = term->code;
@@ -492,8 +494,8 @@ sread_terminal (int *code)
 {
   struct sterm *term;
   const char *name;
-  
-  term = &((struct sterm *) VLO_BEGIN (sterms)) [nsterm];
+
+  term = &((struct sterm *) VLO_BEGIN (sterms))[nsterm];
   if ((char *) term >= (char *) VLO_BOUND (sterms))
     return NULL;
   *code = term->code;
@@ -509,7 +511,7 @@ sread_rule (const char ***rhs, const char **abs_node, int *anode_cost,
   struct srule *rule;
   const char *lhs;
 
-  rule = &((struct srule *) VLO_BEGIN (srules)) [nsrule];
+  rule = &((struct srule *) VLO_BEGIN (srules))[nsrule];
   if ((char *) rule >= (char *) VLO_BOUND (srules))
     return NULL;
   lhs = rule->lhs;
@@ -525,13 +527,13 @@ sread_rule (const char ***rhs, const char **abs_node, int *anode_cost,
 #ifdef __cplusplus
 static
 #endif
-int
+  int
 yaep_parse_grammar (struct grammar *g, int strict_p, const char *description)
 {
   int code;
 
   assert (g != NULL);
-  if ( ( code = set_sgrammar( g, description ) ) != 0 )
+  if ((code = set_sgrammar (g, description)) != 0)
     return code;
   code = yaep_read_grammar (g, strict_p, sread_terminal, sread_rule);
   free_sgrammar ();

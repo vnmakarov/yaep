@@ -61,7 +61,7 @@
 void
 _OS_memcpy (void *to, const void *from, size_t length)
 {
-#ifdef HAVE_MEMCPY 
+#ifdef HAVE_MEMCPY
   memcpy (to, from, length);
 #else
   char *cto = (char *) to;
@@ -77,10 +77,13 @@ _OS_memcpy (void *to, const void *from, size_t length)
 
 /* The constructor of OS with given initial segment length. */
 
-os::os( YaepAllocator * allocator, size_t initial_segment_length ) : os_alloc( allocator ) {
+os::os (YaepAllocator * allocator, size_t initial_segment_length):os_alloc (allocator)
+{
   if (initial_segment_length == 0)
     initial_segment_length = OS_DEFAULT_SEGMENT_LENGTH;
-  os_current_segment = ( _os_segment * ) yaep_malloc( os_alloc, initial_segment_length + sizeof( _os_segment ) );
+  os_current_segment =
+    (_os_segment *) yaep_malloc (os_alloc,
+				 initial_segment_length + sizeof (_os_segment));
   os_current_segment->os_previous_segment = NULL;
   os_top_object_start
     = (char *) _OS_ALIGNED_ADDRESS (os_current_segment->os_segment_contest);
@@ -97,11 +100,12 @@ os::~os (void)
 
   assert (os_top_object_start != NULL);
   os_top_object_start = NULL;
-  for (current_segment = os_current_segment; current_segment != NULL;
+  for (current_segment = os_current_segment;
+       current_segment != NULL;
        current_segment = previous_segment)
     {
       previous_segment = current_segment->os_previous_segment;
-      yaep_free( os_alloc, current_segment );
+      yaep_free (os_alloc, current_segment);
     }
 }
 
@@ -119,8 +123,8 @@ os::empty (void)
     {
       previous_segment = current_segment->os_previous_segment;
       if (previous_segment == NULL)
-        break;
-      yaep_free( os_alloc, current_segment );
+	break;
+      yaep_free (os_alloc, current_segment);
       current_segment = previous_segment;
     }
   os_current_segment = current_segment;
@@ -172,16 +176,16 @@ os::_OS_expand_memory (size_t additional_length)
   segment_length += segment_length / 2 + 1;
   if (segment_length < OS_DEFAULT_SEGMENT_LENGTH)
     segment_length = OS_DEFAULT_SEGMENT_LENGTH;
-  new_segment = ( _os_segment * ) yaep_malloc( os_alloc, segment_length + sizeof( _os_segment ) );
-  new_os_top_object_start
-    = (char *) _OS_ALIGNED_ADDRESS (new_segment->os_segment_contest);
-  _OS_memcpy (new_os_top_object_start, os_top_object_start,
-              os_top_object_length);
-  if (os_top_object_start
-      == (char *) _OS_ALIGNED_ADDRESS (os_current_segment->os_segment_contest))
+  new_segment =
+    (_os_segment *) yaep_malloc (os_alloc, segment_length + sizeof (_os_segment));
+  new_os_top_object_start =
+    (char *) _OS_ALIGNED_ADDRESS (new_segment->os_segment_contest);
+  _OS_memcpy (new_os_top_object_start, os_top_object_start, os_top_object_length);
+  if (os_top_object_start ==
+      (char *) _OS_ALIGNED_ADDRESS (os_current_segment->os_segment_contest))
     {
       previous_segment = os_current_segment->os_previous_segment;
-      yaep_free( os_alloc, os_current_segment );
+      yaep_free (os_alloc, os_current_segment);
     }
   else
     previous_segment = os_current_segment;

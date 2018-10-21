@@ -100,8 +100,8 @@ eq (hash_table_entry_t el1, hash_table_entry_t el2)
   return strcmp ((char *) el1, (char *) el2) == 0;
 }
 
-static void initiate_typedefs( YaepAllocator * alloc ) {
-  table = create_hash_table( alloc, 50000, hash, eq );
+static void initiate_typedefs (YaepAllocator * alloc) {
+  table = create_hash_table (alloc, 50000, hash, eq);
 }
 
 /* Now we ignore level */
@@ -190,11 +190,11 @@ get_lex (void)
 
 #include "ansic.c"
 
-static void store_lexs( YaepAllocator * alloc ) {
+static void store_lexs (YaepAllocator * alloc) {
   struct lex lex, *prev;
   int code;
 
-  OS_CREATE( lexs, alloc, 0 );
+  OS_CREATE (lexs, alloc, 0);
   list = NULL;
   prev = NULL;
   while ((code = yylex ()) > 0) {
@@ -229,15 +229,15 @@ main (void)
   char *start = sbrk (0);
 #endif
 
-  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
-  if ( alloc == NULL ) {
-    exit( 1 );
+  YaepAllocator * alloc = yaep_alloc_new (NULL, NULL, NULL, NULL);
+  if (alloc == NULL) {
+    exit (1);
   }
 #if YYDEBUG
   yydebug = 1;
 #endif
-  store_lexs( alloc );
-  initiate_typedefs( alloc );
+  store_lexs (alloc);
+  initiate_typedefs (alloc);
   curr = NULL;
   t = create_ticker ();
   code = yyparse();
@@ -247,7 +247,7 @@ main (void)
 #else
   printf ("parse time %.2f\n", active_time (t));
 #endif
-  yaep_alloc_del( alloc );
+  yaep_alloc_del (alloc);
   exit (code);
 }
 EOF
@@ -11300,14 +11300,14 @@ get_lex (void)
 
 #include "ansic.c"
 
-static void store_lexs( YaepAllocator * alloc ) {
+static void store_lexs (YaepAllocator * alloc) {
   struct lex lex, *prev;
   int code;
 #ifdef DEBUG
   int nt = 0;
 #endif
 
-  OS_CREATE( lexs, alloc, 0 );
+  OS_CREATE (lexs, alloc, 0);
   list = NULL;
   prev = NULL;
   while ((code = yylex ()) > 0) {
@@ -12017,20 +12017,20 @@ main (int argc, char **argv)
   char *start = sbrk (0);
 #endif
 
-  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
-  if ( alloc == NULL ) {
-    exit( 1 );
+  YaepAllocator * alloc = yaep_alloc_new (NULL, NULL, NULL, NULL);
+  if (alloc == NULL) {
+    exit (1);
   }
-  OS_CREATE( mem_os, alloc, 0 );
+  OS_CREATE (mem_os, alloc, 0);
   t = create_ticker ();
-  store_lexs( alloc );
+  store_lexs (alloc);
 #ifdef linux
   printf ("scanner time %.2f, memory=%.1fkB\n", active_time (t),
           ((char *) sbrk (0) - start) / 1024.);
 #else
   printf ("scanner time %.2f\n", active_time (t));
 #endif
-  initiate_typedefs( alloc );
+  initiate_typedefs (alloc);
   curr = NULL;
   if ((g = yaep_create_grammar ()) == NULL)
     {
@@ -12071,7 +12071,7 @@ main (int argc, char **argv)
   printf ("parse time %.2f\n", active_time (t));
 #endif
   OS_DELETE (mem_os);
-  yaep_alloc_del( alloc );
+  yaep_alloc_del (alloc);
   exit (0);
 }
 EOF
@@ -12437,14 +12437,14 @@ static void free_sgrammar (void);
 
 /* The following is major function which parses the description and
    transforms it into IR. */
-static int set_sgrammar( YaepAllocator * alloc, const char * grammar ) {
+static int set_sgrammar (YaepAllocator * alloc, const char * grammar) {
   int i, j, num;
   struct sym *term, *prev, *arr;
 
   ln = 1;
-  OS_CREATE( stoks, alloc, 0 );
-  VLO_CREATE( sterms, alloc, 0 );
-  VLO_CREATE( srules, alloc, 0 );
+  OS_CREATE (stoks, alloc, 0);
+  VLO_CREATE (sterms, alloc, 0);
+  VLO_CREATE (srules, alloc, 0);
   OS_CREATE(s rhs, alloc, 0 );
   curr_ch = grammar;
   yyparse ();
@@ -12562,7 +12562,7 @@ fail (const char *s, Marpa_Grammar g)
 }
 
 /* The following function parses grammar desrciption. */
-static void marpa_set_grammar( YaepAllocator * alloc, Marpa_Config * marpa_configuration, Marpa_Grammar * g, const char * description) {
+static void marpa_set_grammar (YaepAllocator * alloc, Marpa_Config * marpa_configuration, Marpa_Grammar * g, const char * description) {
   int i;
   Marpa_Error_Code mcode;
   struct sym *sym, *tab_sym, *lhs_sym;
@@ -12570,11 +12570,11 @@ static void marpa_set_grammar( YaepAllocator * alloc, Marpa_Config * marpa_confi
   const char *error_string;
   Marpa_Symbol_ID first, rhs_ids[100]; /* enough for the longest rule */
   
-  if ( set_sgrammar( alloc, description ) ) {
+  if (set_sgrammar (alloc, description)) {
       printf ("error in description");
       exit (1);
     }
-  sym_table = create_hash_table( alloc, 50000, sym_hash, sym_eq );
+  sym_table = create_hash_table (alloc, 50000, sym_hash, sym_eq);
   marpa_c_init (marpa_configuration);
   *g = marpa_g_new (marpa_configuration);
   if (!*g)
@@ -12589,13 +12589,13 @@ static void marpa_set_grammar( YaepAllocator * alloc, Marpa_Config * marpa_confi
   first = -1;
   while ((lhs = sread_rule (&rhs)) != NULL)
     {
-      lhs_sym = yaep_malloc( alloc, sizeof( struct sym ) );
+      lhs_sym = yaep_malloc (alloc, sizeof (struct sym));
       lhs_sym->repr = lhs;
       if ((tab_sym = insert_symbol (lhs, lhs_sym)) == lhs_sym)
 	(lhs_sym->id = marpa_g_symbol_new (*g)) >= 0 || fail ("marpa_g_symbol_new", *g);
       else
 	{
-	  yaep_free( alloc, lhs_sym );
+	  yaep_free (alloc, lhs_sym);
 	  lhs_sym = tab_sym;
 	}
       if (first < 0)
@@ -12604,12 +12604,12 @@ static void marpa_set_grammar( YaepAllocator * alloc, Marpa_Config * marpa_confi
 	{
 	  if (rhs[i] == NULL)
 	    break;
-	  sym = yaep_malloc( alloc, sizeof( struct sym ) );
+	  sym = yaep_malloc (alloc, sizeof (struct sym));
 	  sym->repr = rhs[i];
 	  if ((tab_sym = insert_symbol (rhs[i], sym)) == sym)
 	    (sym->id = marpa_g_symbol_new (*g)) >= 0 || fail ("marpa_g_symbol_new", *g);
 	  else
-	    yaep_free( alloc, sym );
+	    yaep_free (alloc, sym);
 	  rhs_ids[i] = tab_sym->id;
 	}
       (marpa_g_rule_new (*g, lhs_sym->id, rhs_ids, i) >= 0) || fail ("marpa_g_rule_new", *g);
@@ -12812,14 +12812,14 @@ get_lex (void)
 
 #include "ansic.c"
 
-static void store_lexs( YaepAllocator * alloc ) {
+static void store_lexs (YaepAllocator * alloc) {
   struct lex lex, *prev;
   int code;
 #ifdef DEBUG
   int nt = 0;
 #endif
 
-  OS_CREATE( lexs, alloc, 0 );
+  OS_CREATE (lexs, alloc, 0);
   list = NULL;
   prev = NULL;
   while ((code = yylex ()) > 0) {
@@ -13590,16 +13590,16 @@ main (int argc, char **argv)
   char *start = sbrk (0);
 #endif
 
-  YaepAllocator * alloc = yaep_alloc_new( NULL, NULL, NULL, NULL );
-  if ( alloc == NULL ) {
-    exit( 1 );
+  YaepAllocator * alloc = yaep_alloc_new (NULL, NULL, NULL, NULL);
+  if (alloc == NULL) {
+    exit (1);
   }
-  OS_CREATE( mem_os, alloc, 0 );
-  initiate_typedefs( alloc );
+  OS_CREATE (mem_os, alloc, 0);
+  initiate_typedefs (alloc);
   curr = NULL;
-  marpa_set_grammar( alloc, &marpa_configuration, &g, description );
+  marpa_set_grammar (alloc, &marpa_configuration, &g, description);
   setup_tokens ();
-  store_lexs( alloc );
+  store_lexs (alloc);
   t = create_ticker ();
   marpa_parse (&g);
   marpa_free_grammar (&g);
@@ -13610,7 +13610,7 @@ main (int argc, char **argv)
   printf ("parse time %.2f\n", active_time (t));
 #endif
   OS_DELETE (mem_os);
-  yaep_alloc_del( alloc );
+  yaep_alloc_del (alloc);
   exit (0);
 }
 EOF
