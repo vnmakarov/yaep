@@ -5353,7 +5353,6 @@ static struct yaep_tree_node *
 find_minimal_translation (struct yaep_tree_node *root)
 {
   struct yaep_tree_node **node_ptr;
-  hash_table_entry_t *entry, *entry_1;
   int cost;
 
   if (parse_free != NULL)
@@ -5376,21 +5375,17 @@ find_minimal_translation (struct yaep_tree_node *root)
       for (node_ptr = (struct yaep_tree_node **) VLO_BEGIN (tnodes_vlo);
 	   node_ptr < (struct yaep_tree_node **) VLO_BOUND (tnodes_vlo);
 	   node_ptr++)
-	if (*(entry = find_hash_table_entry (reserv_mem_tab, *node_ptr, TRUE))
-	    == NULL)
-	  {
-	    if ((*node_ptr)->type == YAEP_ANODE
-		&& *(entry_1
-		     = find_hash_table_entry (reserv_mem_tab,
-					      (*node_ptr)->val.anode.name,
-					      TRUE)) == NULL)
-	      {
-		*entry_1 = (hash_table_entry_t) (*node_ptr)->val.anode.name;
+	if (*find_hash_table_entry (reserv_mem_tab, *node_ptr, TRUE) == NULL)
+	   {
+	     if ((*node_ptr)->type == YAEP_ANODE
+		 && *find_hash_table_entry (reserv_mem_tab,
+					       (*node_ptr)->val.anode.name,
+					       TRUE) == NULL)
+	       {
 		(*parse_free) ((void *) (*node_ptr)->val.anode.name);
-	      }
-	    (*parse_free) (*node_ptr);
-	    *entry = (hash_table_entry_t) (*node_ptr)->val.anode.name;
-	  }
+	       }
+	     (*parse_free) (*node_ptr);
+	   }
       VLO_DELETE (tnodes_vlo);
 #ifndef __cplusplus
       delete_hash_table (reserv_mem_tab);
