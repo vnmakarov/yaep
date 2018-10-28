@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <ctype.h>
 #include <string.h>
+
+#include"common.h"
 #include "objstack.h"
 #include "hashtab.h"
 #include "ticker.h"
@@ -131,20 +133,6 @@ static void store_lexs( YaepAllocator * alloc ) {
 #ifdef DEBUG
   fprintf (stderr, "%d tokens\n", nt);
 #endif
-}
-
-/* All parse_alloc memory is contained here. */
-static os_t mem_os;
-
-static void *
-test_parse_alloc (int size)
-{
-  void *result;
-
-  OS_TOP_EXPAND (mem_os, size);
-  result = OS_TOP_BEGIN (mem_os);
-  OS_TOP_FINISH (mem_os);
-  return result;
 }
 
 /* Printing syntax error. */
@@ -813,7 +801,6 @@ main (int argc, char **argv)
   if ( alloc == NULL ) {
     exit( 1 );
   }
-  OS_CREATE( mem_os, alloc, 0 );
   store_lexs( alloc );
   initiate_typedefs( alloc );
   curr = NULL;
@@ -821,7 +808,6 @@ main (int argc, char **argv)
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "yaep_create_grammar: No memory\n");
-      OS_DELETE (mem_os);
       exit (1);
     }
   if (argc > 1)
@@ -838,14 +824,10 @@ main (int argc, char **argv)
   if (yaep_parse_grammar (g, 1, description) != 0)
     {
       fprintf (stderr, "%s\n", yaep_error_message (g));
-      OS_DELETE (mem_os);
       exit (1);
     }
-  if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
-                    NULL, &root, &ambiguous_p))
-    {
+  if ( yaep_parse( g, test_read_token, test_syntax_error, test_parse_alloc, test_parse_free, &root, &ambiguous_p ) ) {
       fprintf (stderr, "yaep parse: %s\n", yaep_error_message (g));
-      OS_DELETE (mem_os);
       exit (1);
     }
   yaep_free_grammar (g);
@@ -855,7 +837,6 @@ main (int argc, char **argv)
 #else
   printf ("all time %.2f\n", active_time (t));
 #endif
-  OS_DELETE (mem_os);
   yaep_alloc_del( alloc );
   exit (0);
 }

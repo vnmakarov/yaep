@@ -1,19 +1,8 @@
 #include<stdio.h>
 #include <stdlib.h>
-#include "objstack.h"
+
+#include"common.h"
 #include "yaep.h"
-
-static void *
-test_parse_alloc (int size)
-{
-  return malloc (size);
-}
-
-static void
-test_parse_free (void *mem)
-{
-  free (mem);
-}
 
 /* Printing syntax error. */
 static void
