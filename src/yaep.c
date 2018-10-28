@@ -5274,8 +5274,8 @@ prune_to_minimal (struct yaep_tree_node *node, int *cost)
 	      node->val.anode.cost += *cost;
 	    }
 	  *cost = node->val.anode.cost;
+          node->val.anode.cost = -node->val.anode.cost - 1;	/* flag of visit */
 	}
-      node->val.anode.cost = -node->val.anode.cost - 1;	/* flag of visit */
       return node;
     case YAEP_ALT:
       for (alt = node; alt != NULL; alt = next_alt)
