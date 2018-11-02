@@ -135,22 +135,6 @@ static void store_lexs( YaepAllocator * alloc ) {
 #endif
 }
 
-/* Printing syntax error. */
-static void
-test_syntax_error (int err_tok_num, void *err_tok_attr,
-		   int start_ignored_tok_num, void *start_ignored_tok_attr,
-		   int start_recovered_tok_num, void *start_recovered_tok_attr)
-{
-  if (start_ignored_tok_num < 0)
-    fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
-  else
-    fprintf
-      (stderr,
-       "Syntax error on token %d(ln %d):ignore %d tokens starting with token = %d\n",
-       err_tok_num, (int) (ptrdiff_t) err_tok_attr,
-       start_recovered_tok_num - start_ignored_tok_num, start_ignored_tok_num);
-}
-
 /* The following function imported by YAEP (see comments in the interface file). */
 static int
 test_read_token (void **attr)
