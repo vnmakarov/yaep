@@ -5325,6 +5325,7 @@ traverse_pruned_translation (struct yaep_tree_node *node)
   hash_table_entry_t *entry;
   int i;
 
+ next:
   assert (node != NULL);
   if (parse_free != NULL
       && *(entry =
@@ -5348,8 +5349,9 @@ traverse_pruned_translation (struct yaep_tree_node *node)
       node->val.anode.cost = -node->val.anode.cost - 1;
       break;
     case YAEP_ALT:
-      for (alt = node; alt != NULL; alt = alt->val.alt.next)
-	traverse_pruned_translation (alt->val.alt.node);
+      traverse_pruned_translation (node->val.alt.node);
+      if ((node = node->val.alt.next) != NULL)
+	goto next;
       break;
     default:
       assert (FALSE);

@@ -1,5 +1,10 @@
 2018-11-02  Vladimir Makarov  <vmakarov@gcc.gnu.org>
 
+	* src/yape.c (traverse_pruned_translation): Process next alt node
+	from the start again.
+
+2018-11-02  Vladimir Makarov  <vmakarov@gcc.gnu.org>
+
 	* src/compare_parsers.tst.in: Remove mentioning ammunition.  Print
 	better messages.
 	(set_sgrammar): Fix typo in OS_CREATE call.
