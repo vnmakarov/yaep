@@ -2,18 +2,16 @@
 # @configure_input@
 
 #
-# Script to comparison of Bison, Yacc (byacc), AMMUNITION YAEP (Yet
+# Script to comparison of Bison, Yacc (byacc), YAEP (Yet
 # Another Earley Parser), MARPA Earley's parser, and MSTA.  The script
 # can find installed MARPA in /usr and /usr/local.  If MARPA parser is
 # installed somewhere else then use environment variable MARPA_DIR to
 # point its installation directory.
 #
 #
-# Copyright (C) 1997-2015 Vladimir Makarov.
+# Copyright (C) 1997-2018 Vladimir Makarov.
 #
 # Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
-#
-# This file is part of AMMUNITION.
 #
 # This is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -11133,7 +11131,7 @@ fi
 
 if test x$BISON != x; then
   # BISON
-  echo '  ' bison: pure parsing
+  echo ++++++++Bison: pure parsing
   if $BISON -y ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$TEST; then
     echo
   else
@@ -11155,7 +11153,7 @@ fi
 
 if test x$YACC != x; then
   # YACC
-  echo '  ' yacc: pure parsing
+  echo ++++++++Yacc: pure parsing
     
   if $YACC ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$TEST; then
     echo
@@ -11179,7 +11177,7 @@ fi
 
 if test x$MSTA != x; then
     # MSTA
-    echo '  ' msta: pure parsing
+    echo ++++++++Msta: pure parsing
     if $MSTA -yacc-file-names ansic.y && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -L$YAEPDIR test.c -l$YAEPLIB -o $outfile && time $outfile <$TEST; then
 	echo
     else
@@ -11199,8 +11197,8 @@ if test x$MSTA != x; then
     fi
 fi
 
-# YAEP (Yet Another Earley Parser) from Ammunition
-echo '  ' 'YAEP (Yet Another Earley Parser)' from AMMUNITION: pure parsing
+# YAEP (Yet Another Earley Parser)
+echo ++++++++YAEP '(Yet Another Earley Parser)': pure parsing
 
 cat >test.c <<'EOF'
 #include <limits.h>
@@ -12125,7 +12123,7 @@ if test x$MARPA_DIR = x; then
    fi
 fi
 
-echo '  ' Marpa Earley parser from $MARPA_DIR: pure parsing
+echo ++++++++MARPA Earley parser from $MARPA_DIR: pure parsing
 
 cat >test.y <<'EOF'
 /* This file contains a code which transforms grammar
@@ -12445,7 +12443,7 @@ static int set_sgrammar (YaepAllocator * alloc, const char * grammar) {
   OS_CREATE (stoks, alloc, 0);
   VLO_CREATE (sterms, alloc, 0);
   VLO_CREATE (srules, alloc, 0);
-  OS_CREATE(s rhs, alloc, 0 );
+  OS_CREATE (srhs, alloc, 0 );
   curr_ch = grammar;
   yyparse ();
   /* sort array of syntax terminals by names. */
@@ -13627,6 +13625,7 @@ fi
 
 if test -f test.c && $GCC -I@srcdir@ -I@srcdir@/$YAEPDIR -I$MARPA_DIR/include -L$YAEPDIR -L$MARPA_DIR/lib -L$MARPA_DIR/lib64 test.c -l$YAEPLIB -lmarpa -o $outfile && time $outfile <$TEST; then
   echo
+  echo MARPA Earley parser -- Big test
   if test x$MARPA_BIG_TEST != x; then
      if time $outfile < $BIG_TEST; then
 	 echo

@@ -1,3 +1,9 @@
+2018-11-02  Vladimir Makarov  <vmakarov@gcc.gnu.org>
+
+	* src/compare_parsers.tst.in: Remove mentioning ammunition.  Print
+	better messages.
+	(set_sgrammar): Fix typo in OS_CREATE call.
+
 2018-10-21  Vladimir Makarov  <vmakarov@gcc.gnu.org>
 
 	* allocate.[ch]: Use GNU style format.
