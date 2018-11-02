@@ -65,23 +65,7 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
     }
 }
 
-/* The following variable is the current number of next input
-   token. */
-static int ntok;
-
-/* The following function imported by YAEP (see comments in the interface file). */
-static int
-test_read_token (void **attr)
-{
-  const char input [] ="a+a*(a*a+a)";
-
-  ntok++;
-  *attr = NULL;
-  if (ntok < sizeof (input))
-    return input [ntok - 1];
-  else
-    return -1;
-}
+static const char *input = "a+a*(a*a+a)";
 
 main ()
 {
@@ -94,7 +78,6 @@ main ()
       fprintf (stderr, "yaep_create_grammar: No memory\n");
       exit (1);
     }
-  ntok = 0;
   if (yaep_read_grammar (g, 1, read_terminal, read_rule) != 0)
     {
       fprintf (stderr, "%s\n", yaep_error_message (g));

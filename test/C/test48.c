@@ -4,23 +4,7 @@
 #include"common.h"
 #include "yaep.h"
 
-/* The following variable is the current number of next input
-   token. */
-static int ntok;
-
-/* The following function imported by YAEP (see comments in the interface file). */
-static int
-test_read_token (void **attr)
-{
-  const char input [] ="spc; ";
-
-  ntok++;
-  *attr = NULL;
-  if (ntok < sizeof (input))
-    return input [ntok - 1];
-  else
-    return -1;
-}
+static const char *input = "spc; ";
 
 static const char *description =
 "\n"
@@ -43,7 +27,6 @@ main (int argc, char **argv)
       fprintf (stderr, "yaep_create_grammar: No memory\n");
       exit (1);
     }
-  ntok = 0;
   yaep_set_one_parse_flag (g, 1);
   if (argc > 1)
     yaep_set_lookahead_level (g, atoi (argv [1]));

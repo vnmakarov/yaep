@@ -39,4 +39,23 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
        start_ignored_tok_num);
 }
 
+static const char *input;
+
+/* The following function imported by YAEP (see comments in the interface file). */
+static int
+test_read_token (void **attr)
+{
+  static int ntok = 0;
+
+  *attr = NULL;
+  if (input [ntok])
+    {
+      return input [ntok++];
+    }
+  else
+    {
+      return -1;
+    }
+}
+
 #endif
