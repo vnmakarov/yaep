@@ -53,7 +53,7 @@ os::os (YaepAllocator * allocator, size_t initial_segment_length):os_alloc (allo
     = (char *) _OS_ALIGNED_ADDRESS (os_current_segment->os_segment_contest);
   os_top_object_free = os_top_object_start;
   os_boundary = os_top_object_start + initial_segment_length;
-  initial_segment_length = initial_segment_length;
+  this->initial_segment_length = initial_segment_length;
 }
 
 /* The destructor frees memory allocated for OS. */
