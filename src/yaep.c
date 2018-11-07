@@ -350,6 +350,7 @@ struct symbs
      table.  */
   struct symb **symb_code_trans_vect;
   int symb_code_trans_vect_start;
+  int symb_code_trans_vect_end;
 #endif
 };
 
@@ -443,10 +444,18 @@ symb_find_by_code (int code)
 
 #ifdef SYMB_CODE_TRANS_VECT
   if (symbs_ptr->symb_code_trans_vect != NULL)
-    return
-      symbs_ptr->symb_code_trans_vect[code
-				      -
-				      symbs_ptr->symb_code_trans_vect_start];
+    {
+      if ((code < symbs_ptr->symb_code_trans_vect_start)
+          || (code >= symbs_ptr->symb_code_trans_vect_end))
+        {
+          return NULL;
+        }
+      else
+        {
+          return symbs_ptr->symb_code_trans_vect
+            [code - symbs_ptr->symb_code_trans_vect_start];
+        }
+    }
 #endif
   symb.term_p = TRUE;
   symb.u.term.code = code;
@@ -598,9 +607,9 @@ symb_finish_adding_terms (void)
   if (max_code - min_code < SYMB_CODE_TRANS_VECT_SIZE)
     {
       symbs_ptr->symb_code_trans_vect_start = min_code;
-      mem =
-	yaep_malloc (grammar->alloc,
-		     sizeof (struct symb *) * (max_code - min_code + 1));
+      symbs_ptr->symb_code_trans_vect_end = max_code + 1;
+      mem = yaep_malloc (grammar->alloc,
+          sizeof (struct symb*) * (max_code - min_code + 1));
       symbs_ptr->symb_code_trans_vect = (struct symb **) mem;
       for (i = 0; (symb = term_get (i)) != NULL; i++)
 	symbs_ptr->symb_code_trans_vect[symb->u.term.code - min_code] = symb;
