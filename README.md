@@ -3,7 +3,7 @@
   * This standalone library is created for convenience.
   * The parser development is actually done as a part of the [*Dino* language
     project](https://github.com/dino-lang/dino).
-  * YAEP is licensed under LGPL v.2.
+  * YAEP is licensed under the MIT license.
 
 # YAEP features:
   * It is sufficiently fast and does not require much memory.
