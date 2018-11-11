@@ -135,6 +135,18 @@ yaep::set_recovery_match (int n_toks)
   return yaep_set_recovery_match (this->grammar, n_toks);
 }
 
+void
+yaep::setuserptr (void *userptr) noexcept
+{
+  yaep_grammar_setuserptr (this->grammar, userptr);
+}
+
+void *
+yaep::getuserptr () const noexcept
+{
+  return yaep_grammar_getuserptr (this->grammar);
+}
+
 int
 yaep::parse (int (*read_token) (void **attr),
 	     void (*syntax_error) (int err_tok_num,

@@ -155,6 +155,16 @@ struct yaep_tree_node
    the first. */
 extern struct grammar *yaep_create_grammar (void);
 
+/* The following function stores a user-defined pointer
+   in the given grammar. */
+extern void yaep_grammar_setuserptr (struct grammar *g, void *userptr);
+
+/* The following function retrieves a user-defined pointer
+   previously set with yaep_grammar_setuserptr() from
+   the given grammar.  If no user pointer has been set,
+   a null pointer is returned. */
+extern void *yaep_grammar_getuserptr (struct grammar *g);
+
 /* The function returns the last occurred error code for given
    grammar. */
 extern int yaep_error_code (struct grammar *g);
@@ -353,6 +363,8 @@ public:
   int set_cost_flag (int flag);
   int set_error_recovery_flag (int flag);
   int set_recovery_match (int n_toks);
+  void setuserptr (void *userptr) noexcept;
+  void *getuserptr () const noexcept;
 
   /* See comments for function yaep_parse. */
   int parse (int (*read_token) (void **attr),

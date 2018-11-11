@@ -185,6 +185,8 @@ struct grammar
   struct term_sets *term_sets_ptr;
   /* Allocator. */
   YaepAllocator *alloc;
+  /* User pointer */
+  void *userptr;
 };
 
 /* The following variable value is the reference for the current
@@ -3049,7 +3051,38 @@ yaep_create_grammar (void)
   grammar->symbs_ptr = symbs_ptr = symb_init ();
   grammar->term_sets_ptr = term_sets_ptr = term_set_init ();
   grammar->rules_ptr = rules_ptr = rule_init ();
+  grammar->userptr = NULL;
   return grammar;
+}
+
+/* The following function sets the user pointer for a grammar. */
+#ifdef __cplusplus
+static
+#endif
+void
+yaep_grammar_setuserptr (struct grammar *g, void *userptr)
+{
+  if (g != NULL)
+    {
+      g->userptr = userptr;
+    }
+}
+
+/* The following function retrieves the user pointer of a grammar. */
+#ifdef __cplusplus
+static
+#endif
+void *
+yaep_grammar_getuserptr (struct grammar *g)
+{
+  if (g == NULL)
+    {
+      return NULL;
+    }
+  else
+    {
+      return g->userptr;
+    }
 }
 
 /* The following function makes grammar empty. */
