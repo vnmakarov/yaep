@@ -133,8 +133,9 @@ extern int yyparse (struct parser_data *data);
 
 %}
 
-%define api.pure full
-%param {struct parser_data *data}
+%pure-parser
+%lex-param {struct parser_data *data}
+%parse-param {struct parser_data *data}
 
 %union
   {
