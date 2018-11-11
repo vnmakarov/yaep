@@ -33,6 +33,7 @@
 #define __YAEP__
 
 #include <limits.h>
+#include<stddef.h>
 
 /* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
@@ -147,6 +148,30 @@ struct yaep_tree_node
     struct yaep_alt alt;
   } val;
 };
+
+/* The following structure is used to work around a limitation of
+   yaep_read_grammar(). The read_terminal() and read_rule() functions
+   passed to yaep_read_grammar() cannot take a user-defined argument,
+   but this is required for reentrant operation.
+   The long-term solution would be to expand the API of yaep (FIXME).
+   When sticking to the old API, however, we hijack the pointer-to-int
+   parameters to slip through the grammar as additional information.
+   This structure is for internal use only.
+   Use the yaep_reentrant_hack_grammar() macro to retrieve the grammar. */
+struct _yaep_reentrant_hack
+{
+  int value;
+  struct grammar *grammar;
+};
+
+/* The following macro retrieves the grammar from a pointer-to-int argument.
+   It can only be applied to arguments to the code parameter of the
+   read_terminal() parameter, and to the anode_cost parameter of the
+   read_rule() parameter of yaep_read_grammar(). */
+#define yaep_reentrant_hack_grammar(x) \
+  (((struct _yaep_reentrant_hack *) \
+    (((char *) (x)) - offsetof (struct _yaep_reentrant_hack, value))) \
+   ->grammar)
 
 #ifndef __cplusplus
 
