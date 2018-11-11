@@ -87,6 +87,14 @@ struct srule
   int *trans;
 };
 
+/* The following structure contains the parser data. */
+struct parser_data
+{
+  /* The following is cost of the last translation which contains an
+     abstract node. */
+  int anode_cost;
+};
+
 /* The following vlos contain all syntax terminal and syntax rule
    structures. */
 #ifndef __cplusplus
@@ -103,22 +111,19 @@ static os_t srhs, strans;
 static os_t *srhs, *strans; 
 #endif
 
-/* The following is cost of the last translation which contains an
-   abstract node. */
-static int anode_cost;
-
 /* This variable is used in yacc action to process alternatives. */
 static char *slhs;
 
 /* Forward declarations. */
-extern int yyerror (const char *str);
+extern int yyerror (struct parser_data *data, const char *str);
 union YYSTYPE;
-extern int yylex (union YYSTYPE *lvalp);
-extern int yyparse (void);
+extern int yylex (union YYSTYPE *lvalp, struct parser_data *data);
+extern int yyparse (struct parser_data *data);
 
 %}
 
 %define api.pure full
+%param {struct parser_data *data}
 
 %union
   {
@@ -176,7 +181,7 @@ alt : seq trans
 	OS_TOP_ADD_MEMORY (strans, &end_marker, sizeof (int));
 	rule.lhs = slhs;
 	rule.anode = (char *) $2;
-	rule.anode_cost = (rule.anode == NULL ? 0 : anode_cost);
+	rule.anode_cost = (rule.anode == NULL ? 0 : data->anode_cost);
 	rule.rhs_len = OS_TOP_LENGTH (srhs) / sizeof (char *);
 	OS_TOP_EXPAND (srhs, sizeof (char *));
 	rule.rhs = (char **) OS_TOP_BEGIN (srhs);
@@ -248,8 +253,8 @@ numbers :
           }
         ;
 
-cost :         { anode_cost = 1;}
-     | NUMBER  { anode_cost = $1; }
+cost :         { data->anode_cost = 1;}
+     | NUMBER  { data->anode_cost = $1; }
      ;
 %%
 /* The following is current input character of the grammar
@@ -272,7 +277,7 @@ static int nsterm, nsrule;
 
 /* The following implements lexical analyzer for yacc code. */
 int
-yylex (YYSTYPE *lvalp)
+yylex (YYSTYPE *lvalp, struct parser_data *data)
 {
   int c;
   int n_errs = 0;
@@ -295,13 +300,13 @@ yylex (YYSTYPE *lvalp)
 	    {
 	      n_errs++;
 	      curr_ch--;
-	      yyerror ("invalid input character /");
+	      yyerror (data, "invalid input character /");
 	    }
 	  for (;;)
 	    {
 	      c = *curr_ch++;
 	      if (c == '\0')
-		yyerror ("unfinished comment");
+		yyerror (data, "unfinished comment");
 	      if (c == '\n')
 		ln++;
 	      if (c == '*')
@@ -326,7 +331,7 @@ yylex (YYSTYPE *lvalp)
 	  lvalp->num = *curr_ch++;
 	  OS_TOP_ADD_BYTE (stoks, lvalp->num);
 	  if (*curr_ch++ != '\'')
-	    yyerror ("invalid character");
+	    yyerror (data, "invalid character");
 	  OS_TOP_ADD_BYTE (stoks, '\'');
 	  OS_TOP_ADD_BYTE (stoks, '\0');
 	  lvalp->ref = OS_TOP_BEGIN (stoks);
@@ -374,10 +379,10 @@ yylex (YYSTYPE *lvalp)
 		  if (isprint (c))
 		    {
 		      sprintf (str, "invalid input character '%c'", c);
-		      yyerror (str);
+		      yyerror (data, str);
 		    }
 		  else
-		    yyerror ("invalid input character");
+		    yyerror (data, "invalid input character");
 		}
 	    }
 	}
@@ -388,7 +393,7 @@ yylex (YYSTYPE *lvalp)
 /* The following implements syntactic error diagnostic function yacc
    code. */
 int
-yyerror (const char *str)
+yyerror (struct parser_data *data, const char *str)
 {
   yaep_error (YAEP_DESCRIPTION_SYNTAX_ERROR_CODE,
 	      "description syntax error on ln %d", ln);
@@ -416,7 +421,7 @@ static void free_sgrammar (void);
 /* The following is major function which parses the description and
    transforms it into IR. */
 static int
-set_sgrammar (struct grammar *g, const char *grammar)
+set_sgrammar (struct grammar *g, const char *grammar, struct parser_data *data)
 {
   int i, j, num;
   struct sterm *term, *prev, *arr;
@@ -434,7 +439,7 @@ set_sgrammar (struct grammar *g, const char *grammar)
   OS_CREATE (srhs, g->alloc, 0);
   OS_CREATE (strans, g->alloc, 0);
   curr_ch = grammar;
-  yyparse ();
+  yyparse (data);
   /* sort array of syntax terminals by names. */
   num = VLO_LENGTH (sterms) / sizeof (struct sterm);
   arr = (struct sterm *) VLO_BEGIN (sterms);
@@ -532,9 +537,10 @@ static
 yaep_parse_grammar (struct grammar *g, int strict_p, const char *description)
 {
   int code;
+  struct parser_data data;
 
   assert (g != NULL);
-  if ((code = set_sgrammar (g, description)) != 0)
+  if ((code = set_sgrammar (g, description, &data)) != 0)
     return code;
   code = yaep_read_grammar (g, strict_p, sread_terminal, sread_rule);
   free_sgrammar ();
