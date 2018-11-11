@@ -112,10 +112,13 @@ static char *slhs;
 
 /* Forward declarations. */
 extern int yyerror (const char *str);
-extern int yylex (void);
+union YYSTYPE;
+extern int yylex (union YYSTYPE *lvalp);
 extern int yyparse (void);
 
 %}
+
+%define api.pure full
 
 %union
   {
@@ -269,7 +272,7 @@ static int nsterm, nsrule;
 
 /* The following implements lexical analyzer for yacc code. */
 int
-yylex (void)
+yylex (YYSTYPE *lvalp)
 {
   int c;
   int n_errs = 0;
@@ -320,13 +323,13 @@ yylex (void)
 	  return c;
 	case '\'':
 	  OS_TOP_ADD_BYTE (stoks, '\'');
-	  yylval.num = *curr_ch++;
-	  OS_TOP_ADD_BYTE (stoks, yylval.num);
+	  lvalp->num = *curr_ch++;
+	  OS_TOP_ADD_BYTE (stoks, lvalp->num);
 	  if (*curr_ch++ != '\'')
 	    yyerror ("invalid character");
 	  OS_TOP_ADD_BYTE (stoks, '\'');
 	  OS_TOP_ADD_BYTE (stoks, '\0');
-	  yylval.ref = OS_TOP_BEGIN (stoks);
+	  lvalp->ref = OS_TOP_BEGIN (stoks);
 	  OS_TOP_FINISH (stoks);
 	  return CHAR;
 	default:
@@ -337,8 +340,8 @@ yylex (void)
 		OS_TOP_ADD_BYTE (stoks, c);
 	      curr_ch--;
 	      OS_TOP_ADD_BYTE (stoks, '\0');
-	      yylval.ref = OS_TOP_BEGIN (stoks);
-	      if (strcmp ((char *) yylval.ref, "TERM") == 0)
+	      lvalp->ref = OS_TOP_BEGIN (stoks);
+	      if (strcmp ((char *) lvalp->ref, "TERM") == 0)
 		{
 		  OS_TOP_NULLIFY (stoks);
 		  return TERM;
@@ -355,9 +358,9 @@ yylex (void)
 	    }
 	  else if (isdigit (c))
 	    {
-	      yylval.num = c - '0';
+	      lvalp->num = c - '0';
 	      while ((c = *curr_ch++) != '\0' && isdigit (c))
-		yylval.num = yylval.num * 10 + (c - '0');
+		lvalp->num = lvalp->num * 10 + (c - '0');
 	      curr_ch--;
 	      return NUMBER;
 	    }
