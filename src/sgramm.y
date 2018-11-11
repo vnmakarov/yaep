@@ -90,6 +90,13 @@ struct srule
 /* The following structure contains the parser data. */
 struct parser_data
 {
+  /* The following vlos contain all syntax terminal and syntax rule
+     structures. */
+#ifndef __cplusplus
+  vlo_t sterms, srules;
+#else
+  vlo_t *sterms, *srules;
+#endif
   /* The following contain all right hand sides and translations arrays.
      See members rhs, trans in structure `rule'. */
 #ifndef __cplusplus
@@ -113,15 +120,10 @@ struct parser_data
 #else
   os_t *stoks;
 #endif
+  /* The following is number of syntax terminal and syntax rules being
+     read. */
+  int nsterm, nsrule;
 };
-
-/* The following vlos contain all syntax terminal and syntax rule
-   structures. */
-#ifndef __cplusplus
-static vlo_t sterms, srules;
-#else
-static vlo_t *sterms, *srules;
-#endif
 
 /* Forward declarations. */
 extern int yyerror (struct parser_data *data, const char *str);
@@ -165,8 +167,8 @@ terms : terms IDENT number
 	  
 	  term.repr = (char *) $2;
 	  term.code = $3;
-          term.num = VLO_LENGTH (sterms) / sizeof (term);
-	  VLO_ADD_MEMORY (sterms, &term, sizeof (term));
+          term.num = VLO_LENGTH (data->sterms) / sizeof (term);
+	  VLO_ADD_MEMORY (data->sterms, &term, sizeof (term));
 	}
       | TERM
       ;
@@ -198,7 +200,7 @@ alt : seq trans
 	OS_TOP_FINISH (data->srhs);
 	rule.trans = (int *) OS_TOP_BEGIN (data->strans);
 	OS_TOP_FINISH (data->strans);
-        VLO_ADD_MEMORY (srules, &rule, sizeof (rule));
+        VLO_ADD_MEMORY (data->srules, &rule, sizeof (rule));
       }
     ;
 
@@ -214,8 +216,8 @@ seq : seq IDENT
 	  
 	  term.repr = (char *) $2;
 	  term.code = term.repr [1];
-          term.num = VLO_LENGTH (sterms) / sizeof (term);
-	  VLO_ADD_MEMORY (sterms, &term, sizeof (term));
+          term.num = VLO_LENGTH (data->sterms) / sizeof (term);
+	  VLO_ADD_MEMORY (data->sterms, &term, sizeof (term));
 	  OS_TOP_ADD_MEMORY (data->srhs, &term.repr, sizeof (term.repr));
        }
     |
@@ -266,9 +268,6 @@ cost :         { data->anode_cost = 1;}
      | NUMBER  { data->anode_cost = $1; }
      ;
 %%
-/* The following is number of syntax terminal and syntax rules being
-   read. */
-static int nsterm, nsrule;
 
 /* The following implements lexical analyzer for yacc code. */
 int
@@ -430,15 +429,15 @@ set_sgrammar (struct grammar *g, const char *grammar, struct parser_data *data)
       return code;
     }
   OS_CREATE (data->stoks, g->alloc, 0);
-  VLO_CREATE (sterms, g->alloc, 0);
-  VLO_CREATE (srules, g->alloc, 0);
+  VLO_CREATE (data->sterms, g->alloc, 0);
+  VLO_CREATE (data->srules, g->alloc, 0);
   OS_CREATE (data->srhs, g->alloc, 0);
   OS_CREATE (data->strans, g->alloc, 0);
   data->curr_ch = grammar;
   yyparse (data);
   /* sort array of syntax terminals by names. */
-  num = VLO_LENGTH (sterms) / sizeof (struct sterm);
-  arr = (struct sterm *) VLO_BEGIN (sterms);
+  num = VLO_LENGTH (data->sterms) / sizeof (struct sterm);
+  arr = (struct sterm *) VLO_BEGIN (data->sterms);
   qsort (arr, num, sizeof (struct sterm), sterm_name_cmp);
   /* Check different codes for the same syntax terminal and remove
      duplicates. */
@@ -464,18 +463,18 @@ set_sgrammar (struct grammar *g, const char *grammar, struct parser_data *data)
       else if (prev->code != -1)
 	prev->code = term->code;
     }
-  VLO_SHORTEN (sterms, (num - j) * sizeof (struct sterm));
+  VLO_SHORTEN (data->sterms, (num - j) * sizeof (struct sterm));
   num = j;
   /* sort array of syntax terminals by order number. */
   qsort (arr, num, sizeof (struct sterm), sterm_num_cmp);
   /* Assign codes. */
   for (i = 0; i < num; i++)
     {
-      term = (struct sterm *) VLO_BEGIN (sterms) + i;
+      term = (struct sterm *) VLO_BEGIN (data->sterms) + i;
       if (term->code < 0)
 	term->code = code++;
     }
-  nsterm = nsrule = 0;
+  data->nsterm = data->nsrule = 0;
   return 0;
 }
 
@@ -485,8 +484,8 @@ free_sgrammar (struct parser_data *data)
 {
   OS_DELETE (data->strans);
   OS_DELETE (data->srhs);
-  VLO_DELETE (srules);
-  VLO_DELETE (sterms);
+  VLO_DELETE (data->srules);
+  VLO_DELETE (data->sterms);
   OS_DELETE (data->stoks);
 }
 
@@ -496,13 +495,16 @@ sread_terminal (int *code)
 {
   struct sterm *term;
   const char *name;
+  struct parser_data *data;
 
-  term = &((struct sterm *) VLO_BEGIN (sterms))[nsterm];
-  if ((char *) term >= (char *) VLO_BOUND (sterms))
+  data = (struct parser_data *)
+    yaep_grammar_getuserptr (yaep_reentrant_hack_grammar (code));
+  term = &((struct sterm *) VLO_BEGIN (data->sterms))[data->nsterm];
+  if ((char *) term >= (char *) VLO_BOUND (data->sterms))
     return NULL;
   *code = term->code;
   name = term->repr;
-  nsterm++;
+  data->nsterm++;
   return name;
 }
 
@@ -512,16 +514,19 @@ sread_rule (const char ***rhs, const char **abs_node, int *anode_cost,
 {
   struct srule *rule;
   const char *lhs;
+  struct parser_data *data;
 
-  rule = &((struct srule *) VLO_BEGIN (srules))[nsrule];
-  if ((char *) rule >= (char *) VLO_BOUND (srules))
+  data = (struct parser_data *)
+    yaep_grammar_getuserptr (yaep_reentrant_hack_grammar (anode_cost));
+  rule = &((struct srule *) VLO_BEGIN (data->srules))[data->nsrule];
+  if ((char *) rule >= (char *) VLO_BOUND (data->srules))
     return NULL;
   lhs = rule->lhs;
   *rhs = (const char **) rule->rhs;
   *abs_node = rule->anode;
   *anode_cost = rule->anode_cost;
   *transl = rule->trans;
-  nsrule++;
+  data->nsrule++;
   return lhs;
 }
 
@@ -534,11 +539,15 @@ yaep_parse_grammar (struct grammar *g, int strict_p, const char *description)
 {
   int code;
   struct parser_data data;
+  void *oldptr;
 
   assert (g != NULL);
   if ((code = set_sgrammar (g, description, &data)) != 0)
     return code;
+  oldptr = yaep_grammar_getuserptr (g);
+  yaep_grammar_setuserptr (g, &data);
   code = yaep_read_grammar (g, strict_p, sread_terminal, sread_rule);
+  yaep_grammar_setuserptr (g, oldptr);
   free_sgrammar (&data);
   return code;
 }
