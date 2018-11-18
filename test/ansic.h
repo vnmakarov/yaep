@@ -98,15 +98,12 @@ struct lex {
   struct lex *next;
 };
 
-extern int column;
-extern int line;
-
 #ifndef YY_TYPEDEF_YY_SCANNER_T
 #define YY_TYPEDEF_YY_SCANNER_T
 typedef void* yyscan_t; /* FIXME: needed for reentrancy.
                            Would be better if flex created its own header. */
 #endif
-extern int yylex_init (yyscan_t *yyscanner);
+extern int yylex_init_extra (struct lex *lex, yyscan_t *yyscanner);
 extern int yylex (yyscan_t yyscanner);
 extern int yylex_destroy (yyscan_t yyscanner);
 extern char *yyget_text (yyscan_t yyscanner);

@@ -25,6 +25,7 @@
 */
 
 %option reentrant
+%option extra-type="struct lex *"
 
 D			[0-9]
 L			[a-zA-Z_]
@@ -194,17 +195,18 @@ void
 count (struct yyguts_t *yyg)
 {
 	int i;
+        struct lex *lex = yyget_extra (yyg);
 
 	for (i = 0; yytext[i] != '\0'; i++)
 		if (yytext[i] == '\n')
                   {
-	            column = 0;
-                    line++;
+	            lex->column = 0;
+                    lex->line++;
                   }
 		else if (yytext[i] == '\t')
-			column += 8 - (column % 8);
+			lex->column += 8 - (lex->column % 8);
 		else
-			column++;
+			lex->column++;
 
 	ECHO;
 }

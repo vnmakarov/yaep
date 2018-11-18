@@ -43,9 +43,6 @@ static os_t *lexs;
 static struct lex *list;
 static struct lex *curr = NULL;
 
-int column = 0;
-int line = 1;
-
 static hash_table_t table;
 
 static unsigned
@@ -103,20 +100,19 @@ int find_typedef (const char *id, int level)
 }
 
 int
-get_lex (void)
+get_lex (void **attr)
 {
   if (curr == NULL)
     curr = list;
   else
     curr = curr->next;
   if (curr == NULL)
-    return 0;
-  line = curr->line;
-  column = curr->column;
-  if (curr->code == IDENTIFIER)
-    return IDENTIFIER;
-  else
-    return curr->code;
+    {
+      *attr = NULL;
+      return 0;
+    }
+  *attr = (void *) (ptrdiff_t) curr->line;
+  return curr->code;
 }
 
 static void store_lexs( YaepAllocator * alloc ) {
@@ -130,7 +126,9 @@ static void store_lexs( YaepAllocator * alloc ) {
   lexs = new os( alloc, 0 );
   list = NULL;
   prev = NULL;
-  code = yylex_init (&scanner);
+  lex.column = 0;
+  lex.line = 1;
+  code = yylex_init_extra (&lex, &scanner);
   assert (code == 0);
   while ((code = yylex (scanner)) > 0) {
 #ifdef DEBUG
@@ -146,8 +144,6 @@ static void store_lexs( YaepAllocator * alloc ) {
     else
       lex.id = NULL;
     lex.code = code;
-    lex.line = line;
-    lex.column = column;
     lex.next = NULL;
     lexs->top_add_memory (&lex, sizeof (lex));
     if (prev == NULL)
@@ -199,8 +195,7 @@ test_read_token (void **attr)
 {
   int code;
 
-  *attr = (void *) (ptrdiff_t) line;
-  code = get_lex ();
+  code = get_lex (attr);
   if (code <= 0)
     return -1;
   return code;

@@ -53,8 +53,6 @@ get_lex (void)
     curr = curr->next;
   if (curr == NULL)
     return 0;
-  line = curr->line;
-  column = curr->column;
   if (curr->code == IDENTIFIER)
     {
       yylval = curr->id;
@@ -78,7 +76,9 @@ static void store_lexs( YaepAllocator * alloc ) {
   OS_CREATE( lexs, alloc, 0 );
   list = NULL;
   prev = NULL;
-  code = yylex_init (&scanner);
+  lex.column = 0;
+  lex.line = 1;
+  code = yylex_init_extra (&lex, &scanner);
   assert (code == 0);
   while ((code = yylex (scanner)) > 0) {
     if (code == IDENTIFIER)
@@ -91,8 +91,6 @@ static void store_lexs( YaepAllocator * alloc ) {
     else
       lex.id = NULL;
     lex.code = code;
-    lex.line = line;
-    lex.column = column;
     lex.next = NULL;
     OS_TOP_ADD_MEMORY (lexs, &lex, sizeof (lex));
     if (prev == NULL)
