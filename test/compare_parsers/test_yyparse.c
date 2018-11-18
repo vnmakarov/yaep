@@ -45,7 +45,7 @@ static int level = 0;
 #undef yylex
 
 int
-get_lex (void)
+get_lex (YYSTYPE *lvalp)
 {
   if (curr == NULL)
     curr = list;
@@ -55,7 +55,7 @@ get_lex (void)
     return 0;
   if (curr->code == IDENTIFIER)
     {
-      yylval = curr->id;
+      *lvalp = curr->id;
       if (!after_struct_flag && find_typedef (curr->id, level))
         return TYPE_NAME;
       else
