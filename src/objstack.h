@@ -1,24 +1,30 @@
+/*
+   YAEP (Yet Another Earley Parser)
+
+   Copyright (c) 1997-2018  Vladimir Makarov <vmakarov@gcc.gnu.org>
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/
+
 /* FILE NAME:   objstack.h
-
-   Copyright (C) 1997-2015 Vladimir Makarov.
-
-   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
-
-   This is part of package for work with stack of objects; you can
-   redistribute it and/or modify it under the terms of the GNU Library
-   General Public License as published by the Free Software
-   Foundation; either version 2, or (at your option) any later
-   version.
-
-   This software is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public
-   License along with GNU CC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
-   MA 02111-1307, USA.
 
    TITLE:       Include file of package for work with stacks of
                 objects (OS)
@@ -53,27 +59,13 @@
 #ifndef __OS__
 #define __OS__
 
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
-#endif /* #ifdef HAVE_CONFIG_H */
-
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
 
 #include "allocate.h"
 
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
 
 /* This auxiliary structure is used to evaluation of maximum
    alignment for objects. */
@@ -313,7 +305,7 @@ typedef struct
     assert (_temp_os->os_top_object_start != NULL);\
     if (_temp_os->os_top_object_free + _temp_length > _temp_os->os_boundary)\
       _OS_expand_memory (_temp_os, _temp_length);\
-    _OS_memcpy (_temp_os->os_top_object_free, (str), _temp_length);\
+    memcpy( _temp_os->os_top_object_free, ( str ), _temp_length ); \
     _temp_os->os_top_object_free += _temp_length;\
   }\
   while (0)
@@ -330,17 +322,13 @@ typedef struct
    Remember that they are internal functions - all work with OS is
    executed through the macros. */
 
-extern void _OS_create_function (os_t * os, size_t initial_segment_length);
-extern void _OS_delete_function (os_t * os);
-extern void _OS_empty_function (os_t * os);
-extern void _OS_add_string_function (os_t * os, const char *str);
-extern void _OS_expand_memory (os_t * os, size_t additional_length);
-extern void _OS_memcpy (void *to, const void *from, size_t length);
-
+extern void _OS_create_function (os_t *os, size_t initial_segment_length);
+extern void _OS_delete_function (os_t *os);
+extern void _OS_empty_function (os_t *os);
+extern void _OS_add_string_function (os_t *os, const char *str);
+extern void _OS_expand_memory (os_t *os, size_t additional_length);
 
 #else /* #ifndef __cplusplus */
-
-extern void _OS_memcpy (void *to, const void *from, size_t length);
 
 /* This class describes a descriptor of stack of objects.  All work
    with stack of objects is executed by member functions.  It should
@@ -505,7 +493,7 @@ public:
     assert (os_top_object_start != NULL);
     if (os_top_object_free + length > os_boundary)
       _OS_expand_memory (length);
-    _OS_memcpy (os_top_object_free, str, length);
+    memcpy (os_top_object_free, str, length);
     os_top_object_free += length;
   }
 

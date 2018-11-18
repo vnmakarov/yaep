@@ -1,22 +1,26 @@
 /*
-   Copyright (C) 1997-2015 Vladimir Makarov.
+   YAEP (Yet Another Earley Parser)
 
-   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
+   Copyright (c) 1997-2018  Vladimir Makarov <vmakarov@gcc.gnu.org>
 
-   This is part of YAEP (Yet Another Earley Parser) implementation; you can
-   redistribute it and/or modify it under the terms of the GNU General
-   Public License as published by the Free Software Foundation; either
-   version 2, or (at your option) any later version.
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
 
-   This software is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
-   You should have received a copy of the GNU General Public License
-   along with GNU CC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
@@ -24,26 +28,9 @@
 /* This file implements parsing any CFG with minimal error recovery
    and syntax directed translation.  The algorithm is originated from
    Earley's algorithm.  The algorithm is sufficiently fast to be used
-   in serious language processors.
+   in serious language processors. */
 
-   The code is distributed under GNU GENERAL PUBLIC LICENSE (not GNU
-   GENERAL PUBLIC LIBRARY LICENSE).  So any program using this code or
-   its modifications should be distributed with sources.
-
-   Vladimir Makarov (vmakarov@gcc.gnu.org), 2001. */
-
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#endif /* #ifdef HAVE_CONFIG_H */
-
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
 
 #ifndef NDEBUG
 #define NDEBUG 1
@@ -198,6 +185,8 @@ struct grammar
   struct term_sets *term_sets_ptr;
   /* Allocator. */
   YaepAllocator *alloc;
+  /* User pointer */
+  void *userptr;
 };
 
 /* The following variable value is the reference for the current
@@ -361,6 +350,7 @@ struct symbs
      table.  */
   struct symb **symb_code_trans_vect;
   int symb_code_trans_vect_start;
+  int symb_code_trans_vect_end;
 #endif
 };
 
@@ -454,10 +444,18 @@ symb_find_by_code (int code)
 
 #ifdef SYMB_CODE_TRANS_VECT
   if (symbs_ptr->symb_code_trans_vect != NULL)
-    return
-      symbs_ptr->symb_code_trans_vect[code
-				      -
-				      symbs_ptr->symb_code_trans_vect_start];
+    {
+      if ((code < symbs_ptr->symb_code_trans_vect_start)
+          || (code >= symbs_ptr->symb_code_trans_vect_end))
+        {
+          return NULL;
+        }
+      else
+        {
+          return symbs_ptr->symb_code_trans_vect
+            [code - symbs_ptr->symb_code_trans_vect_start];
+        }
+    }
 #endif
   symb.term_p = TRUE;
   symb.u.term.code = code;
@@ -609,9 +607,9 @@ symb_finish_adding_terms (void)
   if (max_code - min_code < SYMB_CODE_TRANS_VECT_SIZE)
     {
       symbs_ptr->symb_code_trans_vect_start = min_code;
-      mem =
-	yaep_malloc (grammar->alloc,
-		     sizeof (struct symb *) * (max_code - min_code + 1));
+      symbs_ptr->symb_code_trans_vect_end = max_code + 1;
+      mem = yaep_malloc (grammar->alloc,
+          sizeof (struct symb*) * (max_code - min_code + 1));
       symbs_ptr->symb_code_trans_vect = (struct symb **) mem;
       for (i = 0; (symb = term_get (i)) != NULL; i++)
 	symbs_ptr->symb_code_trans_vect[symb->u.term.code - min_code] = symb;
@@ -3053,7 +3051,38 @@ yaep_create_grammar (void)
   grammar->symbs_ptr = symbs_ptr = symb_init ();
   grammar->term_sets_ptr = term_sets_ptr = term_set_init ();
   grammar->rules_ptr = rules_ptr = rule_init ();
+  grammar->userptr = NULL;
   return grammar;
+}
+
+/* The following function sets the user pointer for a grammar. */
+#ifdef __cplusplus
+static
+#endif
+void
+yaep_grammar_setuserptr (struct grammar *g, void *userptr)
+{
+  if (g != NULL)
+    {
+      g->userptr = userptr;
+    }
+}
+
+/* The following function retrieves the user pointer of a grammar. */
+#ifdef __cplusplus
+static
+#endif
+void *
+yaep_grammar_getuserptr (struct grammar *g)
+{
+  if (g == NULL)
+    {
+      return NULL;
+    }
+  else
+    {
+      return g->userptr;
+    }
 }
 
 /* The following function makes grammar empty. */
@@ -3330,34 +3359,36 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   const char *name, *lhs, **rhs, *anode;
   struct symb *symb, *start;
   struct rule *rule;
-  int anode_cost;
   int *transl;
-  int i, el, code;
+  int i, el;
+  struct _yaep_reentrant_hack anode_cost, code;
 
   assert (g != NULL);
+  anode_cost.grammar = g;
+  code.grammar = g;
   grammar = g;
   symbs_ptr = g->symbs_ptr;
   term_sets_ptr = g->term_sets_ptr;
   rules_ptr = g->rules_ptr;
-  if ((code = setjmp (error_longjump_buff)) != 0)
+  if ((code.value = setjmp (error_longjump_buff)) != 0)
     {
-      return code;
+      return code.value;
     }
   if (!grammar->undefined_p)
     yaep_empty_grammar ();
-  while ((name = (*read_terminal) (&code)) != NULL)
+  while ((name = (*read_terminal) (&code.value)) != NULL)
     {
-      if (code < 0)
+      if (code.value < 0)
 	yaep_error (YAEP_NEGATIVE_TERM_CODE,
 		    "term `%s' has negative code", name);
       symb = symb_find_by_repr (name);
       if (symb != NULL)
 	yaep_error (YAEP_REPEATED_TERM_DECL,
 		    "repeated declaration of term `%s'", name);
-      if (symb_find_by_code (code) != NULL)
+      if (symb_find_by_code (code.value) != NULL)
 	yaep_error (YAEP_REPEATED_TERM_CODE,
-		    "repeated code %d in term `%s'", code, name);
-      symb_add_term (name, code);
+		    "repeated code %d in term `%s'", code.value, name);
+      symb_add_term (name, code.value);
     }
 
   /* Adding error symbol. */
@@ -3369,7 +3400,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   grammar->term_error = symb_add_term (TERM_ERROR_NAME, TERM_ERROR_CODE);
   grammar->term_error_num = grammar->term_error->u.term.term_num;
   grammar->axiom = grammar->end_marker = NULL;
-  while ((lhs = (*read_rule) (&rhs, &anode, &anode_cost, &transl)) != NULL)
+  while ((lhs = (*read_rule) (&rhs, &anode, &anode_cost.value, &transl)) != NULL)
     {
       symb = symb_find_by_repr (lhs);
       if (symb == NULL)
@@ -3380,7 +3411,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
       if (anode == NULL && transl != NULL && *transl >= 0 && transl[1] >= 0)
 	yaep_error (YAEP_INCORRECT_TRANSLATION,
 		    "rule for `%s' has incorrect translation", lhs);
-      if (anode != NULL && anode_cost < 0)
+      if (anode != NULL && anode_cost.value < 0)
 	yaep_error (YAEP_NEGATIVE_COST,
 		    "translation for `%s' has negative cost", lhs);
       if (grammar->axiom == NULL)
@@ -3410,7 +3441,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 	  rule->order[0] = 0;
 	  rule->trans_len = 1;
 	}
-      rule = rule_new_start (symb, anode, (anode != NULL ? anode_cost : 0));
+      rule = rule_new_start (symb, anode, (anode != NULL ? anode_cost.value : 0));
       while (*rhs != NULL)
 	{
 	  symb = symb_find_by_repr (*rhs);
@@ -5285,8 +5316,8 @@ prune_to_minimal (struct yaep_tree_node *node, int *cost)
 	      node->val.anode.cost += *cost;
 	    }
 	  *cost = node->val.anode.cost;
+          node->val.anode.cost = -node->val.anode.cost - 1;	/* flag of visit */
 	}
-      node->val.anode.cost = -node->val.anode.cost - 1;	/* flag of visit */
       return node;
     case YAEP_ALT:
       for (alt = node; alt != NULL; alt = next_alt)
@@ -5364,7 +5395,6 @@ static struct yaep_tree_node *
 find_minimal_translation (struct yaep_tree_node *root)
 {
   struct yaep_tree_node **node_ptr;
-  hash_table_entry_t *entry, *entry_1;
   int cost;
 
   if (parse_free != NULL)
@@ -5387,21 +5417,17 @@ find_minimal_translation (struct yaep_tree_node *root)
       for (node_ptr = (struct yaep_tree_node **) VLO_BEGIN (tnodes_vlo);
 	   node_ptr < (struct yaep_tree_node **) VLO_BOUND (tnodes_vlo);
 	   node_ptr++)
-	if (*(entry = find_hash_table_entry (reserv_mem_tab, *node_ptr, TRUE))
-	    == NULL)
-	  {
-	    if ((*node_ptr)->type == YAEP_ANODE
-		&& *(entry_1
-		     = find_hash_table_entry (reserv_mem_tab,
-					      (*node_ptr)->val.anode.name,
-					      TRUE)) == NULL)
-	      {
-		*entry_1 = (hash_table_entry_t) (*node_ptr)->val.anode.name;
+	if (*find_hash_table_entry (reserv_mem_tab, *node_ptr, TRUE) == NULL)
+	   {
+	     if ((*node_ptr)->type == YAEP_ANODE
+		 && *find_hash_table_entry (reserv_mem_tab,
+					       (*node_ptr)->val.anode.name,
+					       TRUE) == NULL)
+	       {
 		(*parse_free) ((void *) (*node_ptr)->val.anode.name);
-	      }
-	    (*parse_free) (*node_ptr);
-	    *entry = (hash_table_entry_t) (*node_ptr)->val.anode.name;
-	  }
+	       }
+	     (*parse_free) (*node_ptr);
+	   }
       VLO_DELETE (tnodes_vlo);
 #ifndef __cplusplus
       delete_hash_table (reserv_mem_tab);

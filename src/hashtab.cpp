@@ -1,24 +1,30 @@
+/*
+   YAEP (Yet Another Earley Parser)
+
+   Copyright (c) 1997-2018  Vladimir Makarov <vmakarov@gcc.gnu.org>
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/
+
 /* FILE NAME:   hashtab.cpp
-
-   Copyright (C) 1997-2015 Vladimir Makarov.
-
-   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
-
-   This is part of package for work with hash tables; you can
-   redistribute it and/or modify it under the terms of the GNU Library
-   General Public License as published by the Free Software
-   Foundation; either version 2, or (at your option) any later
-   version.
-
-   This software is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public
-   License along with GNU CC; see the file COPYING.  If not, write to
-   the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
-   MA 02111-1307, USA.
 
    TITLE:       Package for work with hash tables
 
@@ -43,26 +49,10 @@
 
 */
 
-
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
-#endif /* #ifdef HAVE_CONFIG_H */
-
-
 #include "allocate.h"
 #include "hashtab.h"
 
-#ifdef HAVE_ASSERT_H
 #include <assert.h>
-#else
-#ifndef assert
-#define assert(code) do { if (code == 0) abort ();} while (0)
-#endif
-#endif
 
 /* This macro defines reserved value for empty table entry. */
 
@@ -161,7 +151,8 @@ hash_table::expand_hash_table (void)
       }
   yaep_free (alloc, entries);
   *this = (*new_htab);
-  yaep_free (new_htab->alloc, new_htab);
+  new_htab->entries = nullptr;
+  delete new_htab;
 }
 
 /* The following variable is used for debugging. Its value is number

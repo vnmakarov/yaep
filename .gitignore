@@ -2,16 +2,5 @@
 *~
 *.sw[op]
 
-# Generated files
-/config.log
-/config.status
-/src/C/
-/src/C++/
-/src/Makefile
-/src/cocom-config.h
-/src/compare_parsers.tst
-/src/libyaep++.a
-/src/libyaep.a
-/src/sgramm.c
-/src/yaep++.tst
-/src/yaep.tst
+# Build directories
+/build*

@@ -1,22 +1,26 @@
 /*
-   Copyright (C) 1997-2015 Vladimir Makarov.
+   YAEP (Yet Another Earley Parser)
 
-   Written by Vladimir Makarov <vmakarov@gcc.gnu.org>
+   Copyright (c) 1997-2018  Vladimir Makarov <vmakarov@gcc.gnu.org>
 
-   This is part of YAEP (Yet Another Earley Parser) implementation; you can
-   redistribute it and/or modify it under the terms of the GNU General
-   Public License as published by the Free Software Foundation; either
-   version 2, or (at your option) any later version.
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
 
-   This software is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
-   You should have received a copy of the GNU General Public License
-   along with GNU CC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
@@ -28,21 +32,8 @@
 #ifndef __YAEP__
 #define __YAEP__
 
-#ifdef HAVE_CONFIG_H
-#include "cocom-config.h"
-#else /* In this case we are oriented to ANSI C */
-#ifndef HAVE_ASSERT_H
-#define HAVE_ASSERT_H
-#endif
-#endif /* #ifdef HAVE_CONFIG_H */
-
-#ifdef HAVE_LIMITS_H
 #include <limits.h>
-#else
-#ifndef INT_MAX
-#define INT_MAX 2147483647
-#endif
-#endif
+#include<stddef.h>
 
 /* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
@@ -158,12 +149,46 @@ struct yaep_tree_node
   } val;
 };
 
+/* The following structure is used to work around a limitation of
+   yaep_read_grammar(). The read_terminal() and read_rule() functions
+   passed to yaep_read_grammar() cannot take a user-defined argument,
+   but this is required for reentrant operation.
+   The long-term solution would be to expand the API of yaep (FIXME).
+   When sticking to the old API, however, we hijack the pointer-to-int
+   parameters to slip through the grammar as additional information.
+   This structure is for internal use only.
+   Use the yaep_reentrant_hack_grammar() macro to retrieve the grammar. */
+struct _yaep_reentrant_hack
+{
+  int value;
+  struct grammar *grammar;
+};
+
+/* The following macro retrieves the grammar from a pointer-to-int argument.
+   It can only be applied to arguments to the code parameter of the
+   read_terminal() parameter, and to the anode_cost parameter of the
+   read_rule() parameter of yaep_read_grammar(). */
+#define yaep_reentrant_hack_grammar(x) \
+  (((struct _yaep_reentrant_hack *) \
+    (((char *) (x)) - offsetof (struct _yaep_reentrant_hack, value))) \
+   ->grammar)
+
 #ifndef __cplusplus
 
 /* The following function creates undefined grammar.  The function
    returns NULL if there is no memory.  This function should be called
    the first. */
 extern struct grammar *yaep_create_grammar (void);
+
+/* The following function stores a user-defined pointer
+   in the given grammar. */
+extern void yaep_grammar_setuserptr (struct grammar *g, void *userptr);
+
+/* The following function retrieves a user-defined pointer
+   previously set with yaep_grammar_setuserptr() from
+   the given grammar.  If no user pointer has been set,
+   a null pointer is returned. */
+extern void *yaep_grammar_getuserptr (struct grammar *g);
 
 /* The function returns the last occurred error code for given
    grammar. */
@@ -363,6 +388,8 @@ public:
   int set_cost_flag (int flag);
   int set_error_recovery_flag (int flag);
   int set_recovery_match (int n_toks);
+  void setuserptr (void *userptr) noexcept;
+  void *getuserptr () const noexcept;
 
   /* See comments for function yaep_parse. */
   int parse (int (*read_token) (void **attr),

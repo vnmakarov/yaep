@@ -3,7 +3,7 @@
   * This standalone library is created for convenience.
   * The parser development is actually done as a part of the [*Dino* language
     project](https://github.com/dino-lang/dino).
-  * YAEP is licensed under LGPL v.2.
+  * YAEP is licensed under the MIT license.
 
 # YAEP features:
   * It is sufficiently fast and does not require much memory.
@@ -93,8 +93,9 @@ static void parse (void)
     or the YAEP examples in file ``yaep.tst.in``.
 
 # Installing:
-  * ``<YAEP source path>/configure --srcdir=<YAEP source path> --prefix=<YAEP install directory>``
-  * ``cd src``
+  * ``mkdir build``
+  * ``cd build``
+  * ``cmake -DCMAKE_BUILD_TYPE=Release`` (make sure you have CMake installed)
   * ``make``
   * ``make test`` (optional) 
   * ``make install``
