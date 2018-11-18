@@ -73,14 +73,18 @@ get_lex (void)
 static void store_lexs( YaepAllocator * alloc ) {
   struct lex lex, *prev;
   int code;
+  yyscan_t scanner;
 
   OS_CREATE( lexs, alloc, 0 );
   list = NULL;
   prev = NULL;
-  while ((code = yylex ()) > 0) {
+  code = yylex_init (&scanner);
+  assert (code == 0);
+  while ((code = yylex (scanner)) > 0) {
     if (code == IDENTIFIER)
       {
-        OS_TOP_ADD_MEMORY (lexs, yytext, strlen (yytext) + 1);
+        OS_TOP_ADD_MEMORY
+          (lexs, yyget_text (scanner), strlen (yyget_text (scanner)) + 1);
         lex.id = OS_TOP_BEGIN (lexs);
         OS_TOP_FINISH (lexs);
       }
@@ -98,6 +102,7 @@ static void store_lexs( YaepAllocator * alloc ) {
     }
     OS_TOP_FINISH (lexs);
   }
+  yylex_destroy (scanner);
 }
 
 main()

@@ -125,17 +125,21 @@ static void store_lexs( YaepAllocator * alloc ) {
 #ifdef DEBUG
   int nt = 0;
 #endif
+  yyscan_t scanner;
 
   lexs = new os( alloc, 0 );
   list = NULL;
   prev = NULL;
-  while ((code = yylex ()) > 0) {
+  code = yylex_init (&scanner);
+  assert (code == 0);
+  while ((code = yylex (scanner)) > 0) {
 #ifdef DEBUG
     nt++;
 #endif
     if (code == IDENTIFIER)
       {
-        lexs->top_add_memory (get_yytext (), strlen (get_yytext ()) + 1);
+        lexs->top_add_memory
+          (yyget_text (scanner), strlen (yyget_text (scanner)) + 1);
         lex.id = (char *) lexs->top_begin ();
         lexs->top_finish ();
       }
@@ -153,6 +157,7 @@ static void store_lexs( YaepAllocator * alloc ) {
     }
     lexs->top_finish ();
   }
+  yylex_destroy (scanner);
 #ifdef DEBUG
   fprintf (stderr, "%d tokens\n", nt);
 #endif

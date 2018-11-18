@@ -97,7 +97,7 @@
 #define _BOOL         6006
 #define _COMPLEX      7006
 #define _IMAGINARY    8006
-		   
+
 #include "test_common.c"
 
 int
@@ -127,17 +127,21 @@ static void store_lexs( YaepAllocator * alloc ) {
 #ifdef DEBUG
   int nt = 0;
 #endif
+  yyscan_t scanner;
 
   OS_CREATE( lexs, alloc, 0 );
   list = NULL;
   prev = NULL;
-  while ((code = yylex ()) > 0) {
+  code = yylex_init (&scanner);
+  assert (code == 0);
+  while ((code = yylex (scanner)) > 0) {
 #ifdef DEBUG
     nt++;
 #endif
     if (code == IDENTIFIER)
       {
-        OS_TOP_ADD_MEMORY (lexs, yytext, strlen (yytext) + 1);
+        OS_TOP_ADD_MEMORY
+          (lexs, yyget_text (scanner), strlen (yyget_text (scanner)) + 1);
         lex.id = OS_TOP_BEGIN (lexs);
         OS_TOP_FINISH (lexs);
       }
@@ -155,6 +159,7 @@ static void store_lexs( YaepAllocator * alloc ) {
     }
     OS_TOP_FINISH (lexs);
   }
+  yylex_destroy (scanner);
 #ifdef DEBUG
   fprintf (stderr, "%d tokens\n", nt);
 #endif
