@@ -26,6 +26,8 @@
 
 %{
 #define YYSTYPE string_t
+
+void yyerror (char *s);
 %}
 
 %pure-parser
@@ -470,11 +472,28 @@ identifier
 
 #include <stdio.h>
 
-extern int column;
-extern int line;
-
-yyerror(s)
-char *s;
+void
+yyerror (char *s)
 {
-   fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
+  int line, column;
+
+  if (curr == NULL)
+    {
+      curr = list;
+    }
+  else
+    {
+      curr = curr->next;
+    }
+  if (curr == NULL)
+    {
+      line = -1;
+      column = -1;
+    }
+  else
+    {
+      line = curr->line;
+      column = curr->column;
+    }
+  fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
 }
