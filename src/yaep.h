@@ -150,24 +150,36 @@ struct yaep_tree_node
 };
 
 /* The following structure is used to work around a limitation of
-   yaep_read_grammar(). The read_terminal() and read_rule() functions
-   passed to yaep_read_grammar() cannot take a user-defined argument,
+   yaep_read_grammar() and yaep_parse(). The read_terminal() and read_rule()
+   functions passed to yaep_read_grammar(), as well as the read_token(),
+   syntax_error(), parse_alloc(), and parse_free() functions passed to
+   yaep_parse() cannot take a user-defined argument,
    but this is required for reentrant operation.
    The long-term solution would be to expand the API of yaep (FIXME).
-   When sticking to the old API, however, we hijack the pointer-to-int
+   When sticking to the old API, however, we hijack some pointer
    parameters to slip through the grammar as additional information.
+   Unfortunately, it does not work for syntax_error(), parse_alloc(),
+   and parse_free(), because these functions do not have
+   pointer-for-return type parameters.
    This structure is for internal use only.
    Use the yaep_reentrant_hack_grammar() macro to retrieve the grammar. */
 struct _yaep_reentrant_hack
 {
-  int value;
+  union
+  {
+    int code;
+    int anode_cost;
+    void *attr;
+  } value;
   struct grammar *grammar;
 };
 
 /* The following macro retrieves the grammar from a pointer-to-int argument.
    It can only be applied to arguments to the code parameter of the
-   read_terminal() parameter, and to the anode_cost parameter of the
-   read_rule() parameter of yaep_read_grammar(). */
+   read_terminal() parameter, to the anode_cost parameter of the
+   read_rule() parameter of yaep_read_grammar(),
+   as well as to the attr paramnerer of the read_token() parameter of
+   yaep_parse(). */
 #define yaep_reentrant_hack_grammar(x) \
   (((struct _yaep_reentrant_hack *) \
     (((char *) (x)) - offsetof (struct _yaep_reentrant_hack, value))) \

@@ -3370,25 +3370,25 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   symbs_ptr = g->symbs_ptr;
   term_sets_ptr = g->term_sets_ptr;
   rules_ptr = g->rules_ptr;
-  if ((code.value = setjmp (error_longjump_buff)) != 0)
+  if ((code.value.code = setjmp (error_longjump_buff)) != 0)
     {
-      return code.value;
+      return code.value.code;
     }
   if (!grammar->undefined_p)
     yaep_empty_grammar ();
-  while ((name = (*read_terminal) (&code.value)) != NULL)
+  while ((name = (*read_terminal) (&code.value.code)) != NULL)
     {
-      if (code.value < 0)
+      if (code.value.code < 0)
 	yaep_error (YAEP_NEGATIVE_TERM_CODE,
 		    "term `%s' has negative code", name);
       symb = symb_find_by_repr (name);
       if (symb != NULL)
 	yaep_error (YAEP_REPEATED_TERM_DECL,
 		    "repeated declaration of term `%s'", name);
-      if (symb_find_by_code (code.value) != NULL)
+      if (symb_find_by_code (code.value.code) != NULL)
 	yaep_error (YAEP_REPEATED_TERM_CODE,
-		    "repeated code %d in term `%s'", code.value, name);
-      symb_add_term (name, code.value);
+		    "repeated code %d in term `%s'", code.value.code, name);
+      symb_add_term (name, code.value.code);
     }
 
   /* Adding error symbol. */
@@ -3400,7 +3400,8 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   grammar->term_error = symb_add_term (TERM_ERROR_NAME, TERM_ERROR_CODE);
   grammar->term_error_num = grammar->term_error->u.term.term_num;
   grammar->axiom = grammar->end_marker = NULL;
-  while ((lhs = (*read_rule) (&rhs, &anode, &anode_cost.value, &transl)) != NULL)
+  while ((lhs = (*read_rule) (&rhs, &anode, &anode_cost.value.anode_cost,
+          &transl)) != NULL)
     {
       symb = symb_find_by_repr (lhs);
       if (symb == NULL)
@@ -3411,7 +3412,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
       if (anode == NULL && transl != NULL && *transl >= 0 && transl[1] >= 0)
 	yaep_error (YAEP_INCORRECT_TRANSLATION,
 		    "rule for `%s' has incorrect translation", lhs);
-      if (anode != NULL && anode_cost.value < 0)
+      if (anode != NULL && anode_cost.value.anode_cost < 0)
 	yaep_error (YAEP_NEGATIVE_COST,
 		    "translation for `%s' has negative cost", lhs);
       if (grammar->axiom == NULL)
@@ -3441,7 +3442,8 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 	  rule->order[0] = 0;
 	  rule->trans_len = 1;
 	}
-      rule = rule_new_start (symb, anode, (anode != NULL ? anode_cost.value : 0));
+      rule = rule_new_start (symb, anode,
+          (anode != NULL ? anode_cost.value.anode_cost : 0));
       while (*rhs != NULL)
 	{
 	  symb = symb_find_by_repr (*rhs);
@@ -3656,10 +3658,11 @@ static void
 read_toks (void)
 {
   int code;
-  void *attr;
+  struct _yaep_reentrant_hack attr;
 
-  while ((code = read_token (&attr)) >= 0)
-    tok_add (code, attr);
+  attr.grammar = grammar;
+  while ((code = read_token (&attr.value.attr)) >= 0)
+    tok_add (code, attr.value.attr);
   tok_add (END_MARKER_CODE, NULL);
 }
 
