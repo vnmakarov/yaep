@@ -6341,22 +6341,22 @@ yaep_free_tree (struct yaep_tree_node *root, void (*parse_free) (void *),
 
 #ifdef YAEP_TEST
 
-/* All parse_alloc memory is contained here. */
-#ifndef __cplusplus
-static os_t mem_os;
-#else
-static os_t *mem_os;
-#endif
-
 static void *
 test_parse_alloc (int size)
 {
   void *result;
 
-  OS_TOP_EXPAND (mem_os, size);
-  result = OS_TOP_BEGIN (mem_os);
-  OS_TOP_FINISH (mem_os);
+  assert ((size > 0) && ((unsigned int) size == (size_t) size));
+  result = malloc (size);
+  assert (result != NULL);
+
   return result;
+}
+
+static void
+test_parse_free (void * mem)
+{
+  free( mem );
 }
 
 /* The following variable is the current number of next input grammar
@@ -6509,7 +6509,6 @@ use_functions (int argc, char **argv)
       fprintf (stderr, "No memory\n");
       exit (1);
     }
-  OS_CREATE (mem_os, grammar->alloc, 0);
   yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
     yaep_set_lookahead_level (g, atoi (argv[1]));
@@ -6524,14 +6523,12 @@ use_functions (int argc, char **argv)
   if (yaep_read_grammar (g, TRUE, read_terminal, read_rule) != 0)
     {
       fprintf (stderr, "%s\n", yaep_error_message (g));
-      OS_DELETE (mem_os);
       exit (1);
     }
   ntok = 0;
   if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
-		  NULL, &root, &ambiguous_p))
+		  test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));
-  OS_DELETE (mem_os);
   yaep_free_grammar (g);
 }
 #endif
@@ -6563,7 +6560,6 @@ use_description (int argc, char **argv)
       fprintf (stderr, "yaep_create_grammar: No memory\n");
       exit (1);
     }
-  OS_CREATE (mem_os, grammar->alloc, 0);
   yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
     yaep_set_lookahead_level (g, atoi (argv[1]));
@@ -6578,13 +6574,11 @@ use_description (int argc, char **argv)
   if (yaep_parse_grammar (g, TRUE, description) != 0)
     {
       fprintf (stderr, "%s\n", yaep_error_message (g));
-      OS_DELETE (mem_os);
       exit (1);
     }
   if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
-		  NULL, &root, &ambiguous_p))
+		  test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));
-  OS_DELETE (mem_os);
   yaep_free_grammar (g);
 }
 #endif
