@@ -6359,17 +6359,34 @@ test_parse_free (void * mem)
   free( mem );
 }
 
-/* The following variable is the current number of next input grammar
-   terminal. */
-static int nterm;
+/* The following structure holds test data. */
+struct test_data
+{
+  /* The following variable is the current number of next input grammar
+     terminal. */
+  int nterm;
+
+  /* The following variable is the current number of next rule grammar
+     terminal. */
+  int nrule;
+
+  /* The following variable is the current number of next input
+     token. */
+  int ntok;
+};
 
 /* The following function imported by Earley's algorithm (see comments
    in the interface file). */
 const char *
 read_terminal (int *code)
 {
-  nterm++;
-  switch (nterm)
+  struct test_data *data;
+  struct grammar *g;
+
+  g = yaep_reentrant_hack_grammar (code);
+  data = (struct test_data *) yaep_grammar_getuserptr (g);
+  data->nterm++;
+  switch (data->nterm)
     {
     case 1:
       *code = 'a';
@@ -6391,16 +6408,15 @@ read_terminal (int *code)
     }
 }
 
-/* The following variable is the current number of next rule grammar
-   terminal. */
-static int nrule;
-
 /* The following function imported by Earley's algorithm (see comments
    in the interface file). */
 const char *
 read_rule (const char ***rhs, const char **anode, int *anode_cost,
 	   int **transl)
 {
+  struct test_data *data;
+  struct grammar *g;
+
   static const char *rhs_1[] = { "T", NULL };
   static int tr_1[] = { 0, -1 };
   static const char *rhs_2[] = { "E", "+", "T", NULL };
@@ -6414,8 +6430,10 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost,
   static const char *rhs_6[] = { "(", "E", ")", NULL };
   static int tr_6[] = { 1, -1 };
 
-  nrule++;
-  switch (nrule)
+  g = yaep_reentrant_hack_grammar (anode_cost);
+  data = (struct test_data *) yaep_grammar_getuserptr (g);
+  data->nrule++;
+  switch (data->nrule)
     {
     case 1:
       *rhs = rhs_1;
@@ -6456,21 +6474,22 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost,
     }
 }
 
-/* The following variable is the current number of next input
-   token. */
-static int ntok;
-
 /* The following function imported by Earley's algorithm (see comments
    in the interface file). */
 static int
 test_read_token (void **attr)
 {
+  struct test_data *data;
+  struct grammar *g;
+
   const char input[] = "a+a*(a*a+a)";
 
-  ntok++;
+  g = yaep_reentrant_hack_grammar (attr);
+  data = (struct test_data *) yaep_grammar_getuserptr (g);
+  data->ntok++;
   *attr = NULL;
-  if (ntok < sizeof (input))
-    return input[ntok - 1];
+  if (data->ntok < sizeof (input))
+    return input[data->ntok - 1];
   else
     return -1;
 }
@@ -6501,14 +6520,16 @@ use_functions (int argc, char **argv)
   struct grammar *g;
   struct yaep_tree_node *root;
   int ambiguous_p;
+  struct test_data data;
 
-  nterm = nrule = 0;
+  data.nterm = data.nrule = data.ntok = 0;
   fprintf (stderr, "Use functions\n");
   if ((g = yaep_create_grammar ()) == NULL)
     {
       fprintf (stderr, "No memory\n");
       exit (1);
     }
+  yaep_grammar_setuserptr (g, &data);
   yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
     yaep_set_lookahead_level (g, atoi (argv[1]));
@@ -6525,7 +6546,6 @@ use_functions (int argc, char **argv)
       fprintf (stderr, "%s\n", yaep_error_message (g));
       exit (1);
     }
-  ntok = 0;
   if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
 		  test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));
@@ -6553,6 +6573,7 @@ use_description (int argc, char **argv)
   struct grammar *g;
   struct yaep_tree_node *root;
   int ambiguous_p;
+  struct test_data data;
 
   fprintf (stderr, "Use description\n");
   if ((g = yaep_create_grammar ()) == NULL)
@@ -6560,6 +6581,7 @@ use_description (int argc, char **argv)
       fprintf (stderr, "yaep_create_grammar: No memory\n");
       exit (1);
     }
+  yaep_grammar_setuserptr (g, &data);
   yaep_set_one_parse_flag (g, FALSE);
   if (argc > 1)
     yaep_set_lookahead_level (g, atoi (argv[1]));
@@ -6576,6 +6598,7 @@ use_description (int argc, char **argv)
       fprintf (stderr, "%s\n", yaep_error_message (g));
       exit (1);
     }
+  data.ntok = 0;
   if (yaep_parse (g, test_read_token, test_syntax_error, test_parse_alloc,
 		  test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep_parse: %s\n", yaep_error_message (g));

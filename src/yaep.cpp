@@ -181,8 +181,9 @@ use_functions (int argc, char **argv)
   yaep *e;
   struct yaep_tree_node *root;
   int ambiguous_p;
+  struct test_data data;
 
-  nterm = nrule = 0;
+  data.nterm = data.nrule = data.ntok = 0;
   fprintf (stderr, "Use functions\n");
   e = new yaep ();
   if (e == NULL)
@@ -190,6 +191,7 @@ use_functions (int argc, char **argv)
       fprintf (stderr, "yaep::yaep: No memory\n");
       exit (1);
     }
+  e->setuserptr (&data);
   e->set_one_parse_flag (FALSE);
   if (argc > 1)
     e->set_lookahead_level (atoi (argv[1]));
@@ -206,7 +208,6 @@ use_functions (int argc, char **argv)
       fprintf (stderr, "%s\n", e->error_message ());
       exit (1);
     }
-  ntok = 0;
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
         test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep parse: %s\n", e->error_message ());
@@ -219,6 +220,7 @@ use_description (int argc, char **argv)
   yaep *e;
   struct yaep_tree_node *root;
   int ambiguous_p;
+  struct test_data data;
 
   fprintf (stderr, "Use description\n");
   e = new yaep ();
@@ -227,6 +229,7 @@ use_description (int argc, char **argv)
       fprintf (stderr, "yaep::yaep: No memory\n");
       exit (1);
     }
+  e->setuserptr (&data);
   e->set_one_parse_flag (FALSE);
   if (argc > 1)
     e->set_lookahead_level (atoi (argv[1]));
@@ -243,6 +246,7 @@ use_description (int argc, char **argv)
       fprintf (stderr, "%s\n", e->error_message ());
       exit (1);
     }
+  data.ntok = 0;
   if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
         test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
