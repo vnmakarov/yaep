@@ -4969,9 +4969,9 @@ parse_state_fin (void)
 
 #ifndef NO_YAEP_DEBUG_PRINT
 
-/* This page conatins code to traverse translation. */
+/* This page contains code to traverse translation. */
 
-/* To make better traversing and don't waist tree parse memory,
+/* To make better traversing and not waste tree parse memory,
    we use the following structures to enumerate the tree node. */
 struct trans_visit_node
 {
