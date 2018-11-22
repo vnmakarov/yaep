@@ -167,6 +167,10 @@ struct grammar
      6 - print additionally lookaheads. */
   int debug_level;
 
+  /* The following is number of created terminal, abstract, and
+     alternative nodes. */
+  int n_parse_term_nodes, n_parse_abstract_nodes, n_parse_alt_nodes;
+
   /* The following value is TRUE if we need only one parse. */
   int one_parse_p;
 
@@ -5200,10 +5204,6 @@ print_parse (FILE * f, struct yaep_tree_node *root)
 
 #endif
 
-/* The following is number of created terminal, abstract, and
-   alternative nodes. */
-static int n_parse_term_nodes, n_parse_abstract_nodes, n_parse_alt_nodes;
-
 /* The following function places translation NODE into *PLACE and
    creates alternative nodes if it is necessary. */
 #if MAKE_INLINE
@@ -5222,7 +5222,7 @@ place_translation (struct yaep_tree_node **place, struct yaep_tree_node *node)
     }
   /* We need an alternative. */
 #ifndef NO_YAEP_DEBUG_PRINT
-  n_parse_alt_nodes++;
+  grammar->n_parse_alt_nodes++;
 #endif
   alt = (struct yaep_tree_node *) (*parse_alloc) (sizeof
 						  (struct yaep_tree_node));
@@ -5234,7 +5234,7 @@ place_translation (struct yaep_tree_node **place, struct yaep_tree_node *node)
     {
       /* We need alternative node for the 1st
          alternative too. */
-      n_parse_alt_nodes++;
+      grammar->n_parse_alt_nodes++;
       next_alt = alt->val.alt.next
 	= ((struct yaep_tree_node *)
 	   (*parse_alloc) (sizeof (struct yaep_tree_node)));
@@ -5495,7 +5495,8 @@ make_parse (int *ambiguous_p)
   vlo_t *stack, *orig_states;
 #endif
 
-  n_parse_term_nodes = n_parse_abstract_nodes = n_parse_alt_nodes = 0;
+  grammar->n_parse_term_nodes = grammar->n_parse_abstract_nodes
+    = grammar->n_parse_alt_nodes = 0;
   set = pl[pl_curr];
   assert (grammar->axiom != NULL);
   /* We have only one start situation: "$S : <start symb> $eof .".  */
@@ -5645,7 +5646,7 @@ make_parse (int *ambiguous_p)
 		;
 	      else
 		{
-		  n_parse_term_nodes++;
+		  grammar->n_parse_term_nodes++;
 		  node = ((struct yaep_tree_node *)
 			  (*parse_alloc) (sizeof (struct yaep_tree_node)));
 		  node->type = YAEP_TERM;
@@ -5822,7 +5823,7 @@ make_parse (int *ambiguous_p)
 		  if (table_state == NULL || new_p)
 		    {
 		      /* We need new abtract node. */
-		      n_parse_abstract_nodes++;
+		      grammar->n_parse_abstract_nodes++;
 		      node
 			= ((struct yaep_tree_node *)
 			   (*parse_alloc) (sizeof (struct yaep_tree_node)
@@ -5991,7 +5992,7 @@ make_parse (int *ambiguous_p)
     }
 
   assert (result != NULL
-	  && (!grammar->one_parse_p || n_parse_alt_nodes == 0));
+	  && (!grammar->one_parse_p || grammar->n_parse_alt_nodes == 0));
   return result;
 }
 
@@ -6153,12 +6154,12 @@ yaep_parse (struct grammar *g,
 	       n_reduce_vects, n_reduce_vect_len);
       fprintf (stderr,
 	       "       #term nodes = %d, #abstract nodes = %d\n",
-	       n_parse_term_nodes, n_parse_abstract_nodes);
+	       g->n_parse_term_nodes, g->n_parse_abstract_nodes);
       fprintf (stderr,
 	       "       #alternative nodes = %d, #all nodes = %d\n",
-	       n_parse_alt_nodes,
-	       n_parse_term_nodes + n_parse_abstract_nodes
-	       + n_parse_alt_nodes);
+	       g->n_parse_alt_nodes,
+	       g->n_parse_term_nodes + g->n_parse_abstract_nodes
+	       + g->n_parse_alt_nodes);
       if (tab_searches == 0)
 	tab_searches++;
       fprintf (stderr,
