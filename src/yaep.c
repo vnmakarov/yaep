@@ -5267,10 +5267,6 @@ copy_anode (struct yaep_tree_node **place, struct yaep_tree_node *anode,
   return node;
 }
 
-/* The following table is used to find allocated memory which should
-   not be freed. */
-static hash_table_t reserv_mem_tab;
-
 /* The hash of the memory reference. */
 static unsigned
 reserv_mem_hash (hash_table_entry_t m)
@@ -5285,21 +5281,13 @@ reserv_mem_eq (hash_table_entry_t m1, hash_table_entry_t m2)
   return m1 == m2;
 }
 
-/* The following vlo will contain references to memory which should be
-   freed.  The same reference can be represented more on time. */
-#ifndef __cplusplus
-static vlo_t tnodes_vlo;
-#else
-static vlo_t *tnodes_vlo;
-#endif
-
 /* The following function sets up minimal cost for each abstract node.
    The function returns minimal translation corresponding to NODE.
    The function also collects references to memory which can be
    freed. Remeber that the translation is DAG, altenatives form lists
    (alt node may not refer for another alternative). */
 static struct yaep_tree_node *
-prune_to_minimal (struct yaep_tree_node *node, int *cost)
+prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node, int *cost)
 {
   struct yaep_tree_node *child, *alt, *next_alt, *result;
   int i, min_cost;
@@ -5311,17 +5299,26 @@ prune_to_minimal (struct yaep_tree_node *node, int *cost)
     case YAEP_ERROR:
     case YAEP_TERM:
       if (parse_free != NULL)
+#ifndef __cplusplus
+	VLO_ADD_MEMORY (*tnodes_vlo, &node, sizeof (node));
+#else
 	VLO_ADD_MEMORY (tnodes_vlo, &node, sizeof (node));
+#endif
       *cost = 0;
       return node;
     case YAEP_ANODE:
       if (node->val.anode.cost >= 0)
 	{
 	  if (parse_free != NULL)
+#ifndef __cplusplus
+	    VLO_ADD_MEMORY (*tnodes_vlo, &node, sizeof (node));
+#else
 	    VLO_ADD_MEMORY (tnodes_vlo, &node, sizeof (node));
+#endif
 	  for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
 	    {
-	      node->val.anode.children[i] = prune_to_minimal (child, cost);
+	      node->val.anode.children[i] = prune_to_minimal
+                (tnodes_vlo, child, cost);
 	      node->val.anode.cost += *cost;
 	    }
 	  *cost = node->val.anode.cost;
@@ -5332,9 +5329,14 @@ prune_to_minimal (struct yaep_tree_node *node, int *cost)
       for (alt = node; alt != NULL; alt = next_alt)
 	{
 	  if (parse_free != NULL)
+#ifndef __cplusplus
+	    VLO_ADD_MEMORY (*tnodes_vlo, &alt, sizeof (alt));
+#else
 	    VLO_ADD_MEMORY (tnodes_vlo, &alt, sizeof (alt));
+#endif
 	  next_alt = alt->val.alt.next;
-	  alt->val.alt.node = prune_to_minimal (alt->val.alt.node, cost);
+	  alt->val.alt.node = prune_to_minimal
+            (tnodes_vlo, alt->val.alt.node, cost);
 	  if (alt == node || min_cost > *cost)
 	    {
 	      min_cost = *cost;
@@ -5359,7 +5361,8 @@ prune_to_minimal (struct yaep_tree_node *node, int *cost)
 /* The following function traverses the translation collecting
    reference to memory which may not be freed. */
 static void
-traverse_pruned_translation (struct yaep_tree_node *node)
+traverse_pruned_translation
+  (hash_table_t reserv_mem_tab, struct yaep_tree_node *node)
 {
   struct yaep_tree_node *child, *alt;
   hash_table_entry_t *entry;
@@ -5384,12 +5387,12 @@ traverse_pruned_translation (struct yaep_tree_node *node)
 					      TRUE)) == NULL)
 	*entry = (hash_table_entry_t) node->val.anode.name;
       for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
-	traverse_pruned_translation (child);
+	traverse_pruned_translation (reserv_mem_tab, child);
       assert (node->val.anode.cost < 0);
       node->val.anode.cost = -node->val.anode.cost - 1;
       break;
     case YAEP_ALT:
-      traverse_pruned_translation (node->val.alt.node);
+      traverse_pruned_translation (reserv_mem_tab, node->val.alt.node);
       if ((node = node->val.alt.next) != NULL)
 	goto next;
       break;
@@ -5406,6 +5409,18 @@ find_minimal_translation (struct yaep_tree_node *root)
   struct yaep_tree_node **node_ptr;
   int cost;
 
+  /* The following table is used to find allocated memory which should
+     not be freed. */
+  hash_table_t reserv_mem_tab;
+
+  /* The following vlo will contain references to memory which should be
+     freed.  The same reference can be represented more on time. */
+#ifndef __cplusplus
+  vlo_t tnodes_vlo;
+#else
+  vlo_t *tnodes_vlo;
+#endif
+
   if (parse_free != NULL)
     {
 #ifndef __cplusplus
@@ -5419,8 +5434,12 @@ find_minimal_translation (struct yaep_tree_node *root)
 #endif
       VLO_CREATE (tnodes_vlo, grammar->alloc, toks_len * 4 * sizeof (void *));
     }
-  root = prune_to_minimal (root, &cost);
-  traverse_pruned_translation (root);
+#ifndef __cplusplus
+  root = prune_to_minimal (&tnodes_vlo, root, &cost);
+#else
+  root = prune_to_minimal (tnodes_vlo, root, &cost);
+#endif
+  traverse_pruned_translation (reserv_mem_tab, root);
   if (parse_free != NULL)
     {
       for (node_ptr = (struct yaep_tree_node **) VLO_BEGIN (tnodes_vlo);
