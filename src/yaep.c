@@ -4982,20 +4982,6 @@ struct trans_visit_node
   struct yaep_tree_node *node;
 };
 
-/* The key of the following table is node itself. */
-static hash_table_t trans_visit_nodes_tab;
-
-/* All translation visit nodes are placed in the following stack.  All
-   the nodes are in the table. */
-#ifndef __cplusplus
-static os_t trans_visit_nodes_os;
-#else
-static os_t *trans_visit_nodes_os;
-#endif
-
-/* The following value is number of translation visit nodes. */
-static int n_trans_visit_nodes;
-
 /* Hash of translation visit node. */
 static unsigned
 trans_visit_node_hash (hash_table_entry_t n)
@@ -5016,7 +5002,8 @@ trans_visit_node_eq (hash_table_entry_t n1, hash_table_entry_t n2)
    function creates the translation visit node and inserts it into
    the table. */
 static struct trans_visit_node *
-visit_node (struct yaep_tree_node *node)
+visit_node (struct yaep_tree_node *node, hash_table_t trans_visit_nodes_tab,
+	    os_t *trans_visit_nodes_os, int *n_trans_visit_nodes)
 {
   struct trans_visit_node trans_visit_node;
   hash_table_entry_t *entry;
@@ -5031,12 +5018,19 @@ visit_node (struct yaep_tree_node *node)
   if (*entry == NULL)
     {
       /* If it is the new node, we did not visit it yet. */
-      trans_visit_node.num = -1 - n_trans_visit_nodes;
-      n_trans_visit_nodes++;
+      trans_visit_node.num = -1 - *n_trans_visit_nodes;
+      ++*n_trans_visit_nodes;
+#ifndef __cplusplus
+      OS_TOP_ADD_MEMORY (*trans_visit_nodes_os,
+			 &trans_visit_node, sizeof (trans_visit_node));
+      *entry = (hash_table_entry_t) OS_TOP_BEGIN (*trans_visit_nodes_os);
+      OS_TOP_FINISH (*trans_visit_nodes_os);
+#else
       OS_TOP_ADD_MEMORY (trans_visit_nodes_os,
 			 &trans_visit_node, sizeof (trans_visit_node));
       *entry = (hash_table_entry_t) OS_TOP_BEGIN (trans_visit_nodes_os);
       OS_TOP_FINISH (trans_visit_nodes_os);
+#endif
     }
   return (struct trans_visit_node *) *entry;
 }
@@ -5056,14 +5050,17 @@ canon_node_num (int num)
    all its children (if debug_level < 0 output format is for
    graphviz). */
 static void
-print_node (FILE * f, struct yaep_tree_node *node)
+print_node (FILE * f, struct yaep_tree_node *node,
+	    hash_table_t trans_visit_nodes_tab, os_t *trans_visit_nodes_os,
+            int *n_trans_visit_nodes)
 {
   struct trans_visit_node *trans_visit_node;
   struct yaep_tree_node *child;
   int i;
 
   assert (node != NULL);
-  trans_visit_node = visit_node (node);
+  trans_visit_node = visit_node (node, trans_visit_nodes_tab,
+                                 trans_visit_nodes_os, n_trans_visit_nodes);
   if (trans_visit_node->num >= 0)
     return;
   trans_visit_node->num = -trans_visit_node->num - 1;
@@ -5089,7 +5086,10 @@ print_node (FILE * f, struct yaep_tree_node *node)
 	{
 	  fprintf (f, "ABSTRACT: %s (", node->val.anode.name);
 	  for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
-	    fprintf (f, " %d", canon_node_num (visit_node (child)->num));
+	    fprintf (f, " %d",
+                     canon_node_num (visit_node (child, trans_visit_nodes_tab,
+                                                 trans_visit_nodes_os,
+                                                 n_trans_visit_nodes)->num));
 	  fprintf (f, " )\n");
 	}
       else
@@ -5098,7 +5098,9 @@ print_node (FILE * f, struct yaep_tree_node *node)
 	    {
 	      fprintf (f, "  \"%d: %s\" -> \"%d: ", trans_visit_node->num,
 		       node->val.anode.name,
-		       canon_node_num (visit_node (child)->num));
+		       canon_node_num (visit_node (child, trans_visit_nodes_tab,
+                                       trans_visit_nodes_os,
+                                       n_trans_visit_nodes)->num));
 	      switch (child->type)
 		{
 		case YAEP_NIL:
@@ -5124,23 +5126,33 @@ print_node (FILE * f, struct yaep_tree_node *node)
 	    }
 	}
       for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
-	print_node (f, child);
+	print_node (f, child, trans_visit_nodes_tab, trans_visit_nodes_os,
+                    n_trans_visit_nodes);
       break;
     case YAEP_ALT:
       if (grammar->debug_level > 0)
 	{
 	  fprintf (f, "ALTERNATIVE: node=%d, next=",
-		   canon_node_num (visit_node (node->val.alt.node)->num));
+		   canon_node_num (visit_node (node->val.alt.node,
+                                               trans_visit_nodes_tab,
+                                               trans_visit_nodes_os,
+                                               n_trans_visit_nodes)->num));
 	  if (node->val.alt.next != NULL)
 	    fprintf (f, "%d\n",
-		     canon_node_num (visit_node (node->val.alt.next)->num));
+		     canon_node_num (visit_node (node->val.alt.next,
+                                                 trans_visit_nodes_tab,
+                                                 trans_visit_nodes_os,
+                                                 n_trans_visit_nodes)->num));
 	  else
 	    fprintf (f, "nil\n");
 	}
       else
 	{
 	  fprintf (f, "  \"%d: ALT\" -> \"%d: ", trans_visit_node->num,
-		   canon_node_num (visit_node (node->val.alt.node)->num));
+		   canon_node_num (visit_node (node->val.alt.node,
+                                               trans_visit_nodes_tab,
+                                               trans_visit_nodes_os,
+                                               n_trans_visit_nodes)->num));
 	  switch (node->val.alt.node->type)
 	    {
 	    case YAEP_NIL:
@@ -5167,11 +5179,16 @@ print_node (FILE * f, struct yaep_tree_node *node)
 	  if (node->val.alt.next != NULL)
 	    fprintf (f, "  \"%d: ALT\" -> \"%d: ALT\";\n",
 		     trans_visit_node->num,
-		     canon_node_num (visit_node (node->val.alt.next)->num));
+		     canon_node_num (visit_node (node->val.alt.next,
+                                                 trans_visit_nodes_tab,
+                                                 trans_visit_nodes_os,
+                                                 n_trans_visit_nodes)->num));
 	}
-      print_node (f, node->val.alt.node);
+      print_node (f, node->val.alt.node, trans_visit_nodes_tab,
+                  trans_visit_nodes_os, n_trans_visit_nodes);
       if (node->val.alt.next != NULL)
-	print_node (f, node->val.alt.next);
+	print_node (f, node->val.alt.next, trans_visit_nodes_tab,
+                    trans_visit_nodes_os, n_trans_visit_nodes);
       break;
     default:
       assert (FALSE);
@@ -5182,6 +5199,20 @@ print_node (FILE * f, struct yaep_tree_node *node)
 static void
 print_parse (FILE * f, struct yaep_tree_node *root)
 {
+  /* The key of the following table is node itself. */
+  hash_table_t trans_visit_nodes_tab;
+
+  /* All translation visit nodes are placed in the following stack.  All
+     the nodes are in the table. */
+#ifndef __cplusplus
+  os_t trans_visit_nodes_os;
+#else
+  os_t *trans_visit_nodes_os;
+#endif
+
+  /* The following value is number of translation visit nodes. */
+  int n_trans_visit_nodes;
+
 #ifndef __cplusplus
   trans_visit_nodes_tab =
     create_hash_table (grammar->alloc, toks_len * 2, trans_visit_node_hash,
@@ -5193,7 +5224,13 @@ print_parse (FILE * f, struct yaep_tree_node *root)
 #endif
   n_trans_visit_nodes = 0;
   OS_CREATE (trans_visit_nodes_os, grammar->alloc, 0);
-  print_node (f, root);
+#ifndef __cplusplus
+  print_node (f, root, trans_visit_nodes_tab, &trans_visit_nodes_os,
+              &n_trans_visit_nodes);
+#else
+  print_node (f, root, trans_visit_nodes_tab, trans_visit_nodes_os,
+              &n_trans_visit_nodes);
+#endif
   OS_DELETE (trans_visit_nodes_os);
 #ifndef __cplusplus
   delete_hash_table (trans_visit_nodes_tab);
