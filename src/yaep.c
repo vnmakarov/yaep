@@ -4828,21 +4828,26 @@ struct parse_state
   struct yaep_tree_node *anode;
 };
 
-/* The following os contains all allocated parser states. */
+/* The following describes the set of parse states */
+struct parse_state_set
+{
+  /* The following os contains all allocated parser states. */
 #ifndef __cplusplus
-static os_t parse_state_os;
+  os_t parse_state_os;
 #else
-static os_t *parse_state_os;
+  os_t *parse_state_os;
 #endif
 
-/* The following variable refers to head of chain of already allocated
-   and then freed parser states. */
-static struct parse_state *free_parse_state;
+  /* The following variable refers to head of chain of already allocated
+     and then freed parser states. */
+  struct parse_state *free_parse_state;
 
-/* The following table is used to make translation for ambiguous
-   grammar more compact.  It is used only when we want all
-   translations. */
-static hash_table_t parse_state_tab;	/* Key is rule, orig, pl_ind. */
+  /* The following table is used to make translation for ambiguous
+     grammar more compact.  It is used only when we want all
+     translations. */
+  hash_table_t parse_state_tab; /* Key is rule, orig, pl_ind. */
+};
+
 
 /* Hash of parse state. */
 static unsigned
@@ -4873,17 +4878,17 @@ parse_state_eq (hash_table_entry_t s1, hash_table_entry_t s2)
 
 /* The following function initializes work with parser states. */
 static void
-parse_state_init (void)
+parse_state_init (struct parse_state_set *parse_state_set)
 {
-  free_parse_state = NULL;
-  OS_CREATE (parse_state_os, grammar->alloc, 0);
+  parse_state_set->free_parse_state = NULL;
+  OS_CREATE (parse_state_set->parse_state_os, grammar->alloc, 0);
   if (!grammar->one_parse_p)
 #ifndef __cplusplus
-    parse_state_tab =
+    parse_state_set->parse_state_tab =
       create_hash_table (grammar->alloc, toks_len * 2, parse_state_hash,
 			 parse_state_eq);
 #else
-    parse_state_tab =
+    parse_state_set->parse_state_tab =
       new hash_table (grammar->alloc, toks_len * 2, parse_state_hash,
 		      parse_state_eq);
 #endif
@@ -4894,20 +4899,23 @@ parse_state_init (void)
 INLINE
 #endif
 static struct parse_state *
-parse_state_alloc (void)
+parse_state_alloc (struct parse_state_set *parse_state_set)
 {
   struct parse_state *result;
 
-  if (free_parse_state == NULL)
+  if (parse_state_set->free_parse_state == NULL)
     {
-      OS_TOP_EXPAND (parse_state_os, sizeof (struct parse_state));
-      result = (struct parse_state *) OS_TOP_BEGIN (parse_state_os);
-      OS_TOP_FINISH (parse_state_os);
+      OS_TOP_EXPAND (parse_state_set->parse_state_os,
+                     sizeof (struct parse_state));
+      result = (struct parse_state *)
+        OS_TOP_BEGIN (parse_state_set->parse_state_os);
+      OS_TOP_FINISH (parse_state_set->parse_state_os);
     }
   else
     {
-      result = free_parse_state;
-      free_parse_state = (struct parse_state *) free_parse_state->rule;
+      result = parse_state_set->free_parse_state;
+      parse_state_set->free_parse_state =
+        (struct parse_state *) parse_state_set->free_parse_state->rule;
     }
   return result;
 }
@@ -4917,10 +4925,11 @@ parse_state_alloc (void)
 INLINE
 #endif
 static void
-parse_state_free (struct parse_state *state)
+parse_state_free (struct parse_state *state,
+                  struct parse_state_set *parse_state_set)
 {
-  state->rule = (struct rule *) free_parse_state;
-  free_parse_state = state;
+  state->rule = (struct rule *) parse_state_set->free_parse_state;
+  parse_state_set->free_parse_state = state;
 }
 
 /* The following function searches for state in the table with the
@@ -4932,14 +4941,16 @@ parse_state_free (struct parse_state *state)
 INLINE
 #endif
 static struct parse_state *
-parse_state_insert (struct parse_state *state, int *new_p)
+parse_state_insert (struct parse_state_set *parse_state_set,
+                    struct parse_state *state, int *new_p)
 {
   hash_table_entry_t *entry;
 
 #ifndef __cplusplus
-  entry = find_hash_table_entry (parse_state_tab, state, TRUE);
+  entry = find_hash_table_entry (parse_state_set->parse_state_tab,
+                                 state, TRUE);
 #else
-  entry = parse_state_tab->find_entry (state, TRUE);
+  entry = parse_state_set->parse_state_tab->find_entry (state, TRUE);
 #endif
   *new_p = FALSE;
   if (*entry != NULL)
@@ -4947,22 +4958,22 @@ parse_state_insert (struct parse_state *state, int *new_p)
   *new_p = TRUE;
   /* We make copy because pl_ind can be changed in further processing
      state. */
-  *entry = parse_state_alloc ();
+  *entry = parse_state_alloc (parse_state_set);
   *(struct parse_state *) *entry = *state;
   return (struct parse_state *) *entry;
 }
 
 /* The following function finalizes work with parser states. */
 static void
-parse_state_fin (void)
+parse_state_fin (struct parse_state_set *parse_state_set)
 {
   if (!grammar->one_parse_p)
 #ifndef __cplusplus
-    delete_hash_table (parse_state_tab);
+    delete_hash_table (parse_state_set->parse_state_tab);
 #else
-    delete parse_state_tab;
+    delete parse_state_set->parse_state_tab;
 #endif
-  OS_DELETE (parse_state_os);
+  OS_DELETE (parse_state_set->parse_state_os);
 }
 
 
@@ -5531,6 +5542,7 @@ make_parse (int *ambiguous_p)
 #else
   vlo_t *stack, *orig_states;
 #endif
+  struct parse_state_set parse_state_set;
 
   grammar->n_parse_term_nodes = grammar->n_parse_abstract_nodes
     = grammar->n_parse_alt_nodes = 0;
@@ -5556,7 +5568,7 @@ make_parse (int *ambiguous_p)
     /* We need all parses to choose the minimal one */
     grammar->one_parse_p = FALSE;
   sit = set->core->sits[0];
-  parse_state_init ();
+  parse_state_init (&parse_state_set);
   if (!grammar->one_parse_p)
     {
       void *mem;
@@ -5575,7 +5587,7 @@ make_parse (int *ambiguous_p)
     }
   VLO_CREATE (stack, grammar->alloc, 10000);
   VLO_EXPAND (stack, sizeof (struct parse_state *));
-  state = parse_state_alloc ();
+  state = parse_state_alloc (&parse_state_set);
   ((struct parse_state **) VLO_BOUND (stack))[-1] = state;
   rule = state->rule = sit->rule;
   state->pos = sit->pos;
@@ -5632,7 +5644,7 @@ make_parse (int *ambiguous_p)
 	      fprintf (stderr, ", %d\n", state->orig);
 	    }
 #endif
-	  parse_state_free (state);
+	  parse_state_free (state, &parse_state_set);
 	  VLO_SHORTEN (stack, sizeof (struct parse_state *));
 	  if (VLO_LENGTH (stack) != 0)
 	    state = ((struct parse_state **) VLO_BOUND (stack))[-1];
@@ -5818,7 +5830,7 @@ make_parse (int *ambiguous_p)
 		      /* [A -> x., n] & [A -> y., m] where n != m. */
 		      /* It is different from the previous ones so add
 		         it to process. */
-		      state = parse_state_alloc ();
+		      state = parse_state_alloc (&parse_state_set);
 		      VLO_EXPAND (stack, sizeof (struct parse_state *));
 		      ((struct parse_state **) VLO_BOUND (stack))[-1] = state;
 		      *state = *orig_state;
@@ -5849,14 +5861,15 @@ make_parse (int *ambiguous_p)
 	      if (sit_rule->anode != NULL)
 		{
 		  /* This rule creates abstract node. */
-		  state = parse_state_alloc ();
+		  state = parse_state_alloc (&parse_state_set);
 		  state->rule = sit_rule;
 		  state->pos = sit->pos;
 		  state->orig = sit_orig;
 		  state->pl_ind = pl_ind;
 		  table_state = NULL;
 		  if (!grammar->one_parse_p)
-		    table_state = parse_state_insert (state, &new_p);
+		    table_state = parse_state_insert (&parse_state_set,
+                                                      state, &new_p);
 		  if (table_state == NULL || new_p)
 		    {
 		      /* We need new abtract node. */
@@ -5913,7 +5926,7 @@ make_parse (int *ambiguous_p)
 		    {
 		      /* We allready have the translation. */
 		      assert (!grammar->one_parse_p);
-		      parse_state_free (state);
+		      parse_state_free (state, &parse_state_set);
 		      state = ((struct parse_state **) VLO_BOUND (stack))[-1];
 		      node = table_state->anode;
 		      assert (node != NULL);
@@ -5938,7 +5951,7 @@ make_parse (int *ambiguous_p)
 		{
 		  /* We should generate and use the translation of the
 		     nonterminal.  Add state to get a translation. */
-		  state = parse_state_alloc ();
+		  state = parse_state_alloc (&parse_state_set);
 		  VLO_EXPAND (stack, sizeof (struct parse_state *));
 		  ((struct parse_state **) VLO_BOUND (stack))[-1] = state;
 		  state->rule = sit_rule;
@@ -5987,7 +6000,7 @@ make_parse (int *ambiguous_p)
       VLO_DELETE (orig_states);
       yaep_free (grammar->alloc, term_node_array);
     }
-  parse_state_fin ();
+  parse_state_fin (&parse_state_set);
   grammar->one_parse_p = saved_one_parse_p;
   if (grammar->cost_p && *ambiguous_p)
     /* We can not build minimal tree during building parsing list
