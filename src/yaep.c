@@ -168,6 +168,10 @@ struct grammar
   int debug_level;
 
 #ifndef NO_YAEP_DEBUG_PRINT
+  /* How many times we reuse Earley's sets without their
+     recalculation. */
+  int n_goto_successes;
+
   /* The following is number of created terminal, abstract, and
      alternative nodes. */
   int n_parse_term_nodes, n_parse_abstract_nodes, n_parse_alt_nodes;
@@ -4674,10 +4678,6 @@ check_cached_transition_set (struct set *set, int place)
   return TRUE;
 }
 
-/* How many times we reuse Earley's sets without their
-   recalculation.  */
-static int n_goto_successes;
-
 /* The following function is major function forming parsing list in
    Earley's algorithm. */
 static void
@@ -4742,7 +4742,9 @@ build_pl (void)
 		      ((struct set_term_lookahead *) *entry)->place[i]))
 	      {
 		new_set = tab_set;
-		n_goto_successes++;
+#ifndef NO_YAEP_DEBUG_PRINT
+		grammar->n_goto_successes++;
+#endif
 		break;
 	      }
 	}
@@ -6150,7 +6152,9 @@ yaep_parse (struct grammar *g,
     }
   if (grammar->undefined_p)
     yaep_error (YAEP_UNDEFINED_OR_BAD_GRAMMAR, "undefined or bad grammar");
-  n_goto_successes = 0;
+#ifndef NO_YAEP_DEBUG_PRINT
+  grammar->n_goto_successes = 0;
+#endif
   tok_init ();
   tok_init_p = TRUE;
   read_toks ();
@@ -6201,7 +6205,7 @@ yaep_parse (struct grammar *g,
 	       n_sets, n_sets_start_sits);
       fprintf (stderr,
 	       "       #unique triples (set, term, lookahead) = %d, goto successes=%d\n",
-	       n_set_term_lookaheads, n_goto_successes);
+	       n_set_term_lookaheads, grammar->n_goto_successes);
       fprintf (stderr,
 	       "       #pairs(set core, symb) = %d, their trans+reduce vects length = %d\n",
 	       n_core_symb_pairs, n_core_symb_vect_len);
