@@ -926,7 +926,9 @@ term_set_print (FILE * f, term_set_el_t * set)
     if (term_set_test (set, i))
       {
 	fprintf (f, " ");
+#ifndef NO_YAEP_DEBUG_PRINT
 	symb_print (f, term_get (i), FALSE);
+#endif
       }
 }
 
