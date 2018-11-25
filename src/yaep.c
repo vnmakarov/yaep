@@ -4433,8 +4433,8 @@ error_recovery (int *start, int *stop)
 			   tok_curr);
 		  symb_print (stderr, toks[tok_curr].symb, TRUE);
 		  fprintf (stderr, "\n");
-#endif
 		}
+#endif
 	      push_recovery_state (state.last_original_pl_el, cost + 1);
 	    }
 	  tok_curr--;
