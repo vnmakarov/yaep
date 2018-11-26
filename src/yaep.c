@@ -4075,7 +4075,7 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
    tokens ignored by error recovery.  The error recovery is successful
    when we match at least RECOVERY_TOKEN_MATCHES tokens. */
 
-/* The following strucrture describes an error recovery state (an
+/* The following structure describes an error recovery state (an
    error recovery alternative. */
 struct recovery_state
 {
