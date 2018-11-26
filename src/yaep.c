@@ -4098,35 +4098,48 @@ struct recovery_state
   int backward_move_cost;
 };
 
-/* All tail sets of error recovery are saved in the following os. */
+/* The following structure holds all recovery state sets */
+struct recovery_state_sets
+{
+  /* All tail sets of error recovery are saved in the following os. */
 #ifndef __cplusplus
-static os_t recovery_state_tail_sets;
+  os_t recovery_state_tail_sets;
 #else
-static os_t *recovery_state_tail_sets;
+  os_t *recovery_state_tail_sets;
 #endif
 
-/* The following variable values is pl_curr and tok_curr at error
-   recovery start (when the original syntax error has been fixed). */
-static int start_pl_curr, start_tok_curr;
+  /* The following variable values is pl_curr and tok_curr at error
+     recovery start (when the original syntax error has been fixed). */
+  int start_pl_curr, start_tok_curr;
 
-/* The following variable value means that all error sets in pl with
-   indexes [back_pl_frontier, start_pl_curr] are being processed or
-   have been processed. */
-static int back_pl_frontier;
+  /* The following variable value means that all error sets in pl with
+     indexes [back_pl_frontier, start_pl_curr] are being processed or
+     have been processed. */
+  int back_pl_frontier;
 
-/* The following variable stores original pl tail in reversed order.
-   This object only grows.  The last object sets may be used to
-   restore original pl in order to try another error recovery state
-   (alternative). */
+  /* The following variable stores original pl tail in reversed order.
+     This object only grows.  The last object sets may be used to
+     restore original pl in order to try another error recovery state
+     (alternative). */
 #ifndef __cplusplus
-static vlo_t original_pl_tail_stack;
+  vlo_t original_pl_tail_stack;
 #else
-static vlo_t *original_pl_tail_stack;
+  vlo_t *original_pl_tail_stack;
 #endif
 
-/* The following variable value is last pl element which is original
-   set (set before the error_recovery start). */
-static int original_last_pl_el;
+  /* The following variable value is last pl element which is original
+     set (set before the error_recovery start). */
+  int original_last_pl_el;
+
+  /* The following vlo is error recovery states stack.  The stack
+     contains error recovery state which should be investigated to find
+     the best error recovery. */
+#ifndef __cplusplus
+  vlo_t recovery_state_stack;
+#else
+  vlo_t *recovery_state_stack;
+#endif
+};
 
 /* The following function may be called if you know that pl has
    original sets upto LAST element (including it).  Such call can
@@ -4135,11 +4148,11 @@ static int original_last_pl_el;
 INLINE
 #endif
 static void
-set_original_set_bound (int last)
+set_original_set_bound (struct recovery_state_sets *recovery, int last)
 {
-  assert (last >= 0 && last <= start_pl_curr
-	  && original_last_pl_el <= start_pl_curr);
-  original_last_pl_el = last;
+  assert (last >= 0 && last <= recovery->start_pl_curr
+	  && recovery->original_last_pl_el <= recovery->start_pl_curr);
+  recovery->original_last_pl_el = last;
 }
 
 /* The following function guarantees that original pl tail sets
@@ -4147,15 +4160,19 @@ set_original_set_bound (int last)
    should be called after any decreasing pl_curr with subsequent
    writing to pl [pl_curr]. */
 static void
-save_original_sets (void)
+save_original_sets (struct recovery_state_sets *recovery)
 {
   int length, curr_pl;
 
-  assert (pl_curr >= 0 && original_last_pl_el <= start_pl_curr);
-  length = VLO_LENGTH (original_pl_tail_stack) / sizeof (struct set *);
-  for (curr_pl = start_pl_curr - length; curr_pl >= pl_curr; curr_pl--)
+  assert (pl_curr >= 0
+      && recovery->original_last_pl_el <= recovery->start_pl_curr);
+  length = VLO_LENGTH (recovery->original_pl_tail_stack)
+            / sizeof (struct set *);
+  for (curr_pl = recovery->start_pl_curr - length;
+       curr_pl >= pl_curr;
+       curr_pl--)
     {
-      VLO_ADD_MEMORY (original_pl_tail_stack, &pl[curr_pl],
+      VLO_ADD_MEMORY (recovery->original_pl_tail_stack, &pl[curr_pl],
 		      sizeof (struct set *));
 #ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
@@ -4170,41 +4187,42 @@ save_original_sets (void)
 	}
 #endif
     }
-  original_last_pl_el = pl_curr - 1;
+  recovery->original_last_pl_el = pl_curr - 1;
 }
 
 /* If it is necessary, the following function restores original pl
    part with states in range [0, last_pl_el]. */
 static void
-restore_original_sets (int last_pl_el)
+restore_original_sets (struct recovery_state_sets *recovery, int last_pl_el)
 {
-  assert (last_pl_el <= start_pl_curr
-	  && original_last_pl_el <= start_pl_curr);
-  if (original_last_pl_el >= last_pl_el)
+  assert (last_pl_el <= recovery->start_pl_curr
+	  && recovery->original_last_pl_el <= recovery->start_pl_curr);
+  if (recovery->original_last_pl_el >= last_pl_el)
     {
-      original_last_pl_el = last_pl_el;
+      recovery->original_last_pl_el = last_pl_el;
       return;
     }
   for (;;)
     {
-      original_last_pl_el++;
-      pl[original_last_pl_el]
-	= ((struct set **) VLO_BEGIN (original_pl_tail_stack))
-	[start_pl_curr - original_last_pl_el];
+      recovery->original_last_pl_el++;
+      pl[recovery->original_last_pl_el]
+	= ((struct set **) VLO_BEGIN (recovery->original_pl_tail_stack))
+	[recovery->start_pl_curr - recovery->original_last_pl_el];
 #ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	{
 	  fprintf (stderr, "++++++Restore original set=%d\n",
-		   original_last_pl_el);
+		   recovery->original_last_pl_el);
 	  if (grammar->debug_level > 3)
 	    {
-	      set_print (stderr, pl[original_last_pl_el], original_last_pl_el,
+	      set_print (stderr, pl[recovery->original_last_pl_el],
+                         recovery->original_last_pl_el,
 			 grammar->debug_level > 4, grammar->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
 	}
 #endif
-      if (original_last_pl_el >= last_pl_el)
+      if (recovery->original_last_pl_el >= last_pl_el)
 	break;
     }
 }
@@ -4238,7 +4256,8 @@ find_error_pl_set (int start_pl_set, int *cost)
    with charcteristics (LAST_ORIGINAL_PL_EL, BACKWARD_MOVE_COST,
    pl_curr, tok_curr). */
 static struct recovery_state
-new_recovery_state (int last_original_pl_el, int backward_move_cost)
+new_recovery_state (struct recovery_state_sets *recovery,
+                    int last_original_pl_el, int backward_move_cost)
 {
   struct recovery_state state;
   int i;
@@ -4259,7 +4278,8 @@ new_recovery_state (int last_original_pl_el, int backward_move_cost)
   assert (state.pl_tail_length >= 0);
   for (i = last_original_pl_el + 1; i <= pl_curr; i++)
     {
-      OS_TOP_ADD_MEMORY (recovery_state_tail_sets, &pl[i], sizeof (pl[i]));
+      OS_TOP_ADD_MEMORY (recovery->recovery_state_tail_sets, &pl[i],
+                         sizeof (pl[i]));
 #ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 3)
 	{
@@ -4270,21 +4290,13 @@ new_recovery_state (int last_original_pl_el, int backward_move_cost)
 	}
 #endif
     }
-  state.pl_tail = (struct set **) OS_TOP_BEGIN (recovery_state_tail_sets);
-  OS_TOP_FINISH (recovery_state_tail_sets);
+  state.pl_tail = (struct set **)
+    OS_TOP_BEGIN (recovery->recovery_state_tail_sets);
+  OS_TOP_FINISH (recovery->recovery_state_tail_sets);
   state.start_tok = tok_curr;
   state.backward_move_cost = backward_move_cost;
   return state;
 }
-
-/* The following vlo is error recovery states stack.  The stack
-   contains error recovery state which should be investigated to find
-   the best error recovery. */
-#ifndef __cplusplus
-static vlo_t recovery_state_stack;
-#else
-static vlo_t *recovery_state_stack;
-#endif
 
 /* The following function creates new error recovery state and pushes
    it on the states stack top. */
@@ -4292,11 +4304,13 @@ static vlo_t *recovery_state_stack;
 INLINE
 #endif
 static void
-push_recovery_state (int last_original_pl_el, int backward_move_cost)
+push_recovery_state (struct recovery_state_sets *recovery,
+                     int last_original_pl_el, int backward_move_cost)
 {
   struct recovery_state state;
 
-  state = new_recovery_state (last_original_pl_el, backward_move_cost);
+  state = new_recovery_state (recovery, last_original_pl_el,
+                              backward_move_cost);
 #ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
@@ -4306,18 +4320,19 @@ push_recovery_state (int last_original_pl_el, int backward_move_cost)
       fprintf (stderr, "\n");
     }
 #endif
-  VLO_ADD_MEMORY (recovery_state_stack, &state, sizeof (state));
+  VLO_ADD_MEMORY (recovery->recovery_state_stack, &state, sizeof (state));
 }
 
 /* The following function sets up parser state (pl, pl_curr, tok_curr)
    according to error recovery STATE. */
 static void
-set_recovery_state (struct recovery_state *state)
+set_recovery_state (struct recovery_state_sets *recovery,
+                    struct recovery_state *state)
 {
   int i;
 
   tok_curr = state->start_tok;
-  restore_original_sets (state->last_original_pl_el);
+  restore_original_sets (recovery, state->last_original_pl_el);
   pl_curr = state->last_original_pl_el;
 #ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
@@ -4350,17 +4365,18 @@ set_recovery_state (struct recovery_state *state)
 INLINE
 #endif
 static struct recovery_state
-pop_recovery_state (void)
+pop_recovery_state (struct recovery_state_sets *recovery)
 {
   struct recovery_state *state;
 
-  state = &((struct recovery_state *) VLO_BOUND (recovery_state_stack))[-1];
-  VLO_SHORTEN (recovery_state_stack, sizeof (struct recovery_state));
+  state = &((struct recovery_state *)
+            VLO_BOUND (recovery->recovery_state_stack))[-1];
+  VLO_SHORTEN (recovery->recovery_state_stack, sizeof (struct recovery_state));
 #ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     fprintf (stderr, "++++Pop error recovery state\n");
 #endif
-  set_recovery_state (state);
+  set_recovery_state (recovery, state);
   return *state;
 }
 
@@ -4371,7 +4387,7 @@ pop_recovery_state (void)
    tokens is zero, *START will be equal to *STOP and number of token
    on which the error occurred. */
 static void
-error_recovery (int *start, int *stop)
+error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
 {
   struct set *set;
   struct core_symb_vect *core_symb_vect;
@@ -4384,45 +4400,45 @@ error_recovery (int *start, int *stop)
     fprintf (stderr, "\n++Error recovery start\n");
 #endif
   *stop = *start = -1;
-  OS_CREATE (recovery_state_tail_sets, grammar->alloc, 0);
-  VLO_NULLIFY (original_pl_tail_stack);
-  VLO_NULLIFY (recovery_state_stack);
-  start_pl_curr = pl_curr;
-  start_tok_curr = tok_curr;
+  OS_CREATE (recovery->recovery_state_tail_sets, grammar->alloc, 0);
+  VLO_NULLIFY (recovery->original_pl_tail_stack);
+  VLO_NULLIFY (recovery->recovery_state_stack);
+  recovery->start_pl_curr = pl_curr;
+  recovery->start_tok_curr = tok_curr;
   /* Initialize error recovery state stack. */
-  pl_curr
-    = back_pl_frontier = find_error_pl_set (pl_curr, &backward_move_cost);
+  pl_curr = recovery->back_pl_frontier
+    = find_error_pl_set (pl_curr, &backward_move_cost);
   back_to_frontier_move_cost = backward_move_cost;
-  save_original_sets ();
-  push_recovery_state (back_pl_frontier, backward_move_cost);
+  save_original_sets (recovery);
+  push_recovery_state (recovery, recovery->back_pl_frontier, backward_move_cost);
   best_cost = 2 * toks_len;
-  while (VLO_LENGTH (recovery_state_stack) > 0)
+  while (VLO_LENGTH (recovery->recovery_state_stack) > 0)
     {
-      state = pop_recovery_state ();
+      state = pop_recovery_state (recovery);
       cost = state.backward_move_cost;
       assert (cost >= 0);
       /* Advance back frontier. */
-      if (back_pl_frontier > 0)
+      if (recovery->back_pl_frontier > 0)
 	{
 	  int saved_pl_curr = pl_curr, saved_tok_curr = tok_curr;
 
 	  /* Advance back frontier. */
-	  pl_curr = find_error_pl_set (back_pl_frontier - 1,
+	  pl_curr = find_error_pl_set (recovery->back_pl_frontier - 1,
 				       &backward_move_cost);
 #ifndef NO_YAEP_DEBUG_PRINT
 	  if (grammar->debug_level > 2)
 	    fprintf (stderr, "++++Advance back frontier: old=%d, new=%d\n",
-		     back_pl_frontier, pl_curr);
+		     recovery->back_pl_frontier, pl_curr);
 #endif
 	  if (best_cost >= back_to_frontier_move_cost + backward_move_cost)
 	    {
-	      back_pl_frontier = pl_curr;
-	      tok_curr = start_tok_curr;
-	      save_original_sets ();
+	      recovery->back_pl_frontier = pl_curr;
+	      tok_curr = recovery->start_tok_curr;
+	      save_original_sets (recovery);
 	      back_to_frontier_move_cost += backward_move_cost;
-	      push_recovery_state (back_pl_frontier,
+	      push_recovery_state (recovery, recovery->back_pl_frontier,
 				   back_to_frontier_move_cost);
-	      set_original_set_bound (state.last_original_pl_el);
+	      set_original_set_bound (recovery, state.last_original_pl_el);
 	      tok_curr = saved_tok_curr;
 	    }
 	  pl_curr = saved_pl_curr;
@@ -4443,7 +4459,8 @@ error_recovery (int *start, int *stop)
 		  fprintf (stderr, "\n");
 		}
 #endif
-	      push_recovery_state (state.last_original_pl_el, cost + 1);
+	      push_recovery_state (recovery, state.last_original_pl_el,
+                                   cost + 1);
 	    }
 	  tok_curr--;
 	}
@@ -4570,7 +4587,7 @@ error_recovery (int *start, int *stop)
 		  fprintf (stderr, "\n");
 		}
 #endif
-	      push_recovery_state (state.last_original_pl_el, cost);
+	      push_recovery_state (recovery, state.last_original_pl_el, cost);
 	    }
 	  core_symb_vect
 	    = core_symb_vect_find (new_core, toks[tok_curr].symb);
@@ -4598,11 +4615,12 @@ error_recovery (int *start, int *stop)
 	      best_cost = cost;
 	      if (tok_curr == toks_len)
 		tok_curr--;
-	      best_state = new_recovery_state (state.last_original_pl_el,
+	      best_state = new_recovery_state (recovery,
+                                               state.last_original_pl_el,
 					       /* It may be any constant here
 					          because it is not used. */
 					       0);
-	      *start = start_tok_curr - state.backward_move_cost;
+	      *start = recovery->start_tok_curr - state.backward_move_cost;
 	      *stop = *start + cost;
 	    }
 #ifndef NO_YAEP_DEBUG_PRINT
@@ -4620,7 +4638,7 @@ error_recovery (int *start, int *stop)
   if (grammar->debug_level > 2)
     fprintf (stderr, "\n++Finishing error recovery: Restore best state\n");
 #endif
-  set_recovery_state (&best_state);
+  set_recovery_state (recovery, &best_state);
 #ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
     {
@@ -4632,23 +4650,23 @@ error_recovery (int *start, int *stop)
 		   grammar->debug_level > 5);
     }
 #endif
-  OS_DELETE (recovery_state_tail_sets);
+  OS_DELETE (recovery->recovery_state_tail_sets);
 }
 
 /* Initialize work with error recovery. */
 static void
-error_recovery_init (void)
+error_recovery_init (struct recovery_state_sets *recovery)
 {
-  VLO_CREATE (original_pl_tail_stack, grammar->alloc, 4096);
-  VLO_CREATE (recovery_state_stack, grammar->alloc, 4096);
+  VLO_CREATE (recovery->original_pl_tail_stack, grammar->alloc, 4096);
+  VLO_CREATE (recovery->recovery_state_stack, grammar->alloc, 4096);
 }
 
 /* Finalize work with error recovery. */
 static void
-error_recovery_fin (void)
+error_recovery_fin (struct recovery_state_sets *recovery)
 {
-  VLO_DELETE (recovery_state_stack);
-  VLO_DELETE (original_pl_tail_stack);
+  VLO_DELETE (recovery->recovery_state_stack);
+  VLO_DELETE (recovery->original_pl_tail_stack);
 }
 
 
@@ -4692,8 +4710,9 @@ build_pl (void)
   hash_table_entry_t *entry;
   struct set_term_lookahead *new_set_term_lookahead;
 #endif
+  struct recovery_state_sets recovery;
 
-  error_recovery_init ();
+  error_recovery_init (&recovery);
   build_start_set ();
   lookahead_term_num = -1;
   for (tok_curr = pl_curr = 0; tok_curr < toks_len; tok_curr++)
@@ -4769,7 +4788,7 @@ build_pl (void)
 	      saved_tok_curr = tok_curr;
 	      if (grammar->error_recovery_p)
 		{
-		  error_recovery (&start, &stop);
+		  error_recovery (&recovery, &start, &stop);
 		  syntax_error (saved_tok_curr, toks[saved_tok_curr].attr,
 				start, toks[start].attr, stop,
 				toks[stop].attr);
@@ -4805,7 +4824,7 @@ build_pl (void)
 	}
 #endif
     }
-  error_recovery_fin ();
+  error_recovery_fin (&recovery);
 }
 
 
