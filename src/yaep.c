@@ -136,6 +136,8 @@ struct grammar
   /* This member contains message are always contains error message
      corresponding to the last occurred error code. */
   char error_message[YAEP_MAX_ERROR_MESSAGE_LENGTH + 1];
+  /* Jump buffer for processing errors. */
+  jmp_buf error_longjump_buff;
 
   /* The following is grammar axiom.  There is only one rule with axiom
      in lhs. */
@@ -2990,10 +2992,6 @@ core_symb_vect_fin (void)
 }
 
 
-
-/* Jump buffer for processing errors. */
-static jmp_buf error_longjump_buff;
-
 /* The following function stores error CODE and MESSAGE.  The function
    makes long jump after that.  So the function is designed to process
    only one error. */
@@ -3007,7 +3005,7 @@ yaep_error (int code, const char *format, ...)
   vsprintf (grammar->error_message, format, arguments);
   va_end (arguments);
   assert (strlen (grammar->error_message) < YAEP_MAX_ERROR_MESSAGE_LENGTH);
-  longjmp (error_longjump_buff, code);
+  longjmp (grammar->error_longjump_buff, code);
 }
 
 /* The following function processes allocation errors. */
@@ -3043,7 +3041,7 @@ yaep_create_grammar (void)
   grammar->alloc = allocator;
   yaep_alloc_seterr (allocator, error_func_for_allocate,
 		     yaep_alloc_getuserptr (allocator));
-  if (setjmp (error_longjump_buff) != 0)
+  if (setjmp (grammar->error_longjump_buff) != 0)
     {
       yaep_free_grammar (grammar);
       return NULL;
@@ -3382,7 +3380,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   symbs_ptr = g->symbs_ptr;
   term_sets_ptr = g->term_sets_ptr;
   rules_ptr = g->rules_ptr;
-  if ((code.value.code = setjmp (error_longjump_buff)) != 0)
+  if ((code.value.code = setjmp (g->error_longjump_buff)) != 0)
     {
       return code.value.code;
     }
@@ -6160,7 +6158,7 @@ yaep_parse (struct grammar *g,
   *ambiguous_p = FALSE;
   pl_init ();
   tok_init_p = parse_init_p = FALSE;
-  if ((code = setjmp (error_longjump_buff)) != 0)
+  if ((code = setjmp (g->error_longjump_buff)) != 0)
     {
       pl_fin ();
       if (parse_init_p)

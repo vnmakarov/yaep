@@ -424,7 +424,7 @@ set_sgrammar (struct grammar *g, const char *grammar, struct parser_data *data)
   int code = 256;
 
   data->ln = 1;
-  if ((code = setjmp (error_longjump_buff)) != 0)
+  if ((code = setjmp (g->error_longjump_buff)) != 0)
     {
       free_sgrammar (data);
       return code;
