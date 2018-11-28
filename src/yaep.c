@@ -2390,78 +2390,80 @@ struct core_symb_vect
   struct vect reduces;
 };
 
-
-/* The following are number of unique (set core, symbol) pairs and
-   their summary (transitive) transition and reduce vectors length,
-   unique (transitive) transition vectors and their summary length,
-   and unique reduce vectors and their summary length.  The variables
-   can be read externally. */
-static int n_core_symb_pairs, n_core_symb_vect_len;
-static int n_transition_vects, n_transition_vect_len;
+/* Set of triples (set core, symbol, vect) */
+struct core_symb_vect_set {
+  /* The following are number of unique (set core, symbol) pairs and
+     their summary (transitive) transition and reduce vectors length,
+     unique (transitive) transition vectors and their summary length,
+     and unique reduce vectors and their summary length.  The variables
+     can be read externally. */
+  int n_core_symb_pairs, n_core_symb_vect_len;
+  int n_transition_vects, n_transition_vect_len;
 #ifdef TRANSITIVE_TRANSITION
-static int n_transitive_transition_vects, n_transitive_transition_vect_len;
+  int n_transitive_transition_vects, n_transitive_transition_vect_len;
 #endif
-static int n_reduce_vects, n_reduce_vect_len;
+  int n_reduce_vects, n_reduce_vect_len;
 
-/* All triples (set core, symbol, vect) are placed in the following
-   object. */
+  /* All triples (set core, symbol, vect) are placed in the following
+     object. */
 #ifndef __cplusplus
-static os_t core_symb_vect_os;
+  os_t core_symb_vect_os;
 #else
-static os_t *core_symb_vect_os;
-#endif
-
-/* Pointers to triples (set core, symbol, vect) being formed are
-   placed in the following object. */
-#ifndef __cplusplus
-static vlo_t new_core_symb_vect_vlo;
-#else
-static vlo_t *new_core_symb_vect_vlo;
+  os_t *core_symb_vect_os;
 #endif
 
-/* All elements of vectors in the table (see
-   (transitive_)transition_els_tab and reduce_els_tab) are placed in
-   the following os. */
+  /* Pointers to triples (set core, symbol, vect) being formed are
+     placed in the following object. */
 #ifndef __cplusplus
-static os_t vect_els_os;
+  vlo_t new_core_symb_vect_vlo;
 #else
-static os_t *vect_els_os;
+  vlo_t *new_core_symb_vect_vlo;
+#endif
+
+  /* All elements of vectors in the table (see
+     (transitive_)transition_els_tab and reduce_els_tab) are placed in
+     the following os. */
+#ifndef __cplusplus
+  os_t vect_els_os;
+#else
+  os_t *vect_els_os;
 #endif
 
 #ifdef USE_CORE_SYMB_HASH_TABLE
-static hash_table_t core_symb_to_vect_tab;	/* key is set_core and symb. */
+  hash_table_t core_symb_to_vect_tab; /* key is set_core and symb. */
 #else
-/* The following two variables contains table (set core,
-   symbol)->core_symb_vect implemented as two dimensional array. */
-/* The following object contains pointers to the table rows for each
-   set core. */
+  /* The following two variables contains table (set core,
+     symbol)->core_symb_vect implemented as two dimensional array. */
+  /* The following object contains pointers to the table rows for each
+     set core. */
 #ifndef __cplusplus
-static vlo_t core_symb_table_vlo;
+  vlo_t core_symb_table_vlo;
 #else
-static vlo_t *core_symb_table_vlo;
+  vlo_t *core_symb_table_vlo;
 #endif
 
-/* The following is always start of the previous object. */
-static struct core_symb_vect ***core_symb_table;
+  /* The following is always start of the previous object. */
+  struct core_symb_vect ***core_symb_table;
 
-/* The following contains rows of the table.  The element in the rows
-   are indexed by symbol number. */
+  /* The following contains rows of the table.  The element in the rows
+     are indexed by symbol number. */
 #ifndef __cplusplus
-static os_t core_symb_tab_rows;
+  os_t core_symb_tab_rows;
 #else
-static os_t *core_symb_tab_rows;
+  os_t *core_symb_tab_rows;
 #endif
 #endif
 
-/* The following tables contains references for core_symb_vect which
-   (through (transitive) transitions and reduces correspondingly)
-   refers for elements which are in the tables.  Sequence elements are
-   stored in one exemplar to save memory. */
-static hash_table_t transition_els_tab;	/* key is elements. */
+  /* The following tables contains references for core_symb_vect which
+     (through (transitive) transitions and reduces correspondingly)
+     refers for elements which are in the tables.  Sequence elements are
+     stored in one exemplar to save memory. */
+  hash_table_t transition_els_tab; /* key is elements. */
 #ifdef TRANSITIVE_TRANSITION
-static hash_table_t transitive_transition_els_tab;	/* key is elements. */
+  hash_table_t transitive_transition_els_tab; /* key is elements. */
 #endif
-static hash_table_t reduce_els_tab;	/* key is elements. */
+  hash_table_t reduce_els_tab; /* key is elements. */
+};
 
 #ifdef USE_CORE_SYMB_HASH_TABLE
 /* Hash of core_symb_vect. */
@@ -2564,70 +2566,72 @@ reduce_els_eq (hash_table_entry_t t1, hash_table_entry_t t2)
 
 /* Initialize work with the triples (set core, symbol, vector). */
 static void
-core_symb_vect_init (void)
+core_symb_vect_init (struct core_symb_vect_set *csv)
 {
 #ifndef __cplusplus
-  OS_CREATE (core_symb_vect_os, grammar->alloc, 0);
-  VLO_CREATE (new_core_symb_vect_vlo, grammar->alloc, 0);
-  OS_CREATE (vect_els_os, grammar->alloc, 0);
+  OS_CREATE (csv->core_symb_vect_os, grammar->alloc, 0);
+  VLO_CREATE (csv->new_core_symb_vect_vlo, grammar->alloc, 0);
+  OS_CREATE (csv->vect_els_os, grammar->alloc, 0);
 #else
-  core_symb_vect_os = new os (grammar->alloc, 0);
-  new_core_symb_vect_vlo = new vlo (grammar->alloc, 0);
-  vect_els_os = new os (grammar->alloc, 0);
+  csv->core_symb_vect_os = new os (grammar->alloc, 0);
+  csv->new_core_symb_vect_vlo = new vlo (grammar->alloc, 0);
+  csv->vect_els_os = new os (grammar->alloc, 0);
 #endif
   vlo_array_init ();
 #ifdef USE_CORE_SYMB_HASH_TABLE
 #ifndef __cplusplus
-  core_symb_to_vect_tab =
+  csv->core_symb_to_vect_tab =
     create_hash_table (grammar->alloc, 3000, core_symb_vect_hash,
 		       core_symb_vect_eq);
 #else
-  core_symb_to_vect_tab =
+  csv->core_symb_to_vect_tab =
     new hash_table (grammar->alloc, 3000, core_symb_vect_hash,
 		    core_symb_vect_eq);
 #endif
 #else
 #ifndef __cplusplus
-  VLO_CREATE (core_symb_table_vlo, grammar->alloc, 4096);
-  core_symb_table
-    = (struct core_symb_vect ***) VLO_BEGIN (core_symb_table_vlo);
-  OS_CREATE (core_symb_tab_rows, grammar->alloc, 8192);
+  VLO_CREATE (csv->core_symb_table_vlo, grammar->alloc, 4096);
+  csv->core_symb_table
+    = (struct core_symb_vect ***) VLO_BEGIN (csv->core_symb_table_vlo);
+  OS_CREATE (csv->core_symb_tab_rows, grammar->alloc, 8192);
 #else
-  core_symb_table_vlo = new vlo (grammar->alloc, 4096);
-  core_symb_table = (struct core_symb_vect ***) core_symb_table_vlo->begin ();
-  core_symb_tab_rows = new os (grammar->alloc, 8192);
+  csv->core_symb_table_vlo = new vlo (grammar->alloc, 4096);
+  csv->core_symb_table
+    = (struct core_symb_vect ***) csv->core_symb_table_vlo->begin ();
+  csv->core_symb_tab_rows = new os (grammar->alloc, 8192);
 #endif
 #endif
 
 #ifndef __cplusplus
-  transition_els_tab =
+  csv->transition_els_tab =
     create_hash_table (grammar->alloc, 3000, transition_els_hash,
 		       transition_els_eq);
 #ifdef TRANSITIVE_TRANSITION
-  transitive_transition_els_tab =
+  csv->transitive_transition_els_tab =
     create_hash_table (grammar->alloc, 5000, transitive_transition_els_hash,
 		       transitive_transition_els_eq);
 #endif
-  reduce_els_tab =
+  csv->reduce_els_tab =
     create_hash_table (grammar->alloc, 3000, reduce_els_hash, reduce_els_eq);
 #else
-  transition_els_tab =
+  csv->transition_els_tab =
     new hash_table (grammar->alloc, 3000, transition_els_hash,
 		    transition_els_eq);
 #ifdef TRANSITIVE_TRANSITION
-  transitive_transition_els_tab =
+  csv->transitive_transition_els_tab =
     new hash_table (grammar->alloc, 5000, transitive_transition_els_hash,
 		    transitive_transition_els_eq);
 #endif
-  reduce_els_tab =
+  csv->reduce_els_tab =
     new hash_table (grammar->alloc, 3000, reduce_els_hash, reduce_els_eq);
 #endif
-  n_core_symb_pairs = n_core_symb_vect_len = 0;
-  n_transition_vects = n_transition_vect_len = 0;
+  csv->n_core_symb_pairs = csv->n_core_symb_vect_len = 0;
+  csv->n_transition_vects = csv->n_transition_vect_len = 0;
 #ifdef TRANSITIVE_TRANSITION
-  n_transitive_transition_vects = n_transitive_transition_vect_len = 0;
+  csv->n_transitive_transition_vects
+    = csv->n_transitive_transition_vect_len = 0;
 #endif
-  n_reduce_vects = n_reduce_vect_len = 0;
+  csv->n_reduce_vects = csv->n_reduce_vect_len = 0;
 }
 
 #ifdef USE_CORE_SYMB_HASH_TABLE
@@ -2639,7 +2643,8 @@ core_symb_vect_init (void)
 INLINE
 #endif
 static struct core_symb_vect **
-core_symb_vect_addr_get (struct core_symb_vect *triple, int reserv_p)
+core_symb_vect_addr_get (struct core_symb_vect_set *csv,
+                         struct core_symb_vect *triple, int reserv_p)
 {
   struct core_symb_vect **result;
 
@@ -2648,10 +2653,11 @@ core_symb_vect_addr_get (struct core_symb_vect *triple, int reserv_p)
     return &triple->symb->cached_core_symb_vect;
 #ifndef __cplusplus
   result = ((struct core_symb_vect **)
-	    find_hash_table_entry (core_symb_to_vect_tab, triple, reserv_p));
+	    find_hash_table_entry (csv->core_symb_to_vect_tab,
+                                   triple, reserv_p));
 #else
   result = ((struct core_symb_vect **)
-	    core_symb_to_vect_tab->find_entry (triple, reserv_p));
+	    csv->core_symb_to_vect_tab->find_entry (triple, reserv_p));
 #endif
   triple->symb->cached_core_symb_vect = *result;
   return result;
@@ -2665,15 +2671,18 @@ core_symb_vect_addr_get (struct core_symb_vect *triple, int reserv_p)
 INLINE
 #endif
 static struct core_symb_vect **
-core_symb_vect_addr_get (struct set_core *set_core, struct symb *symb)
+core_symb_vect_addr_get (struct core_symb_vect_set *csv,
+                         struct set_core *set_core, struct symb *symb)
 {
   struct core_symb_vect ***core_symb_vect_ptr;
 
-  core_symb_vect_ptr = core_symb_table + set_core->num;
+  core_symb_vect_ptr = csv->core_symb_table + set_core->num;
 #ifndef __cplusplus
-  if ((char *) core_symb_vect_ptr >= (char *) VLO_BOUND (core_symb_table_vlo))
+  if ((char *) core_symb_vect_ptr
+      >= (char *) VLO_BOUND (csv->core_symb_table_vlo))
 #else
-  if ((char *) core_symb_vect_ptr >= (char *) core_symb_table_vlo->bound ())
+  if ((char *) core_symb_vect_ptr
+      >= (char *) csv->core_symb_table_vlo->bound ())
 #endif
     {
       struct core_symb_vect ***ptr, ***bound;
@@ -2681,42 +2690,43 @@ core_symb_vect_addr_get (struct set_core *set_core, struct symb *symb)
 
 #ifndef __cplusplus
       diff = ((char *) core_symb_vect_ptr
-	      - (char *) VLO_BOUND (core_symb_table_vlo));
+	      - (char *) VLO_BOUND (csv->core_symb_table_vlo));
 #else
       diff = ((char *) core_symb_vect_ptr
-	      - (char *) core_symb_table_vlo->bound ());
+	      - (char *) csv->core_symb_table_vlo->bound ());
 #endif
       diff += sizeof (struct core_symb_vect **);
       if (diff == sizeof (struct core_symb_vect **))
 	diff *= 10;
 #ifndef __cplusplus
-      VLO_EXPAND (core_symb_table_vlo, diff);
-      core_symb_table
-	= (struct core_symb_vect ***) VLO_BEGIN (core_symb_table_vlo);
-      core_symb_vect_ptr = core_symb_table + set_core->num;
-      bound = (struct core_symb_vect ***) VLO_BOUND (core_symb_table_vlo);
+      VLO_EXPAND (csv->core_symb_table_vlo, diff);
+      csv->core_symb_table
+	= (struct core_symb_vect ***) VLO_BEGIN (csv->core_symb_table_vlo);
+      core_symb_vect_ptr = csv->core_symb_table + set_core->num;
+      bound = (struct core_symb_vect ***) VLO_BOUND (csv->core_symb_table_vlo);
 #else
-      core_symb_table_vlo->expand (diff);
-      core_symb_table
-	= (struct core_symb_vect ***) core_symb_table_vlo->begin ();
-      core_symb_vect_ptr = core_symb_table + set_core->num;
-      bound = (struct core_symb_vect ***) core_symb_table_vlo->bound ();
+      csv->core_symb_table_vlo->expand (diff);
+      csv->core_symb_table
+	= (struct core_symb_vect ***) csv->core_symb_table_vlo->begin ();
+      core_symb_vect_ptr = csv->core_symb_table + set_core->num;
+      bound = (struct core_symb_vect ***) csv->core_symb_table_vlo->bound ();
 #endif
       ptr = bound - diff / sizeof (struct core_symb_vect **);
       while (ptr < bound)
 	{
 #ifndef __cplusplus
-	  OS_TOP_EXPAND (core_symb_tab_rows,
+	  OS_TOP_EXPAND (csv->core_symb_tab_rows,
 			 (symbs_ptr->n_terms + symbs_ptr->n_nonterms)
 			 * sizeof (struct core_symb_vect *));
-	  *ptr = OS_TOP_BEGIN (core_symb_tab_rows);
-	  OS_TOP_FINISH (core_symb_tab_rows);
+	  *ptr = OS_TOP_BEGIN (csv->core_symb_tab_rows);
+	  OS_TOP_FINISH (csv->core_symb_tab_rows);
 #else
-	  core_symb_tab_rows->top_expand
+	  csv->core_symb_tab_rows->top_expand
 	    ((symbs_ptr->n_terms + symbs_ptr->n_nonterms)
 	     * sizeof (struct core_symb_vect *));
-	  *ptr = (struct core_symb_vect **) core_symb_tab_rows->top_begin ();
-	  core_symb_tab_rows->top_finish ();
+	  *ptr
+            = (struct core_symb_vect **) csv->core_symb_tab_rows->top_begin ();
+	  csv->core_symb_tab_rows->top_finish ();
 #endif
 	  for (i = 0; i < symbs_ptr->n_terms + symbs_ptr->n_nonterms; i++)
 	    (*ptr)[i] = NULL;
@@ -2733,23 +2743,25 @@ core_symb_vect_addr_get (struct set_core *set_core, struct symb *symb)
 INLINE
 #endif
 static struct core_symb_vect *
-core_symb_vect_find (struct set_core *set_core, struct symb *symb)
+core_symb_vect_find (struct core_symb_vect_set *csv,
+                     struct set_core *set_core, struct symb *symb)
 {
 #ifdef USE_CORE_SYMB_HASH_TABLE
   struct core_symb_vect core_symb_vect;
 
   core_symb_vect.set_core = set_core;
   core_symb_vect.symb = symb;
-  return *core_symb_vect_addr_get (&core_symb_vect, FALSE);
+  return *core_symb_vect_addr_get (csv, &core_symb_vect, FALSE);
 #else
-  return *core_symb_vect_addr_get (set_core, symb);
+  return *core_symb_vect_addr_get (csv, set_core, symb);
 #endif
 }
 
 /* Add given triple (SET_CORE, TERM, ...) to the table and return
    pointer to it. */
 static struct core_symb_vect *
-core_symb_vect_new (struct set_core *set_core, struct symb *symb)
+core_symb_vect_new (struct core_symb_vect_set *csv, struct set_core *set_core,
+                    struct symb *symb)
 {
   struct core_symb_vect *triple;
   struct core_symb_vect **addr;
@@ -2757,24 +2769,24 @@ core_symb_vect_new (struct set_core *set_core, struct symb *symb)
 
   /* Create table element. */
 #ifndef __cplusplus
-  OS_TOP_EXPAND (core_symb_vect_os, sizeof (struct core_symb_vect));
-  triple = ((struct core_symb_vect *) OS_TOP_BEGIN (core_symb_vect_os));
+  OS_TOP_EXPAND (csv->core_symb_vect_os, sizeof (struct core_symb_vect));
+  triple = ((struct core_symb_vect *) OS_TOP_BEGIN (csv->core_symb_vect_os));
 #else
-  core_symb_vect_os->top_expand (sizeof (struct core_symb_vect));
-  triple = ((struct core_symb_vect *) core_symb_vect_os->top_begin ());
+  csv->core_symb_vect_os->top_expand (sizeof (struct core_symb_vect));
+  triple = ((struct core_symb_vect *) csv->core_symb_vect_os->top_begin ());
 #endif
   triple->set_core = set_core;
   triple->symb = symb;
 #ifndef __cplusplus
-  OS_TOP_FINISH (core_symb_vect_os);
+  OS_TOP_FINISH (csv->core_symb_vect_os);
 #else
-  core_symb_vect_os->top_finish ();
+  csv->core_symb_vect_os->top_finish ();
 #endif
 
 #ifdef USE_CORE_SYMB_HASH_TABLE
-  addr = core_symb_vect_addr_get (triple, TRUE);
+  addr = core_symb_vect_addr_get (csv, triple, TRUE);
 #else
-  addr = core_symb_vect_addr_get (set_core, symb);
+  addr = core_symb_vect_addr_get (csv, set_core, symb);
 #endif
   assert (*addr == NULL);
   *addr = triple;
@@ -2804,20 +2816,20 @@ core_symb_vect_new (struct set_core *set_core, struct symb *symb)
   triple->reduces.len = 0;
 #ifndef __cplusplus
   triple->reduces.els = (int *) VLO_BEGIN (*vlo_ptr);
-  VLO_ADD_MEMORY (new_core_symb_vect_vlo, &triple,
+  VLO_ADD_MEMORY (csv->new_core_symb_vect_vlo, &triple,
 		  sizeof (struct core_symb_vect *));
 #else
   triple->reduces.els = (int *) vlo_ptr->begin ();
-  new_core_symb_vect_vlo->add_memory (&triple,
+  csv->new_core_symb_vect_vlo->add_memory (&triple,
 				      sizeof (struct core_symb_vect *));
 #endif
-  n_core_symb_pairs++;
+  csv->n_core_symb_pairs++;
   return triple;
 }
 
 /* Add EL to vector VEC.  */
 static void
-vect_new_add_el (struct vect *vec, int el)
+vect_new_add_el (struct core_symb_vect_set *csv, struct vect *vec, int el)
 {
   vlo_t *vlo_ptr;
 
@@ -2830,43 +2842,47 @@ vect_new_add_el (struct vect *vec, int el)
   vlo_ptr->add_memory (&el, sizeof (int));
   vec->els = (int *) vlo_ptr->begin ();
 #endif
-  n_core_symb_vect_len++;
+  csv->n_core_symb_vect_len++;
 }
 
 /* Add index EL to the transition vector of CORE_SYMB_VECT being
    formed. */
 static void
-core_symb_vect_new_add_transition_el (struct core_symb_vect *core_symb_vect,
+core_symb_vect_new_add_transition_el (struct core_symb_vect_set *csv,
+                                      struct core_symb_vect *core_symb_vect,
 				      int el)
 {
-  vect_new_add_el (&core_symb_vect->transitions, el);
+  vect_new_add_el (csv, &core_symb_vect->transitions, el);
 }
 
 #ifdef TRANSITIVE_TRANSITION
 /* Add index EL to the transition vector of CORE_SYMB_VECT being
    formed. */
 static void
-core_symb_vect_new_add_transitive_transition_el (struct core_symb_vect
+core_symb_vect_new_add_transitive_transition_el (struct core_symb_vect_set
+                                                 *csv, struct core_symb_vect
 						 *core_symb_vect, int el)
 {
-  vect_new_add_el (&core_symb_vect->transitive_transitions, el);
+  vect_new_add_el (csv, &core_symb_vect->transitive_transitions, el);
 }
 #endif
 
 /* Add index EL to the reduce vector of CORE_SYMB_VECT being
    formed. */
 static void
-core_symb_vect_new_add_reduce_el (struct core_symb_vect *core_symb_vect,
+core_symb_vect_new_add_reduce_el (struct core_symb_vect_set *csv,
+                                  struct core_symb_vect *core_symb_vect,
 				  int el)
 {
-  vect_new_add_el (&core_symb_vect->reduces, el);
+  vect_new_add_el (csv, &core_symb_vect->reduces, el);
 }
 
 /* Insert vector VEC from CORE_SYMB_VECT into table TAB.  Update
    *N_VECTS and INT *N_VECT_LEN if it is a new vector in the
    table.  */
 static void
-process_core_symb_vect_el (struct core_symb_vect *core_symb_vect,
+process_core_symb_vect_el (struct core_symb_vect_set *csv,
+                           struct core_symb_vect *core_symb_vect,
 			   struct vect *vec,
 			   hash_table_t * tab, int *n_vects, int *n_vect_len)
 {
@@ -2894,13 +2910,13 @@ process_core_symb_vect_el (struct core_symb_vect *core_symb_vect,
 	{
 	  *entry = (hash_table_entry_t) core_symb_vect;
 #ifndef __cplusplus
-	  OS_TOP_ADD_MEMORY (vect_els_os, vec->els, vec->len * sizeof (int));
-	  vec->els = OS_TOP_BEGIN (vect_els_os);
-	  OS_TOP_FINISH (vect_els_os);
+	  OS_TOP_ADD_MEMORY (csv->vect_els_os, vec->els, vec->len * sizeof (int));
+	  vec->els = OS_TOP_BEGIN (csv->vect_els_os);
+	  OS_TOP_FINISH (csv->vect_els_os);
 #else
-	  vect_els_os->top_add_memory (vec->els, vec->len * sizeof (int));
-	  vec->els = (int *) vect_els_os->top_begin ();
-	  vect_els_os->top_finish ();
+	  csv->vect_els_os->top_add_memory (vec->els, vec->len * sizeof (int));
+	  vec->els = (int *) csv->vect_els_os->top_begin ();
+	  csv->vect_els_os->top_finish ();
 #endif
 	  (*n_vects)++;
 	  *n_vect_len += vec->len;
@@ -2911,83 +2927,85 @@ process_core_symb_vect_el (struct core_symb_vect *core_symb_vect,
 
 /* Finish forming all new triples core_symb_vect. */
 static void
-core_symb_vect_new_all_stop (void)
+core_symb_vect_new_all_stop (struct core_symb_vect_set *csv)
 {
   struct core_symb_vect **triple_ptr;
 
 #ifndef __cplusplus
-  for (triple_ptr = VLO_BEGIN (new_core_symb_vect_vlo);
-       (char *) triple_ptr < (char *) VLO_BOUND (new_core_symb_vect_vlo);
+  for (triple_ptr = VLO_BEGIN (csv->new_core_symb_vect_vlo);
+       (char *) triple_ptr < (char *) VLO_BOUND (csv->new_core_symb_vect_vlo);
        triple_ptr++)
 #else
   for (triple_ptr
-       = (struct core_symb_vect **) new_core_symb_vect_vlo->begin ();
-       (char *) triple_ptr < (char *) new_core_symb_vect_vlo->bound ();
+       = (struct core_symb_vect **) csv->new_core_symb_vect_vlo->begin ();
+       (char *) triple_ptr < (char *) csv->new_core_symb_vect_vlo->bound ();
        triple_ptr++)
 #endif
     {
-      process_core_symb_vect_el (*triple_ptr, &(*triple_ptr)->transitions,
-				 &transition_els_tab, &n_transition_vects,
-				 &n_transition_vect_len);
+      process_core_symb_vect_el (csv, *triple_ptr, &(*triple_ptr)->transitions,
+				 &csv->transition_els_tab,
+                                 &csv->n_transition_vects,
+				 &csv->n_transition_vect_len);
 #ifdef TRANSITIVE_TRANSITION
       process_core_symb_vect_el
-	(*triple_ptr, &(*triple_ptr)->transitive_transitions,
-	 &transitive_transition_els_tab, &n_transitive_transition_vects,
-	 &n_transitive_transition_vect_len);
+	(csv, *triple_ptr, &(*triple_ptr)->transitive_transitions,
+	 &csv->transitive_transition_els_tab,
+         &csv->n_transitive_transition_vects,
+	 &csv->n_transitive_transition_vect_len);
 #endif
-      process_core_symb_vect_el (*triple_ptr, &(*triple_ptr)->reduces,
-				 &reduce_els_tab, &n_reduce_vects,
-				 &n_reduce_vect_len);
+      process_core_symb_vect_el (csv, *triple_ptr, &(*triple_ptr)->reduces,
+				 &csv->reduce_els_tab, &csv->n_reduce_vects,
+				 &csv->n_reduce_vect_len);
     }
   vlo_array_nullify ();
 #ifndef __cplusplus
-  VLO_NULLIFY (new_core_symb_vect_vlo);
+  VLO_NULLIFY (csv->new_core_symb_vect_vlo);
 #else
-  new_core_symb_vect_vlo->nullify ();
+  csv->new_core_symb_vect_vlo->nullify ();
 #endif
 }
 
 /* Finalize work with all triples (set core, symbol, vector). */
 static void
-core_symb_vect_fin (void)
+core_symb_vect_fin (struct core_symb_vect_set *csv)
 {
 #ifndef __cplusplus
-  delete_hash_table (transition_els_tab);
+  delete_hash_table (csv->transition_els_tab);
 #ifdef TRANSITIVE_TRANSITION
-  delete_hash_table (transitive_transition_els_tab);
+  delete_hash_table (csv->transitive_transition_els_tab);
 #endif
-  delete_hash_table (reduce_els_tab);
+  delete_hash_table (csv->reduce_els_tab);
 #else
-  delete transition_els_tab;
+  delete csv->transition_els_tab;
 #ifdef TRANSITIVE_TRANSITION
-  delete transitive_transition_els_tab;
+  delete csv->transitive_transition_els_tab;
 #endif
-  delete reduce_els_tab;
+  delete csv->reduce_els_tab;
 #endif
 #ifdef USE_CORE_SYMB_HASH_TABLE
 #ifndef __cplusplus
-  delete_hash_table (core_symb_to_vect_tab);
+  delete_hash_table (csv->core_symb_to_vect_tab);
 #else
-  delete core_symb_to_vect_tab;
+  delete csv->core_symb_to_vect_tab;
 #endif
 #else
 #ifndef __cplusplus
-  OS_DELETE (core_symb_tab_rows);
-  VLO_DELETE (core_symb_table_vlo);
+  OS_DELETE (csv->core_symb_tab_rows);
+  VLO_DELETE (csv->core_symb_table_vlo);
 #else
-  delete core_symb_tab_rows;
-  delete core_symb_table_vlo;
+  delete csv->core_symb_tab_rows;
+  delete csv->core_symb_table_vlo;
 #endif
 #endif
   vlo_array_fin ();
 #ifndef __cplusplus
-  OS_DELETE (vect_els_os);
-  VLO_DELETE (new_core_symb_vect_vlo);
-  OS_DELETE (core_symb_vect_os);
+  OS_DELETE (csv->vect_els_os);
+  VLO_DELETE (csv->new_core_symb_vect_vlo);
+  OS_DELETE (csv->core_symb_vect_os);
 #else
-  delete vect_els_os;
-  delete new_core_symb_vect_vlo;
-  delete core_symb_vect_os;
+  delete csv->vect_els_os;
+  delete csv->new_core_symb_vect_vlo;
+  delete csv->core_symb_vect_os;
 #endif
 }
 
@@ -3633,13 +3651,13 @@ yaep_set_recovery_match (struct grammar *grammar, int n_toks)
 /* The function initializes all internal data for parser for N_TOKS
    tokens. */
 static void
-yaep_parse_init (int n_toks)
+yaep_parse_init (struct core_symb_vect_set *csv, int n_toks)
 {
   struct rule *rule;
 
   sit_init ();
   set_init (n_toks);
-  core_symb_vect_init ();
+  core_symb_vect_init (csv);
 #ifdef USE_CORE_SYMB_HASH_TABLE
   {
     int i;
@@ -3656,9 +3674,9 @@ yaep_parse_init (int n_toks)
 /* The function should be called the last (it frees all allocated
    data for parser). */
 static void
-yaep_parse_fin (void)
+yaep_parse_fin (struct core_symb_vect_set *csv)
 {
-  core_symb_vect_fin ();
+  core_symb_vect_fin (csv);
   set_fin ();
   sit_fin ();
 }
@@ -3725,7 +3743,7 @@ collect_core_symbols (void)
 /* Create transitive transition vectors for the new situations.
    Transition vectors should be already created.  */
 static void
-form_transitive_transition_vectors (void)
+form_transitive_transition_vectors (struct core_symb_vect_set *csv)
 {
   int i, j, k, sit_ind;
   struct symb *symb, *new_symb;
@@ -3740,9 +3758,9 @@ form_transitive_transition_vectors (void)
   for (i = 0; i < VLO_LENGTH (core_symbols_vlo) / sizeof (struct symb *); i++)
     {
       symb = ((struct symb **) VLO_BEGIN (core_symbols_vlo))[i];
-      core_symb_vect = core_symb_vect_find (new_core, symb);
+      core_symb_vect = core_symb_vect_find (csv, new_core, symb);
       if (core_symb_vect == NULL)
-	core_symb_vect = core_symb_vect_new (new_core, symb);
+	core_symb_vect = core_symb_vect_new (csv, new_core, symb);
       core_symbol_check++;
       VLO_NULLIFY (core_symbol_queue_vlo);
       /* Put the symbol into the queue.  */
@@ -3752,13 +3770,14 @@ form_transitive_transition_vectors (void)
 	   j++)
 	{
 	  symb = ((struct symb **) VLO_BEGIN (core_symbol_queue_vlo))[j];
-	  symb_core_symb_vect = core_symb_vect_find (new_core, symb);
+	  symb_core_symb_vect = core_symb_vect_find (csv, new_core, symb);
 	  if (symb_core_symb_vect == NULL)
 	    continue;
 	  for (k = 0; k < symb_core_symb_vect->transitions.len; k++)
 	    {
 	      sit_ind = symb_core_symb_vect->transitions.els[k];
-	      core_symb_vect_new_add_transitive_transition_el (core_symb_vect,
+	      core_symb_vect_new_add_transitive_transition_el (csv,
+                                                               core_symb_vect,
 							       sit_ind);
 	      if (sit_ind < new_core->n_all_dists)
 		/* This situation is originated from other sets --
@@ -3796,7 +3815,7 @@ form_transitive_transition_vectors (void)
 INLINE
 #endif
 static void
-expand_new_start_set (void)
+expand_new_start_set (struct core_symb_vect_set *csv)
 {
   struct sit *sit;
   struct symb *symb;
@@ -3815,16 +3834,16 @@ expand_new_start_set (void)
 	{
 	  /* There is a symbol after dot in the situation. */
 	  symb = sit->rule->rhs[sit->pos];
-	  core_symb_vect = core_symb_vect_find (new_core, symb);
+	  core_symb_vect = core_symb_vect_find (csv, new_core, symb);
 	  if (core_symb_vect == NULL)
 	    {
-	      core_symb_vect = core_symb_vect_new (new_core, symb);
+	      core_symb_vect = core_symb_vect_new (csv, new_core, symb);
 	      if (!symb->term_p)
 		for (rule = symb->u.nonterm.rules;
 		     rule != NULL; rule = rule->lhs_next)
 		  set_new_add_initial_sit (sit_create (rule, 0, 0));
 	    }
-	  core_symb_vect_new_add_transition_el (core_symb_vect, i);
+	  core_symb_vect_new_add_transition_el (csv, core_symb_vect, i);
 	  if (symb->empty_p && i >= new_core->n_all_dists)
 	    set_new_add_initial_sit (sit_create (sit->rule, sit->pos + 1, 0));
 	}
@@ -3836,14 +3855,14 @@ expand_new_start_set (void)
       if (sit->pos == sit->rule->rhs_len)
 	{
 	  symb = sit->rule->lhs;
-	  core_symb_vect = core_symb_vect_find (new_core, symb);
+	  core_symb_vect = core_symb_vect_find (csv, new_core, symb);
 	  if (core_symb_vect == NULL)
-	    core_symb_vect = core_symb_vect_new (new_core, symb);
-	  core_symb_vect_new_add_reduce_el (core_symb_vect, i);
+	    core_symb_vect = core_symb_vect_new (csv, new_core, symb);
+	  core_symb_vect_new_add_reduce_el (csv, core_symb_vect, i);
 	}
     }
 #ifdef TRANSITIVE_TRANSITION
-  form_transitive_transition_vectors ();
+  form_transitive_transition_vectors (csv);
 #endif
   if (grammar->lookahead_level > 1)
     {
@@ -3861,7 +3880,7 @@ expand_new_start_set (void)
 	    {
 	      term_set_clear (context_set);
 	      new_sit = new_sits[i];
-	      core_symb_vect = core_symb_vect_find (new_core,
+	      core_symb_vect = core_symb_vect_find (csv, new_core,
 						    new_sit->rule->lhs);
 	      for (j = 0; j < core_symb_vect->transitions.len; j++)
 		{
@@ -3887,12 +3906,12 @@ expand_new_start_set (void)
       while (changed_p);
     }
   set_new_core_stop ();
-  core_symb_vect_new_all_stop ();
+  core_symb_vect_new_all_stop (csv);
 }
 
 /* The following function forms the 1st set. */
 static void
-build_start_set (void)
+build_start_set (struct core_symb_vect_set *csv)
 {
   struct rule *rule;
   struct sit *sit;
@@ -3918,7 +3937,7 @@ build_start_set (void)
     }
   if (!set_insert ())
     assert (FALSE);
-  expand_new_start_set ();
+  expand_new_start_set (csv);
   pl[0] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
   if (grammar->debug_level > 2)
@@ -3935,7 +3954,8 @@ build_start_set (void)
    given in CORE_SYMB_VECT with given lookahead terminal number.  If
    the number is negative, we ignore lookahead at all. */
 static void
-build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
+build_new_set (struct core_symb_vect_set *csv, struct set *set,
+               struct core_symb_vect *core_symb_vect,
 	       int lookahead_term_num)
 {
   struct set *prev_set;
@@ -4008,7 +4028,7 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
 #endif
 	  prev_set = pl[place];
 	  prev_set_core = prev_set->core;
-	  prev_core_symb_vect = core_symb_vect_find (prev_set_core,
+	  prev_core_symb_vect = core_symb_vect_find (csv, prev_set_core,
 						     new_sit->rule->lhs);
 	  if (prev_core_symb_vect == NULL)
 	    {
@@ -4061,7 +4081,7 @@ build_new_set (struct set *set, struct core_symb_vect *core_symb_vect,
     }
   if (set_insert ())
     {
-      expand_new_start_set ();
+      expand_new_start_set (csv);
       new_core->term = core_symb_vect->symb;
     }
 }
@@ -4235,14 +4255,15 @@ restore_original_sets (struct recovery_state_sets *recovery, int last_pl_el)
 INLINE
 #endif
 static int
-find_error_pl_set (int start_pl_set, int *cost)
+find_error_pl_set (struct core_symb_vect_set *csv, int start_pl_set, int *cost)
 {
   int curr_pl;
 
   assert (start_pl_set >= 0);
   *cost = 0;
   for (curr_pl = start_pl_set; curr_pl >= 0; curr_pl--)
-    if (core_symb_vect_find (pl[curr_pl]->core, grammar->term_error) != NULL)
+    if (core_symb_vect_find (csv, pl[curr_pl]->core, grammar->term_error)
+        != NULL)
       break;
     else if (pl[curr_pl]->core->term != grammar->term_error)
       (*cost)++;
@@ -4385,7 +4406,8 @@ pop_recovery_state (struct recovery_state_sets *recovery)
    tokens is zero, *START will be equal to *STOP and number of token
    on which the error occurred. */
 static void
-error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
+error_recovery (struct core_symb_vect_set *csv,
+                struct recovery_state_sets *recovery, int *start, int *stop)
 {
   struct set *set;
   struct core_symb_vect *core_symb_vect;
@@ -4405,7 +4427,7 @@ error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
   recovery->start_tok_curr = tok_curr;
   /* Initialize error recovery state stack. */
   pl_curr = recovery->back_pl_frontier
-    = find_error_pl_set (pl_curr, &backward_move_cost);
+    = find_error_pl_set (csv, pl_curr, &backward_move_cost);
   back_to_frontier_move_cost = backward_move_cost;
   save_original_sets (recovery);
   push_recovery_state (recovery, recovery->back_pl_frontier, backward_move_cost);
@@ -4421,7 +4443,7 @@ error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
 	  int saved_pl_curr = pl_curr, saved_tok_curr = tok_curr;
 
 	  /* Advance back frontier. */
-	  pl_curr = find_error_pl_set (recovery->back_pl_frontier - 1,
+	  pl_curr = find_error_pl_set (csv, recovery->back_pl_frontier - 1,
 				       &backward_move_cost);
 #ifndef NO_YAEP_DEBUG_PRINT
 	  if (grammar->debug_level > 2)
@@ -4472,13 +4494,13 @@ error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
 	}
 #endif
       /* Shift error: */
-      core_symb_vect = core_symb_vect_find (set->core, grammar->term_error);
+      core_symb_vect = core_symb_vect_find (csv, set->core, grammar->term_error);
       assert (core_symb_vect != NULL);
 #ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
 	fprintf (stderr, "++++Making error shift in set=%d\n", pl_curr);
 #endif
-      build_new_set (set, core_symb_vect, -1);
+      build_new_set (csv, set, core_symb_vect, -1);
       pl[++pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 2)
@@ -4495,7 +4517,7 @@ error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
       /* Search the first right token. */
       while (tok_curr < toks_len)
 	{
-	  core_symb_vect = core_symb_vect_find (new_core,
+	  core_symb_vect = core_symb_vect_find (csv, new_core,
 						toks[tok_curr].symb);
 	  if (core_symb_vect != NULL)
 	    break;
@@ -4543,7 +4565,7 @@ error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
       /* Shift the found token. */
       lookahead_term_num = (tok_curr + 1 < toks_len
 			    ? toks[tok_curr + 1].symb->u.term.term_num : -1);
-      build_new_set (new_set, core_symb_vect, lookahead_term_num);
+      build_new_set (csv, new_set, core_symb_vect, lookahead_term_num);
       pl[++pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
       if (grammar->debug_level > 3)
@@ -4572,7 +4594,7 @@ error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
 	  if (tok_curr >= toks_len)
 	    break;
 	  /* Push secondary recovery state (with error in set). */
-	  if (core_symb_vect_find (new_core, grammar->term_error) != NULL)
+	  if (core_symb_vect_find (csv, new_core, grammar->term_error) != NULL)
 	    {
 #ifndef NO_YAEP_DEBUG_PRINT
 	      if (grammar->debug_level > 2)
@@ -4588,13 +4610,13 @@ error_recovery (struct recovery_state_sets *recovery, int *start, int *stop)
 	      push_recovery_state (recovery, state.last_original_pl_el, cost);
 	    }
 	  core_symb_vect
-	    = core_symb_vect_find (new_core, toks[tok_curr].symb);
+	    = core_symb_vect_find (csv, new_core, toks[tok_curr].symb);
 	  if (core_symb_vect == NULL)
 	    break;
 	  lookahead_term_num = (tok_curr + 1 < toks_len
 				? toks[tok_curr + 1].symb->u.term.term_num
 				: -1);
-	  build_new_set (new_set, core_symb_vect, lookahead_term_num);
+	  build_new_set (csv, new_set, core_symb_vect, lookahead_term_num);
 	  pl[++pl_curr] = new_set;
 	}
       if (n_matched_toks >= grammar->recovery_token_matches
@@ -4697,7 +4719,7 @@ check_cached_transition_set (struct set *set, int place)
 /* The following function is major function forming parsing list in
    Earley's algorithm. */
 static void
-build_pl (void)
+build_pl (struct core_symb_vect_set *csv)
 {
   int i;
   struct symb *term;
@@ -4711,7 +4733,7 @@ build_pl (void)
   struct recovery_state_sets recovery;
 
   error_recovery_init (&recovery);
-  build_start_set ();
+  build_start_set (csv);
   lookahead_term_num = -1;
   for (tok_curr = pl_curr = 0; tok_curr < toks_len; tok_curr++)
     {
@@ -4775,7 +4797,7 @@ build_pl (void)
 #endif
       if (new_set == NULL)
 	{
-	  core_symb_vect = core_symb_vect_find (set->core, term);
+	  core_symb_vect = core_symb_vect_find (csv, set->core, term);
 	  if (core_symb_vect == NULL)
 	    {
 	      int saved_tok_curr, start, stop;
@@ -4786,7 +4808,7 @@ build_pl (void)
 	      saved_tok_curr = tok_curr;
 	      if (grammar->error_recovery_p)
 		{
-		  error_recovery (&recovery, &start, &stop);
+		  error_recovery (csv, &recovery, &start, &stop);
 		  syntax_error (saved_tok_curr, toks[saved_tok_curr].attr,
 				start, toks[start].attr, stop,
 				toks[stop].attr);
@@ -4799,7 +4821,7 @@ build_pl (void)
 		  break;
 		}
 	    }
-	  build_new_set (set, core_symb_vect, lookahead_term_num);
+	  build_new_set (csv, set, core_symb_vect, lookahead_term_num);
 #ifdef USE_SET_HASH_TABLE
 	  /* Save (set, term, lookahead) -> new_set in the table.  */
 	  i = ((struct set_term_lookahead *) *entry)->curr;
@@ -5544,7 +5566,7 @@ find_minimal_translation (struct yaep_tree_node *root)
    ambigous (it works even we asked only one parse tree without
    alternatives). */
 static struct yaep_tree_node *
-make_parse (int *ambiguous_p)
+make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 {
   struct set *set, *check_set;
   struct set_core *set_core, *check_set_core;
@@ -5744,7 +5766,7 @@ make_parse (int *ambiguous_p)
       /* Nonterminal before dot: */
       set = pl[pl_ind];
       set_core = set->core;
-      core_symb_vect = core_symb_vect_find (set_core, symb);
+      core_symb_vect = core_symb_vect_find (csv, set_core, symb);
       assert (core_symb_vect->reduces.len != 0);
       n_candidates = 0;
       orig_state = state;
@@ -5778,7 +5800,8 @@ make_parse (int *ambiguous_p)
 #endif
 	  check_set = pl[sit_orig];
 	  check_set_core = check_set->core;
-	  check_core_symb_vect = core_symb_vect_find (check_set_core, symb);
+	  check_core_symb_vect
+            = core_symb_vect_find (csv, check_set_core, symb);
 	  assert (check_core_symb_vect != NULL);
 	  found = FALSE;
 	  for (j = 0; j < check_core_symb_vect->transitions.len; j++)
@@ -6131,6 +6154,7 @@ yaep_parse (struct grammar *g,
 {
   int code, tok_init_p, parse_init_p;
   int tab_collisions, tab_searches;
+  struct core_symb_vect_set csv;
 
   /* Set up parse allocation */
   if (alloc == NULL)
@@ -6162,7 +6186,7 @@ yaep_parse (struct grammar *g,
     {
       pl_fin ();
       if (parse_init_p)
-	yaep_parse_fin ();
+	yaep_parse_fin (&csv);
       if (tok_init_p)
 	tok_fin ();
       return code;
@@ -6175,7 +6199,7 @@ yaep_parse (struct grammar *g,
   tok_init ();
   tok_init_p = TRUE;
   read_toks ();
-  yaep_parse_init (toks_len);
+  yaep_parse_init (&csv, toks_len);
   parse_init_p = TRUE;
   pl_create ();
 #ifndef __cplusplus
@@ -6185,8 +6209,8 @@ yaep_parse (struct grammar *g,
   tab_collisions = hash_table::get_all_collisions ();
   tab_searches = hash_table::get_all_searches ();
 #endif
-  build_pl ();
-  *root = make_parse (ambiguous_p);
+  build_pl (&csv);
+  *root = make_parse (&csv, ambiguous_p);
 #ifndef __cplusplus
   tab_collisions = get_all_collisions () - tab_collisions;
   tab_searches = get_all_searches () - tab_searches;
@@ -6225,19 +6249,19 @@ yaep_parse (struct grammar *g,
 	       n_set_term_lookaheads, grammar->n_goto_successes);
       fprintf (stderr,
 	       "       #pairs(set core, symb) = %d, their trans+reduce vects length = %d\n",
-	       n_core_symb_pairs, n_core_symb_vect_len);
+	       csv.n_core_symb_pairs, csv.n_core_symb_vect_len);
       fprintf (stderr,
 	       "       #unique transition vectors = %d, their length = %d\n",
-	       n_transition_vects, n_transition_vect_len);
+	       csv.n_transition_vects, csv.n_transition_vect_len);
 #ifdef TRANSITIVE_TRANSITION
       fprintf (stderr,
 	       "       #unique transitive transition vectors = %d, their length = %d\n",
-	       n_transitive_transition_vects,
-	       n_transitive_transition_vect_len);
+	       csv.n_transitive_transition_vects,
+	       csv.n_transitive_transition_vect_len);
 #endif
       fprintf (stderr,
 	       "       #unique reduce vectors = %d, their length = %d\n",
-	       n_reduce_vects, n_reduce_vect_len);
+	       csv.n_reduce_vects, csv.n_reduce_vect_len);
       fprintf (stderr,
 	       "       #term nodes = %d, #abstract nodes = %d\n",
 	       g->n_parse_term_nodes, g->n_parse_abstract_nodes);
@@ -6254,7 +6278,7 @@ yaep_parse (struct grammar *g,
 	       tab_collisions, tab_searches);
     }
 #endif
-  yaep_parse_fin ();
+  yaep_parse_fin (&csv);
   tok_fin ();
   return 0;
 }
