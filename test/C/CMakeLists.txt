@@ -24,7 +24,8 @@
 include_directories(
 	${PROJECT_SOURCE_DIR}/src
 	${PROJECT_SOURCE_DIR}/test
-	${PROJECT_BINARY_DIR}/test
+	${CMAKE_CURRENT_BINARY_DIR}
+	${CMAKE_BINARY_DIR}/test
 )
 
 # Helpers

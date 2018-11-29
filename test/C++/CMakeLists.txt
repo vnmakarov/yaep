@@ -25,7 +25,7 @@ include_directories(
 	${PROJECT_SOURCE_DIR}/src
 	${PROJECT_SOURCE_DIR}/test
 	${CMAKE_CURRENT_BINARY_DIR}
-	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_BINARY_DIR}/test
 )
 
 # Helpers
@@ -362,10 +362,10 @@ if( FLEX_FOUND AND NOT ( SHELL STREQUAL "SHELL-NOTFOUND" ) )
 	add_executable( test++41
 		test41.cpp
 	)
+	add_dependencies( test++41 ansic_c )
 	target_link_libraries( test++41
 		yaep++_static
 		ticker++
-		ansic_lib
 	)
 	add_test( yaep++-test41 ${SHELL} -c "${CMAKE_CURRENT_BINARY_DIR}/test++41 1 0 < ${TEST_DATA_DIR}/test.i" )
 endif()

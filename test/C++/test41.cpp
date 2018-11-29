@@ -36,7 +36,7 @@
 #include "yaep.h"
 
 extern "C" {
-#include "ansic.h"
+#include "ansic.c"
 }
 
 static os_t *lexs;
