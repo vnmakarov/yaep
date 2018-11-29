@@ -313,7 +313,7 @@ static int set_sgrammar( YaepAllocator * alloc, const char * grammar ) {
   OS_CREATE( stoks, alloc, 0 );
   VLO_CREATE( sterms, alloc, 0 );
   VLO_CREATE( srules, alloc, 0 );
-  OS_CREATE(s rhs, alloc, 0 );
+  OS_CREATE( srhs, alloc, 0 );
   curr_ch = grammar;
   yyparse ();
   /* sort array of syntax terminals by names. */
