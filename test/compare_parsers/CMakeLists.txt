@@ -34,6 +34,7 @@ if( NOT FLEX_FOUND )
 endif()
 
 include_directories(
+	${CMAKE_CURRENT_SOURCE_DIR}
 	${PROJECT_SOURCE_DIR}/src
 	${PROJECT_SOURCE_DIR}/test
 	${PROJECT_BINARY_DIR}/test
@@ -126,8 +127,8 @@ if( MARPA_LIBS STREQUAL "MARPA_LIB-NOTFOUND" )
 	return()
 endif()
 if( MSTA_FOUND )
-	add_custom_command( OUTPUT test.c COMMAND ${MSTA} test.y )
-	add_custom_target( test_c DEPENDS test.c )
+	add_custom_command( OUTPUT test.c COMMAND ${MSTA} ${CMAKE_CURRENT_SOURCE_DIR}/test.y )
+	add_custom_target( test_c DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/test.c )
 elseif( BISON_FOUND )
 	bison_target( test_c test.y "${CMAKE_CURRENT_BINARY_DIR}/test.c" )
 else()
@@ -142,4 +143,9 @@ target_link_libraries( ansic-marpa
 	yaep
 )
 add_test( ansic-test-marpa-small ${SHELL} -c "${TIMER} ${CMAKE_CURRENT_BINARY_DIR}/ansic-marpa < ${TEST_DATA}" )
-add_test( ansic-test-marpa-big ${SHELL} -c "${TIMER} ${CMAKE_CURRENT_BINARY_DIR}/ansic-marpa < ${BIGTEST_DATA}" )
+if( DEFINED ENV{MARPA_BIG_TEST})
+    add_test( ansic-test-marpa-big ${SHELL} -c "${TIMER} ${CMAKE_CURRENT_BINARY_DIR}/ansic-marpa < ${BIGTEST_DATA}" )
+else()
+    message("!!! To test MARPA on the biggest file, define env. variable MARPA_BIG_TEST.")
+    message("!!! Please be aware -- MARPA uses 30GB for this test.")
+endif()
