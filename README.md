@@ -95,7 +95,8 @@ static void parse (void)
 # Installing:
   * ``mkdir build``
   * ``cd build``
-  * ``cmake -DCMAKE_BUILD_TYPE=Release`` (make sure you have CMake installed)
+  * ``<srcdir>/configure --srcdir=<srcdir> --prefix=<prefix for install dirs>
+    or ``cmake -DCMAKE_BUILD_TYPE=Release`` (make sure you have CMake installed)
   * ``make``
   * ``make test`` (optional) 
   * ``make install``
