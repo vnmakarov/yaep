@@ -47,7 +47,7 @@ static const char *description =
   ;
 
 int
-main ()
+main (void)
 {
   yaep *e;
   struct yaep_tree_node *root;

@@ -96,7 +96,7 @@ static int ntok;
 static const char *input = "a+a*(a*a+a)";
 
 int
-main ()
+main (void)
 {
   test_standard_read (input, read_terminal, read_rule);
   exit (0);

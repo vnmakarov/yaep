@@ -46,7 +46,7 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void main (void)
 {
   struct grammar *g;
   struct yaep_tree_node *root;

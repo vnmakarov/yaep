@@ -45,7 +45,7 @@ static const char *description =
 "  ;\n"
   ;
 
-main ()
+void main (void)
 {
   test_standard_parse ();
   exit (0);

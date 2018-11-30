@@ -32,7 +32,7 @@ static const char *input = "a+a*(a*a+a)";
 
 static const char *description = "TERM ident; ident : ;\n";
 
-main ()
+void main (void)
 {
   test_standard_parse ();
   exit (0);
