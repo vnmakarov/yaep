@@ -491,21 +491,21 @@ depend : src/sgramm.c $(Cdir) $(Cxxdir)
 # The following is generated with the aid of Makefile entry depend
 # Do not place anything below this line
 #
-src/C/allocate.o: $(top_srcdir)/src/allocate.c $(top_srcdir)/src/allocate.h
+src/C/allocate.o: $(top_srcdir)/src/allocate.c  $(top_srcdir)/src/allocate.h
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/allocate.c
-src/C/vlobject.o: $(top_srcdir)/src/vlobject.c $(top_srcdir)/src/allocate.h $(top_srcdir)/src/vlobject.h
+src/C/vlobject.o: $(top_srcdir)/src/vlobject.c  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/vlobject.h
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/vlobject.c
-src/C/objstack.o: $(top_srcdir)/src/objstack.c $(top_srcdir)/src/allocate.h $(top_srcdir)/src/objstack.h
+src/C/objstack.o: $(top_srcdir)/src/objstack.c  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/objstack.h
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/objstack.c
-src/C/hashtab.o: $(top_srcdir)/src/hashtab.c $(top_srcdir)/src/allocate.h $(top_srcdir)/src/hashtab.h
+src/C/hashtab.o: $(top_srcdir)/src/hashtab.c  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/hashtab.h
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/hashtab.c
-src/C/yaep.o: $(top_srcdir)/src/yaep.c $(top_srcdir)/src/allocate.h $(top_srcdir)/src/hashtab.h  $(top_srcdir)/src/vlobject.h $(top_srcdir)/src/objstack.h  $(top_srcdir)/src/yaep.h src/sgramm.c
+src/C/yaep.o: $(top_srcdir)/src/yaep.c  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/hashtab.h  $(top_srcdir)/src/vlobject.h  $(top_srcdir)/src/objstack.h  $(top_srcdir)/src/yaep.h src/sgramm.c
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/yaep.c
-src/C++/vlobject.o: $(top_srcdir)/src/vlobject.cpp $(top_srcdir)/src/allocate.h $(top_srcdir)/src/vlobject.h
+src/C++/vlobject.o: $(top_srcdir)/src/vlobject.cpp  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/vlobject.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $(top_srcdir)/src/vlobject.cpp
-src/C++/objstack.o: $(top_srcdir)/src/objstack.cpp $(top_srcdir)/src/allocate.h $(top_srcdir)/src/objstack.h
+src/C++/objstack.o: $(top_srcdir)/src/objstack.cpp  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/objstack.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $(top_srcdir)/src/objstack.cpp
-src/C++/hashtab.o: $(top_srcdir)/src/hashtab.cpp $(top_srcdir)/src/allocate.h $(top_srcdir)/src/hashtab.h
+src/C++/hashtab.o: $(top_srcdir)/src/hashtab.cpp  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/hashtab.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $(top_srcdir)/src/hashtab.cpp
-src/C++/yaep.o: $(top_srcdir)/src/yaep.cpp $(top_srcdir)/src/yaep.c $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/hashtab.h $(top_srcdir)/src/vlobject.h  $(top_srcdir)/src/objstack.h $(top_srcdir)/src/yaep.h src/sgramm.c
+src/C++/yaep.o: $(top_srcdir)/src/yaep.cpp  $(top_srcdir)/src/yaep.c  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/hashtab.h  $(top_srcdir)/src/vlobject.h  $(top_srcdir)/src/objstack.h  $(top_srcdir)/src/yaep.h src/sgramm.c
 	$(CXX) -c $(CXXFLAGS) -o $@ $(top_srcdir)/src/yaep.cpp
