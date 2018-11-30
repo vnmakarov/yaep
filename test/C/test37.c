@@ -44,7 +44,7 @@ static const char *description =
 "  ;\n"
   ;
 
-void main (int argc, char **argv)
+int main (int argc, char **argv)
 {
   test_complex_parse (0, 0, 0, 4, argc, argv);
   exit (0);

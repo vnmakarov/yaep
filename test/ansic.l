@@ -46,7 +46,7 @@ static int yyinput();
 #define input yyinput
 #endif
 int yywrap ();
-int comment (void);
+void comment (void);
 void count (void);
 int check_type (void);
 
@@ -172,7 +172,7 @@ yywrap()
 	return(1);
 }
 
-int
+void
 comment(void)
 {
 	char c, c1;

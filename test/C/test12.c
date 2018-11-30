@@ -32,7 +32,7 @@ static const char *input = "a+a*(a*a+a)";
 
 static const char *description = "TERM;\n";
 
-void main (void)
+int main (void)
 {
   test_standard_parse ();
   exit (0);

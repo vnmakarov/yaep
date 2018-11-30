@@ -43,7 +43,7 @@ static const char *description =
 "  ;\n"
   ;
 
-void main (void)
+int main (void)
 {
   test_standard_parse ();
   exit (0);
