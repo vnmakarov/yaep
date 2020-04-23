@@ -90,7 +90,7 @@ static void parse (void)
        ;
 ``` 
   * For more details, please see the documentation in directory ``src/``,
-    or the YAEP examples in file ``yaep.tst.in``.
+    or the YAEP examples in files ``test*.c`` in directories ``test/C`` or ``test/C++``.
 
 # Installing:
   * ``mkdir build``
