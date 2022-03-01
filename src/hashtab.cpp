@@ -151,7 +151,8 @@ hash_table::expand_hash_table (void)
       }
   yaep_free (alloc, entries);
   *this = (*new_htab);
-  yaep_free (new_htab->alloc, new_htab);
+  new_htab->entries = nullptr;
+  delete new_htab;
 }
 
 /* The following variable is used for debugging. Its value is number
