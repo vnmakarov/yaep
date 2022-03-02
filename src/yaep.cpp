@@ -47,7 +47,8 @@
 #define OS_TOP_SHORTEN(os, size) (os)->top_shorten (size)
 #define OS_TOP_NULLIFY(os) (os)->top_nullify ()
 
-#define create_hash_table( allocator, size, hash, eq ) new hash_table( allocator, size, hash, eq )
+#define create_hash_table(userptr, allocator, size, hash, eq) \
+        new hash_table(userptr, allocator, size, hash, eq)
 #define empty_hash_table(tab) (tab)->empty ()
 #define delete_hash_table(tab) delete tab
 #define find_hash_table_entry(tab, el, res_p) (tab)->find_entry(el, res_p)

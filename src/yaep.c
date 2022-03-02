@@ -363,7 +363,7 @@ struct symbs
 
 /* Hash of symbol representation. */
 static unsigned
-symb_repr_hash (hash_table_entry_t s)
+symb_repr_hash (void *unused, hash_table_entry_t s)
 {
   unsigned result = jauquet_prime_mod32;
   const char *str = ((struct symb *) s)->repr;
@@ -376,14 +376,14 @@ symb_repr_hash (hash_table_entry_t s)
 
 /* Equality of symbol representations. */
 static int
-symb_repr_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+symb_repr_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 {
   return strcmp (((struct symb *) s1)->repr, ((struct symb *) s2)->repr) == 0;
 }
 
 /* Hash of terminal code. */
 static unsigned
-symb_code_hash (hash_table_entry_t s)
+symb_code_hash (void *unused, hash_table_entry_t s)
 {
   struct symb *symb = ((struct symb *) s);
 
@@ -393,7 +393,7 @@ symb_code_hash (hash_table_entry_t s)
 
 /* Equality of terminal codes. */
 static int
-symb_code_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+symb_code_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 {
   struct symb *symb1 = ((struct symb *) s1);
   struct symb *symb2 = ((struct symb *) s2);
@@ -417,9 +417,9 @@ symb_init (void)
   VLO_CREATE (result->terms_vlo, grammar->alloc, 512);
   VLO_CREATE (result->nonterms_vlo, grammar->alloc, 512);
   result->repr_to_symb_tab =
-    create_hash_table (grammar->alloc, 300, symb_repr_hash, symb_repr_eq);
+    create_hash_table (NULL, grammar->alloc, 300, symb_repr_hash, symb_repr_eq);
   result->code_to_symb_tab =
-    create_hash_table (grammar->alloc, 200, symb_code_hash, symb_code_eq);
+    create_hash_table (NULL, grammar->alloc, 200, symb_code_hash, symb_code_eq);
 #ifdef SYMB_CODE_TRANS_VECT
   result->symb_code_trans_vect = NULL;
 #endif
@@ -711,7 +711,7 @@ struct term_sets
 
 /* Hash of table terminal set. */
 static unsigned
-term_set_hash (hash_table_entry_t s)
+term_set_hash (void *unused, hash_table_entry_t s)
 {
   term_set_el_t *set = ((struct tab_term_set *) s)->set;
   term_set_el_t *bound;
@@ -728,7 +728,7 @@ term_set_hash (hash_table_entry_t s)
 
 /* Equality of terminal sets. */
 static int
-term_set_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+term_set_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 {
   term_set_el_t *set1 = ((struct tab_term_set *) s1)->set;
   term_set_el_t *set2 = ((struct tab_term_set *) s2)->set;
@@ -756,7 +756,7 @@ term_set_init (void)
   result = (struct term_sets *) mem;
   OS_CREATE (result->term_set_os, grammar->alloc, 0);
   result->term_set_tab =
-    create_hash_table (grammar->alloc, 1000, term_set_hash, term_set_eq);
+    create_hash_table (NULL, grammar->alloc, 1000, term_set_hash, term_set_eq);
   VLO_CREATE (result->tab_term_set_vlo, grammar->alloc, 4096);
   result->n_term_sets = result->n_term_sets_size = 0;
   return result;
@@ -1646,14 +1646,14 @@ static hash_table_t set_term_lookahead_tab;	/* key is (core, distances, lookeahe
 
 /* Hash of set core. */
 static unsigned
-set_core_hash (hash_table_entry_t s)
+set_core_hash (void *unused, hash_table_entry_t s)
 {
   return ((struct set *) s)->core->hash;
 }
 
 /* Equality of set cores. */
 static int
-set_core_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+set_core_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 {
   struct set_core *set_core1 = ((struct set *) s1)->core;
   struct set_core *set_core2 = ((struct set *) s2)->core;
@@ -1672,14 +1672,14 @@ set_core_eq (hash_table_entry_t s1, hash_table_entry_t s2)
 
 /* Hash of set distances. */
 static unsigned
-dists_hash (hash_table_entry_t s)
+dists_hash (void *unused, hash_table_entry_t s)
 {
   return ((struct set *) s)->dists_hash;
 }
 
 /* Equality of distances. */
 static int
-dists_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+dists_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 {
   int *dists1 = ((struct set *) s1)->dists;
   int *dists2 = ((struct set *) s2)->dists;
@@ -1697,14 +1697,14 @@ dists_eq (hash_table_entry_t s1, hash_table_entry_t s2)
 
 /* Hash of set core and distances. */
 static unsigned
-set_core_dists_hash (hash_table_entry_t s)
+set_core_dists_hash (void *userptr, hash_table_entry_t s)
 {
-  return set_core_hash (s) * hash_shift + dists_hash (s);
+  return set_core_hash (userptr, s) * hash_shift + dists_hash (userptr, s);
 }
 
 /* Equality of set cores and distances. */
 static int
-set_core_dists_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+set_core_dists_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 {
   struct set_core *set_core1 = ((struct set *) s1)->core;
   struct set_core *set_core2 = ((struct set *) s2)->core;
@@ -1716,19 +1716,20 @@ set_core_dists_eq (hash_table_entry_t s1, hash_table_entry_t s2)
 
 /* Hash of triple (set, term, lookahead). */
 static unsigned
-set_term_lookahead_hash (hash_table_entry_t s)
+set_term_lookahead_hash (void *userptr, hash_table_entry_t s)
 {
   struct set *set = ((struct set_term_lookahead *) s)->set;
   struct symb *term = ((struct set_term_lookahead *) s)->term;
   int lookahead = ((struct set_term_lookahead *) s)->lookahead;
 
-  return ((set_core_dists_hash (set) * hash_shift
+  return ((set_core_dists_hash (userptr, set) * hash_shift
 	   + term->u.term.term_num) * hash_shift + lookahead);
 }
 
 /* Equality of tripes (set, term, lookahead). */
 static int
-set_term_lookahead_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+set_term_lookahead_eq (void *unused,
+        hash_table_entry_t s1, hash_table_entry_t s2)
 {
   struct set *set1 = ((struct set_term_lookahead *) s1)->set;
   struct set *set2 = ((struct set_term_lookahead *) s2)->set;
@@ -1874,15 +1875,15 @@ set_init (int n_toks)
   OS_CREATE (sets_os, grammar->alloc, 0);
   OS_CREATE (set_term_lookahead_os, grammar->alloc, 0);
   set_core_tab =
-    create_hash_table (grammar->alloc, 2000, set_core_hash, set_core_eq);
+    create_hash_table (NULL, grammar->alloc, 2000, set_core_hash, set_core_eq);
   set_dists_tab =
-    create_hash_table (grammar->alloc, n < 20000 ? 20000 : n, dists_hash,
+    create_hash_table (NULL, grammar->alloc, n < 20000 ? 20000 : n, dists_hash,
 		       dists_eq);
   set_tab =
-    create_hash_table (grammar->alloc, n < 20000 ? 20000 : n,
+    create_hash_table (NULL, grammar->alloc, n < 20000 ? 20000 : n,
 		       set_core_dists_hash, set_core_dists_eq);
   set_term_lookahead_tab =
-    create_hash_table (grammar->alloc, n < 30000 ? 30000 : n,
+    create_hash_table (NULL, grammar->alloc, n < 30000 ? 30000 : n,
 		       set_term_lookahead_hash, set_term_lookahead_eq);
   n_set_cores = n_set_core_start_sits = 0;
   n_set_dists = n_set_dists_len = n_parent_indexes = 0;
@@ -2525,14 +2526,14 @@ vect_els_eq (struct vect *v1, struct vect *v2)
 
 /* Hash of vector transition elements. */
 static unsigned
-transition_els_hash (hash_table_entry_t t)
+transition_els_hash (void *unused, hash_table_entry_t t)
 {
   return vect_els_hash (&((struct core_symb_vect *) t)->transitions);
 }
 
 /* Equality of transition vector elements. */
 static int
-transition_els_eq (hash_table_entry_t t1, hash_table_entry_t t2)
+transition_els_eq (void *unused, hash_table_entry_t t1, hash_table_entry_t t2)
 {
   return vect_els_eq (&((struct core_symb_vect *) t1)->transitions,
 		      &((struct core_symb_vect *) t2)->transitions);
@@ -2541,7 +2542,7 @@ transition_els_eq (hash_table_entry_t t1, hash_table_entry_t t2)
 #ifdef TRANSITIVE_TRANSITION
 /* Hash of vector transitive transition elements. */
 static unsigned
-transitive_transition_els_hash (hash_table_entry_t t)
+transitive_transition_els_hash (void *unused, hash_table_entry_t t)
 {
   return vect_els_hash (&((struct core_symb_vect *) t)->
 			transitive_transitions);
@@ -2549,7 +2550,8 @@ transitive_transition_els_hash (hash_table_entry_t t)
 
 /* Equality of transitive transition vector elements. */
 static int
-transitive_transition_els_eq (hash_table_entry_t t1, hash_table_entry_t t2)
+transitive_transition_els_eq (void * unused,
+        hash_table_entry_t t1, hash_table_entry_t t2)
 {
   return vect_els_eq (&((struct core_symb_vect *) t1)->transitive_transitions,
 		      &((struct core_symb_vect *) t2)->
@@ -2559,14 +2561,14 @@ transitive_transition_els_eq (hash_table_entry_t t1, hash_table_entry_t t2)
 
 /* Hash of reduce vector elements. */
 static unsigned
-reduce_els_hash (hash_table_entry_t t)
+reduce_els_hash (void *unused, hash_table_entry_t t)
 {
   return vect_els_hash (&((struct core_symb_vect *) t)->reduces);
 }
 
 /* Equality of reduce vector elements. */
 static int
-reduce_els_eq (hash_table_entry_t t1, hash_table_entry_t t2)
+reduce_els_eq (void *unused, hash_table_entry_t t1, hash_table_entry_t t2)
 {
   return vect_els_eq (&((struct core_symb_vect *) t1)->reduces,
 		      &((struct core_symb_vect *) t2)->reduces);
@@ -2589,11 +2591,11 @@ core_symb_vect_init (struct core_symb_vect_set *csv)
 #ifdef USE_CORE_SYMB_HASH_TABLE
 #ifndef __cplusplus
   csv->core_symb_to_vect_tab =
-    create_hash_table (grammar->alloc, 3000, core_symb_vect_hash,
+    create_hash_table (NULL, grammar->alloc, 3000, core_symb_vect_hash,
 		       core_symb_vect_eq);
 #else
   csv->core_symb_to_vect_tab =
-    new hash_table (grammar->alloc, 3000, core_symb_vect_hash,
+    new hash_table (nullptr, grammar->alloc, 3000, core_symb_vect_hash,
 		    core_symb_vect_eq);
 #endif
 #else
@@ -2612,26 +2614,28 @@ core_symb_vect_init (struct core_symb_vect_set *csv)
 
 #ifndef __cplusplus
   csv->transition_els_tab =
-    create_hash_table (grammar->alloc, 3000, transition_els_hash,
+    create_hash_table (NULL, grammar->alloc, 3000, transition_els_hash,
 		       transition_els_eq);
 #ifdef TRANSITIVE_TRANSITION
   csv->transitive_transition_els_tab =
-    create_hash_table (grammar->alloc, 5000, transitive_transition_els_hash,
-		       transitive_transition_els_eq);
+    create_hash_table (NULL, grammar->alloc, 5000,
+             transitive_transition_els_hash, transitive_transition_els_eq);
 #endif
   csv->reduce_els_tab =
-    create_hash_table (grammar->alloc, 3000, reduce_els_hash, reduce_els_eq);
+    create_hash_table (NULL, grammar->alloc, 3000,
+            reduce_els_hash, reduce_els_eq);
 #else
   csv->transition_els_tab =
-    new hash_table (grammar->alloc, 3000, transition_els_hash,
+    new hash_table (nullptr, grammar->alloc, 3000, transition_els_hash,
 		    transition_els_eq);
 #ifdef TRANSITIVE_TRANSITION
   csv->transitive_transition_els_tab =
-    new hash_table (grammar->alloc, 5000, transitive_transition_els_hash,
-		    transitive_transition_els_eq);
+    new hash_table (nullptr, grammar->alloc, 5000,
+             transitive_transition_els_hash, transitive_transition_els_eq);
 #endif
   csv->reduce_els_tab =
-    new hash_table (grammar->alloc, 3000, reduce_els_hash, reduce_els_eq);
+    new hash_table (nullptr, grammar->alloc, 3000,
+            reduce_els_hash, reduce_els_eq);
 #endif
   csv->n_core_symb_pairs = csv->n_core_symb_vect_len = 0;
   csv->n_transition_vects = csv->n_transition_vect_len = 0;
@@ -4920,7 +4924,7 @@ struct parse_state_set
 
 /* Hash of parse state. */
 static unsigned
-parse_state_hash (hash_table_entry_t s)
+parse_state_hash (void *unused, hash_table_entry_t s)
 {
   struct parse_state *state = ((struct parse_state *) s);
 
@@ -4933,7 +4937,7 @@ parse_state_hash (hash_table_entry_t s)
 
 /* Equality of parse states. */
 static int
-parse_state_eq (hash_table_entry_t s1, hash_table_entry_t s2)
+parse_state_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 {
   struct parse_state *state1 = ((struct parse_state *) s1);
   struct parse_state *state2 = ((struct parse_state *) s2);
@@ -4954,11 +4958,11 @@ parse_state_init (struct parse_state_set *parse_state_set)
   if (!grammar->one_parse_p)
 #ifndef __cplusplus
     parse_state_set->parse_state_tab =
-      create_hash_table (grammar->alloc, toks_len * 2, parse_state_hash,
+      create_hash_table (NULL, grammar->alloc, toks_len * 2, parse_state_hash,
 			 parse_state_eq);
 #else
     parse_state_set->parse_state_tab =
-      new hash_table (grammar->alloc, toks_len * 2, parse_state_hash,
+      new hash_table (nullptr, grammar->alloc, toks_len * 2, parse_state_hash,
 		      parse_state_eq);
 #endif
 }
@@ -5064,14 +5068,14 @@ struct trans_visit_node
 
 /* Hash of translation visit node. */
 static unsigned
-trans_visit_node_hash (hash_table_entry_t n)
+trans_visit_node_hash (void *unused, hash_table_entry_t n)
 {
   return (size_t) ((struct trans_visit_node *) n)->node;
 }
 
 /* Equality of translation visit nodes. */
 static int
-trans_visit_node_eq (hash_table_entry_t n1, hash_table_entry_t n2)
+trans_visit_node_eq (void *unused, hash_table_entry_t n1, hash_table_entry_t n2)
 {
   return (((struct trans_visit_node *) n1)->node
 	  == ((struct trans_visit_node *) n2)->node);
@@ -5297,12 +5301,12 @@ print_parse (FILE * f, struct yaep_tree_node *root)
 
 #ifndef __cplusplus
   trans_visit_nodes_tab =
-    create_hash_table (grammar->alloc, toks_len * 2, trans_visit_node_hash,
-		       trans_visit_node_eq);
+    create_hash_table (NULL, grammar->alloc, toks_len * 2,
+             trans_visit_node_hash, trans_visit_node_eq);
 #else
   trans_visit_nodes_tab =
-    new hash_table (grammar->alloc, toks_len * 2, trans_visit_node_hash,
-		    trans_visit_node_eq);
+    new hash_table (nullptr, grammar->alloc, toks_len * 2,
+             trans_visit_node_hash, trans_visit_node_eq);
 #endif
   n_trans_visit_nodes = 0;
   OS_CREATE (trans_visit_nodes_os, grammar->alloc, 0);
@@ -5390,14 +5394,14 @@ copy_anode (struct yaep_tree_node **place, struct yaep_tree_node *anode,
 
 /* The hash of the memory reference. */
 static unsigned
-reserv_mem_hash (hash_table_entry_t m)
+reserv_mem_hash (void *unused, hash_table_entry_t m)
 {
   return (size_t) m;
 }
 
 /* The equity of the memory reference. */
 static int
-reserv_mem_eq (hash_table_entry_t m1, hash_table_entry_t m2)
+reserv_mem_eq (void *unused, hash_table_entry_t m1, hash_table_entry_t m2)
 {
   return m1 == m2;
 }
@@ -5546,11 +5550,11 @@ find_minimal_translation (struct yaep_tree_node *root)
     {
 #ifndef __cplusplus
       reserv_mem_tab =
-	create_hash_table (grammar->alloc, toks_len * 4, reserv_mem_hash,
+	create_hash_table (NULL, grammar->alloc, toks_len * 4, reserv_mem_hash,
 			   reserv_mem_eq);
 #else
       reserv_mem_tab =
-	new hash_table (grammar->alloc, toks_len * 4, reserv_mem_hash,
+	new hash_table (nullptr, grammar->alloc, toks_len * 4, reserv_mem_hash,
 			reserv_mem_eq);
 #endif
       VLO_CREATE (tnodes_vlo, grammar->alloc, toks_len * 4 * sizeof (void *));
