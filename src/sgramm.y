@@ -393,7 +393,7 @@ yylex (YYSTYPE *lvalp, struct parser_data *data)
 int
 yyerror (struct parser_data *data, const char *str)
 {
-  yaep_error (YAEP_DESCRIPTION_SYNTAX_ERROR_CODE,
+  yaep_error (data->grammar, YAEP_DESCRIPTION_SYNTAX_ERROR_CODE,
 	      "description syntax error on ln %d", data->ln);
   return 0;
 }
@@ -460,7 +460,7 @@ set_sgrammar (struct grammar *g, const char *grammar, struct parser_data *data)
 
 	  strncpy (str, prev->repr, sizeof (str));
 	  str[sizeof (str) - 1] = '\0';
-	  yaep_error (YAEP_REPEATED_TERM_CODE,
+	  yaep_error (data->grammar, YAEP_REPEATED_TERM_CODE,
 		      "term %s described repeatedly with different code",
 		      str);
 	}

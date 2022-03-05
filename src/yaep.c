@@ -201,10 +201,6 @@ struct grammar
   void *userptr;
 };
 
-/* The following variable value is the reference for the current
-   grammar structure. */
-static struct grammar *grammar;
-
 /* The following is set up the parser amnd used globally. */
 static int (*read_token) (void **attr);
 static void (*syntax_error) (int err_tok_num,
@@ -217,7 +213,7 @@ static void *(*parse_alloc) (int nmemb);
 static void (*parse_free) (void *mem);
 
 /* Forward decrlarations: */
-static void yaep_error (int code, const char *format, ...);
+static void yaep_error (struct grammar *g, int code, const char *format, ...);
 
 #ifndef __cplusplus
 extern
@@ -405,21 +401,21 @@ symb_code_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 /* Initialize work with symbols and returns storage for the
    symbols. */
 static struct symbs *
-symb_init (void)
+symb_init (struct YaepAllocator *alloc)
 {
   void *mem;
   struct symbs *result;
 
-  mem = yaep_malloc (grammar->alloc, sizeof (struct symbs));
+  mem = yaep_malloc (alloc, sizeof (struct symbs));
   result = (struct symbs *) mem;
-  OS_CREATE (result->symbs_os, grammar->alloc, 0);
-  VLO_CREATE (result->symbs_vlo, grammar->alloc, 1024);
-  VLO_CREATE (result->terms_vlo, grammar->alloc, 512);
-  VLO_CREATE (result->nonterms_vlo, grammar->alloc, 512);
+  OS_CREATE (result->symbs_os, alloc, 0);
+  VLO_CREATE (result->symbs_vlo, alloc, 1024);
+  VLO_CREATE (result->terms_vlo, alloc, 512);
+  VLO_CREATE (result->nonterms_vlo, alloc, 512);
   result->repr_to_symb_tab =
-    create_hash_table (NULL, grammar->alloc, 300, symb_repr_hash, symb_repr_eq);
+    create_hash_table (NULL, alloc, 300, symb_repr_hash, symb_repr_eq);
   result->code_to_symb_tab =
-    create_hash_table (NULL, grammar->alloc, 200, symb_code_hash, symb_code_eq);
+    create_hash_table (NULL, alloc, 200, symb_code_hash, symb_code_eq);
 #ifdef SYMB_CODE_TRANS_VECT
   result->symb_code_trans_vect = NULL;
 #endif
@@ -597,14 +593,14 @@ symb_print (FILE * f, struct symb *symb, int code_p)
 #define SYMB_CODE_TRANS_VECT_SIZE 10000
 
 static void
-symb_finish_adding_terms (struct symbs *symbs_ptr)
+symb_finish_adding_terms (struct symbs *symbs, struct YaepAllocator *alloc)
 {
   int i, max_code, min_code;
   struct symb *symb;
   void *mem;
 
   for (min_code = max_code = i = 0;
-       (symb = term_get (symbs_ptr, i)) != NULL;
+       (symb = term_get (symbs, i)) != NULL;
        i++)
     {
       if (i == 0 || min_code > symb->u.term.code)
@@ -615,27 +611,27 @@ symb_finish_adding_terms (struct symbs *symbs_ptr)
   assert (i != 0);
   if (max_code - min_code < SYMB_CODE_TRANS_VECT_SIZE)
     {
-      symbs_ptr->symb_code_trans_vect_start = min_code;
-      symbs_ptr->symb_code_trans_vect_end = max_code + 1;
-      mem = yaep_malloc (grammar->alloc,
+      symbs->symb_code_trans_vect_start = min_code;
+      symbs->symb_code_trans_vect_end = max_code + 1;
+      mem = yaep_malloc (alloc,
           sizeof (struct symb*) * (max_code - min_code + 1));
-      symbs_ptr->symb_code_trans_vect = (struct symb **) mem;
-      for (i = 0; (symb = term_get (symbs_ptr, i)) != NULL; i++)
-	symbs_ptr->symb_code_trans_vect[symb->u.term.code - min_code] = symb;
+      symbs->symb_code_trans_vect = (struct symb **) mem;
+      for (i = 0; (symb = term_get (symbs, i)) != NULL; i++)
+	symbs->symb_code_trans_vect[symb->u.term.code - min_code] = symb;
     }
 }
 #endif
 
 /* Free memory for symbols. */
 static void
-symb_empty (struct symbs *symbs)
+symb_empty (struct symbs *symbs, struct YaepAllocator *alloc)
 {
   if (symbs == NULL)
     return;
 #ifdef SYMB_CODE_TRANS_VECT
   if (symbs->symb_code_trans_vect != NULL)
     {
-      yaep_free (grammar->alloc, symbs->symb_code_trans_vect);
+      yaep_free (alloc, symbs->symb_code_trans_vect);
       symbs->symb_code_trans_vect = NULL;
     }
 #endif
@@ -650,13 +646,13 @@ symb_empty (struct symbs *symbs)
 
 /* Finalize work with symbols. */
 static void
-symb_fin (struct symbs *symbs)
+symb_fin (struct symbs *symbs, struct YaepAllocator *alloc)
 {
   if (symbs == NULL)
     return;
 #ifdef SYMB_CODE_TRANS_VECT
   if (symbs->symb_code_trans_vect != NULL)
-    yaep_free (grammar->alloc, symbs->symb_code_trans_vect);
+    yaep_free (alloc, symbs->symb_code_trans_vect);
 #endif
   delete_hash_table (symbs->repr_to_symb_tab);
   delete_hash_table (symbs->code_to_symb_tab);
@@ -664,8 +660,7 @@ symb_fin (struct symbs *symbs)
   VLO_DELETE (symbs->terms_vlo);
   VLO_DELETE (symbs->symbs_vlo);
   OS_DELETE (symbs->symbs_os);
-  yaep_free (grammar->alloc, symbs);
-  symbs = NULL;
+  yaep_free (alloc, symbs);
 }
 
 
@@ -711,14 +706,15 @@ struct term_sets
 
 /* Hash of table terminal set. */
 static unsigned
-term_set_hash (void *unused, hash_table_entry_t s)
+term_set_hash (void *userptr, hash_table_entry_t s)
 {
+  struct symbs *symbs = (struct symbs *) userptr;
   term_set_el_t *set = ((struct tab_term_set *) s)->set;
   term_set_el_t *bound;
   int size;
   unsigned result = jauquet_prime_mod32;
 
-  size = ((grammar->symbs_ptr->n_terms + CHAR_BIT * sizeof (term_set_el_t) - 1)
+  size = ((symbs->n_terms + CHAR_BIT * sizeof (term_set_el_t) - 1)
 	  / (CHAR_BIT * sizeof (term_set_el_t)));
   bound = set + size;
   while (set < bound)
@@ -728,14 +724,15 @@ term_set_hash (void *unused, hash_table_entry_t s)
 
 /* Equality of terminal sets. */
 static int
-term_set_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
+term_set_eq (void *userptr, hash_table_entry_t s1, hash_table_entry_t s2)
 {
+  struct symbs *symbs = (struct symbs *) userptr;
   term_set_el_t *set1 = ((struct tab_term_set *) s1)->set;
   term_set_el_t *set2 = ((struct tab_term_set *) s2)->set;
   term_set_el_t *bound;
   int size;
 
-  size = ((grammar->symbs_ptr->n_terms + CHAR_BIT * sizeof (term_set_el_t) - 1)
+  size = ((symbs->n_terms + CHAR_BIT * sizeof (term_set_el_t) - 1)
 	  / (CHAR_BIT * sizeof (term_set_el_t)));
   bound = set1 + size;
   while (set1 < bound)
@@ -747,17 +744,17 @@ term_set_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 /* Initialize work with terminal sets and returns storage for terminal
    sets. */
 static struct term_sets *
-term_set_init (void)
+term_set_init (struct symbs *symbs, struct YaepAllocator *alloc)
 {
   void *mem;
   struct term_sets *result;
 
-  mem = yaep_malloc (grammar->alloc, sizeof (struct term_sets));
+  mem = yaep_malloc (alloc, sizeof (struct term_sets));
   result = (struct term_sets *) mem;
-  OS_CREATE (result->term_set_os, grammar->alloc, 0);
+  OS_CREATE (result->term_set_os, alloc, 0);
   result->term_set_tab =
-    create_hash_table (NULL, grammar->alloc, 1000, term_set_hash, term_set_eq);
-  VLO_CREATE (result->tab_term_set_vlo, grammar->alloc, 4096);
+    create_hash_table (symbs, alloc, 1000, term_set_hash, term_set_eq);
+  VLO_CREATE (result->tab_term_set_vlo, alloc, 4096);
   result->n_term_sets = result->n_term_sets_size = 0;
   return result;
 }
@@ -952,15 +949,14 @@ term_set_empty (struct term_sets *term_sets)
 
 /* Finalize work with terminal sets. */
 static void
-term_set_fin (struct term_sets *term_sets)
+term_set_fin (struct term_sets *term_sets, struct YaepAllocator *alloc)
 {
   if (term_sets == NULL)
     return;
   VLO_DELETE (term_sets->tab_term_set_vlo);
   delete_hash_table (term_sets->term_set_tab);
   OS_DELETE (term_sets->term_set_os);
-  yaep_free (grammar->alloc, term_sets);
-  term_sets = NULL;
+  yaep_free (alloc, term_sets);
 }
 
 
@@ -1026,14 +1022,14 @@ struct rules
 
 /* Initialize work with rules and returns pointer to rules storage. */
 static struct rules *
-rule_init (void)
+rule_init (struct YaepAllocator *alloc)
 {
   void *mem;
   struct rules *result;
 
-  mem = yaep_malloc (grammar->alloc, sizeof (struct rules));
+  mem = yaep_malloc (alloc, sizeof (struct rules));
   result = (struct rules *) mem;
-  OS_CREATE (result->rules_os, grammar->alloc, 0);
+  OS_CREATE (result->rules_os, alloc, 0);
   result->first_rule = result->curr_rule = NULL;
   result->n_rules = result->n_rhs_lens = 0;
   return result;
@@ -1187,13 +1183,12 @@ rule_empty (struct rules *rules)
 
 /* Finalize work with rules. */
 static void
-rule_fin (struct rules *rules)
+rule_fin (struct rules *rules, struct YaepAllocator *alloc)
 {
   if (rules == NULL)
     return;
   OS_DELETE (rules->rules_os);
-  yaep_free (grammar->alloc, rules);
-  rules = NULL;
+  yaep_free (alloc, rules);
 }
 
 
@@ -1230,24 +1225,23 @@ static vlo_t *toks_vlo;
 
 /* Initialize work with tokens. */
 static void
-tok_init (void)
+tok_init (struct YaepAllocator *alloc)
 {
-  VLO_CREATE (toks_vlo, grammar->alloc,
-	      YAEP_INIT_TOKENS_NUMBER * sizeof (struct tok));
+  VLO_CREATE (toks_vlo, alloc, YAEP_INIT_TOKENS_NUMBER * sizeof (struct tok));
   toks_len = 0;
 }
 
 /* Add input token with CODE and attribute at the end of input tokens
    array. */
 static void
-tok_add (int code, void *attr)
+tok_add (struct grammar *g, int code, void *attr)
 {
   struct tok tok;
 
   tok.attr = attr;
-  tok.symb = symb_find_by_code (grammar->symbs_ptr, code);
+  tok.symb = symb_find_by_code (g->symbs_ptr, code);
   if (tok.symb == NULL)
-    yaep_error (YAEP_INVALID_TOKEN_CODE, "invalid token code %d", code);
+    yaep_error (g, YAEP_INVALID_TOKEN_CODE, "invalid token code %d", code);
   VLO_ADD_MEMORY (toks_vlo, &tok, sizeof (struct tok));
   toks = (struct tok *) VLO_BEGIN (toks_vlo);
   toks_len++;
@@ -1320,11 +1314,11 @@ static os_t *sits_os;
 
 /* Initialize work with situations. */
 static void
-sit_init (void)
+sit_init (struct YaepAllocator *alloc)
 {
   n_all_sits = 0;
-  OS_CREATE (sits_os, grammar->alloc, 0);
-  VLO_CREATE (sit_table_vlo, grammar->alloc, 4096);
+  OS_CREATE (sits_os, alloc, 0);
+  VLO_CREATE (sit_table_vlo, alloc, 4096);
   sit_table = (struct sit ***) VLO_BEGIN (sit_table_vlo);
 }
 
@@ -1332,29 +1326,26 @@ sit_init (void)
    function returns TRUE if the situation tail may derive empty
    string. */
 static int
-sit_set_lookahead (struct sit *sit)
+sit_set_lookahead (struct sit *sit, struct grammar *g)
 {
   struct symb *symb, **symb_ptr;
 
-  if (grammar->lookahead_level == 0)
+  if (g->lookahead_level == 0)
     sit->lookahead = NULL;
   else
     {
-      sit->lookahead = term_set_create (grammar->symbs_ptr,
-              grammar->term_sets_ptr);
-      term_set_clear (grammar->symbs_ptr, sit->lookahead);
+      sit->lookahead = term_set_create (g->symbs_ptr, g->term_sets_ptr);
+      term_set_clear (g->symbs_ptr, sit->lookahead);
     }
   symb_ptr = &sit->rule->rhs[sit->pos];
   while ((symb = *symb_ptr) != NULL)
     {
-      if (grammar->lookahead_level != 0)
+      if (g->lookahead_level != 0)
 	{
 	  if (symb->term_p)
-	    term_set_up (grammar->symbs_ptr,
-                    sit->lookahead, symb->u.term.term_num);
+	    term_set_up (g->symbs_ptr, sit->lookahead, symb->u.term.term_num);
 	  else
-	    term_set_or (grammar->symbs_ptr,
-                    sit->lookahead, symb->u.nonterm.first);
+	    term_set_or (g->symbs_ptr, sit->lookahead, symb->u.nonterm.first);
 	}
       if (!symb->empty_p)
 	break;
@@ -1362,12 +1353,12 @@ sit_set_lookahead (struct sit *sit)
     }
   if (symb == NULL)
     {
-      if (grammar->lookahead_level == 1)
-	term_set_or (grammar->symbs_ptr,
+      if (g->lookahead_level == 1)
+	term_set_or (g->symbs_ptr,
                 sit->lookahead, sit->rule->lhs->u.nonterm.follow);
-      else if (grammar->lookahead_level != 0)
-	term_set_or (grammar->symbs_ptr, sit->lookahead,
-                term_set_from_table (grammar->term_sets_ptr, sit->context));
+      else if (g->lookahead_level != 0)
+	term_set_or (g->symbs_ptr, sit->lookahead,
+                term_set_from_table (g->term_sets_ptr, sit->context));
       return TRUE;
     }
   return FALSE;
@@ -1380,7 +1371,7 @@ sit_set_lookahead (struct sit *sit)
 INLINE
 #endif
 static struct sit *
-sit_create (struct rule *rule, int pos, int context)
+sit_create (struct grammar *g, struct rule *rule, int pos, int context)
 {
   struct sit *sit;
   struct sit ***context_sit_table_ptr;
@@ -1392,12 +1383,12 @@ sit_create (struct rule *rule, int pos, int context)
       struct sit ***bound, ***ptr;
       int i, diff;
 
-      assert ((grammar->lookahead_level <= 1 && context == 0)
-	      || (grammar->lookahead_level > 1 && context >= 0));
+      assert ((g->lookahead_level <= 1 && context == 0)
+	      || (g->lookahead_level > 1 && context >= 0));
       diff
 	= (char *) context_sit_table_ptr - (char *) VLO_BOUND (sit_table_vlo);
       diff += sizeof (struct sit **);
-      if (grammar->lookahead_level > 1 && diff == sizeof (struct sit **))
+      if (g->lookahead_level > 1 && diff == sizeof (struct sit **))
 	diff *= 10;
       VLO_EXPAND (sit_table_vlo, diff);
       sit_table = (struct sit ***) VLO_BEGIN (sit_table_vlo);
@@ -1407,14 +1398,11 @@ sit_create (struct rule *rule, int pos, int context)
       while (ptr < bound)
 	{
 	  OS_TOP_EXPAND (sits_os,
-                  (grammar->rules_ptr->n_rhs_lens + grammar->rules_ptr->n_rules)
+                  (g->rules_ptr->n_rhs_lens + g->rules_ptr->n_rules)
 			 * sizeof (struct sit *));
 	  *ptr = (struct sit **) OS_TOP_BEGIN (sits_os);
 	  OS_TOP_FINISH (sits_os);
-	  for (
-            i = 0;
-            i < grammar->rules_ptr->n_rhs_lens + grammar->rules_ptr->n_rules;
-            i++)
+	  for (i = 0; i < g->rules_ptr->n_rhs_lens + g->rules_ptr->n_rules; i++)
 	           (*ptr)[i] = NULL;
 	  ptr++;
 	}
@@ -1429,7 +1417,7 @@ sit_create (struct rule *rule, int pos, int context)
   sit->pos = pos;
   sit->sit_number = n_all_sits;
   sit->context = context;
-  sit->empty_tail_p = sit_set_lookahead (sit);
+  sit->empty_tail_p = sit_set_lookahead (sit, g);
 #ifdef TRANSITIVE_TRANSITION
   sit->sit_check = 0;
 #endif
@@ -1442,14 +1430,14 @@ sit_create (struct rule *rule, int pos, int context)
 /* The following function prints situation SIT to file F.  The
    situation is printed with the lookahead set if LOOKAHEAD_P. */
 static void
-sit_print (FILE * f, struct sit *sit, int lookahead_p)
+sit_print (FILE * f, struct sit *sit, struct grammar *g, int lookahead_p)
 {
   fprintf (f, "%3d ", sit->sit_number);
   rule_dot_print (f, sit->rule, sit->pos);
-  if (grammar->lookahead_level != 0 && lookahead_p)
+  if (g->lookahead_level != 0 && lookahead_p)
     {
       fprintf (f, ",");
-      term_set_print (grammar->symbs_ptr, f, sit->lookahead);
+      term_set_print (g->symbs_ptr, f, sit->lookahead);
     }
 }
 
@@ -1759,9 +1747,9 @@ static int curr_sit_dist_vec_check;
 
 /* Initiate the set of pairs (sit, dist).  */
 static void
-sit_dist_set_init (void)
+sit_dist_set_init (struct YaepAllocator *alloc)
 {
-  VLO_CREATE (sit_dist_vec_vlo, grammar->alloc, 8192);
+  VLO_CREATE (sit_dist_vec_vlo, alloc, 8192);
   curr_sit_dist_vec_check = 0;
 }
 
@@ -1775,7 +1763,7 @@ empty_sit_dist_set (void)
 /* Insert pair (SIT, DIST) into the set.  If such pair exists return
    FALSE, otherwise return TRUE.  */
 static int
-sit_dist_insert (struct sit *sit, int dist)
+sit_dist_insert (struct sit *sit, int dist, struct YaepAllocator *alloc)
 {
   int i, len, sit_number;
   vlo_t *check_dist_vlo;
@@ -1788,11 +1776,10 @@ sit_dist_insert (struct sit *sit, int dist)
       VLO_EXPAND (sit_dist_vec_vlo, (sit_number + 1 - len) * sizeof (vlo_t));
       for (i = len; i <= sit_number; i++)
 #ifndef __cplusplus
-	VLO_CREATE (((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[i],
-		    grammar->alloc, 64);
+	VLO_CREATE (((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[i], alloc, 64);
 #else
 	((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i] =
-	  new vlo (grammar->alloc, 64);
+	  new vlo (alloc, 64);
 #endif
     }
 #ifndef __cplusplus
@@ -1864,37 +1851,36 @@ static vlo_t *core_symbol_check_vlo, *core_symbols_vlo,
 
 /* Initialize work with sets for parsing input with N_TOKS tokens. */
 static void
-set_init (int n_toks)
+set_init (struct YaepAllocator *alloc, int n_toks)
 {
   int n = n_toks >> 3;
 
-  OS_CREATE (set_cores_os, grammar->alloc, 0);
-  OS_CREATE (set_sits_os, grammar->alloc, 2048);
-  OS_CREATE (set_parent_indexes_os, grammar->alloc, 2048);
-  OS_CREATE (set_dists_os, grammar->alloc, 2048);
-  OS_CREATE (sets_os, grammar->alloc, 0);
-  OS_CREATE (set_term_lookahead_os, grammar->alloc, 0);
+  OS_CREATE (set_cores_os, alloc, 0);
+  OS_CREATE (set_sits_os, alloc, 2048);
+  OS_CREATE (set_parent_indexes_os, alloc, 2048);
+  OS_CREATE (set_dists_os, alloc, 2048);
+  OS_CREATE (sets_os, alloc, 0);
+  OS_CREATE (set_term_lookahead_os, alloc, 0);
   set_core_tab =
-    create_hash_table (NULL, grammar->alloc, 2000, set_core_hash, set_core_eq);
+    create_hash_table (NULL, alloc, 2000, set_core_hash, set_core_eq);
   set_dists_tab =
-    create_hash_table (NULL, grammar->alloc, n < 20000 ? 20000 : n, dists_hash,
+    create_hash_table (NULL, alloc, n < 20000 ? 20000 : n, dists_hash,
 		       dists_eq);
-  set_tab =
-    create_hash_table (NULL, grammar->alloc, n < 20000 ? 20000 : n,
+  set_tab = create_hash_table (NULL, alloc, n < 20000 ? 20000 : n,
 		       set_core_dists_hash, set_core_dists_eq);
   set_term_lookahead_tab =
-    create_hash_table (NULL, grammar->alloc, n < 30000 ? 30000 : n,
+    create_hash_table (NULL, alloc, n < 30000 ? 30000 : n,
 		       set_term_lookahead_hash, set_term_lookahead_eq);
   n_set_cores = n_set_core_start_sits = 0;
   n_set_dists = n_set_dists_len = n_parent_indexes = 0;
   n_sets = n_sets_start_sits = 0;
   n_set_term_lookaheads = 0;
-  sit_dist_set_init ();
+  sit_dist_set_init (alloc);
 #ifdef TRANSITIVE_TRANSITION
   curr_sit_check = 0;
-  VLO_CREATE (core_symbol_check_vlo, grammar->alloc, 0);
-  VLO_CREATE (core_symbols_vlo, grammar->alloc, 0);
-  VLO_CREATE (core_symbol_queue_vlo, grammar->alloc, 0);
+  VLO_CREATE (core_symbol_check_vlo, alloc, 0);
+  VLO_CREATE (core_symbols_vlo, alloc, 0);
+  VLO_CREATE (core_symbol_queue_vlo, alloc, 0);
   core_symbol_check = 0;
 #endif
 }
@@ -2115,8 +2101,8 @@ set_new_core_stop (void)
    lookahead set if LOOKAHEAD_P.  SET_DIST is used to print absolute
    distances of non-start situations.  */
 static void
-set_print (FILE * f, struct set *set, int set_dist, int nonstart_p,
-	   int lookahead_p)
+set_print (FILE * f, struct set *set, struct grammar *g, int set_dist,
+        int nonstart_p, int lookahead_p)
 {
   int i;
   int num, n_start_sits, n_sits, n_all_dists;
@@ -2149,7 +2135,7 @@ set_print (FILE * f, struct set *set, int set_dist, int nonstart_p,
   for (i = 0; i < n_sits; i++)
     {
       fprintf (f, "    ");
-      sit_print (f, sits[i], lookahead_p);
+      sit_print (f, sits[i], g, lookahead_p);
       fprintf (f, ", %d\n",
 	       (i < n_start_sits
 		? dists[i] : i < n_all_dists ? parent_indexes[i]
@@ -2210,23 +2196,22 @@ pl_init (void)
 
 /* The following function creates Earley's parser list. */
 static void
-pl_create (void)
+pl_create (struct YaepAllocator *alloc)
 {
   void *mem;
 
   /* Because of error recovery we may have sets 2 times more than tokens. */
-  mem =
-    yaep_malloc (grammar->alloc, sizeof (struct set *) * (toks_len + 1) * 2);
+  mem = yaep_malloc (alloc, sizeof (struct set *) * (toks_len + 1) * 2);
   pl = (struct set **) mem;
   pl_curr = -1;
 }
 
 /* Finalize work with the parser list. */
 static void
-pl_fin (void)
+pl_fin (struct YaepAllocator *alloc)
 {
   if (pl != NULL)
-    yaep_free (grammar->alloc, pl);
+    yaep_free (alloc, pl);
 }
 
 
@@ -2250,12 +2235,12 @@ static int vlo_array_len;
 INLINE
 #endif
 static void
-vlo_array_init (void)
+vlo_array_init (struct YaepAllocator *alloc)
 {
 #ifndef __cplusplus
-  VLO_CREATE (vlo_array, grammar->alloc, 4096);
+  VLO_CREATE (vlo_array, alloc, 4096);
 #else
-  vlo_array = new vlo (grammar->alloc, 4096);
+  vlo_array = new vlo (alloc, 4096);
 #endif
   vlo_array_len = 0;
 }
@@ -2266,7 +2251,7 @@ vlo_array_init (void)
 INLINE
 #endif
 static int
-vlo_array_expand (void)
+vlo_array_expand (struct YaepAllocator *alloc)
 {
 #ifndef __cplusplus
   vlo_t *vlo_ptr;
@@ -2275,7 +2260,7 @@ vlo_array_expand (void)
     {
       VLO_EXPAND (vlo_array, sizeof (vlo_t));
       vlo_ptr = &((vlo_t *) VLO_BEGIN (vlo_array))[vlo_array_len];
-      VLO_CREATE (*vlo_ptr, grammar->alloc, 64);
+      VLO_CREATE (*vlo_ptr, alloc, 64);
     }
   else
     {
@@ -2289,7 +2274,7 @@ vlo_array_expand (void)
     {
       vlo_array->expand (sizeof (vlo_t *));
       vlo_ptr = &((vlo_t **) vlo_array->begin ())[vlo_array_len];
-      *vlo_ptr = new vlo (grammar->alloc, 64);
+      *vlo_ptr = new vlo (alloc, 64);
     }
   else
     {
@@ -2576,66 +2561,65 @@ reduce_els_eq (void *unused, hash_table_entry_t t1, hash_table_entry_t t2)
 
 /* Initialize work with the triples (set core, symbol, vector). */
 static void
-core_symb_vect_init (struct core_symb_vect_set *csv)
+core_symb_vect_init (struct YaepAllocator *alloc,
+        struct core_symb_vect_set *csv)
 {
 #ifndef __cplusplus
-  OS_CREATE (csv->core_symb_vect_os, grammar->alloc, 0);
-  VLO_CREATE (csv->new_core_symb_vect_vlo, grammar->alloc, 0);
-  OS_CREATE (csv->vect_els_os, grammar->alloc, 0);
+  OS_CREATE (csv->core_symb_vect_os, alloc, 0);
+  VLO_CREATE (csv->new_core_symb_vect_vlo, alloc, 0);
+  OS_CREATE (csv->vect_els_os, alloc, 0);
 #else
-  csv->core_symb_vect_os = new os (grammar->alloc, 0);
-  csv->new_core_symb_vect_vlo = new vlo (grammar->alloc, 0);
-  csv->vect_els_os = new os (grammar->alloc, 0);
+  csv->core_symb_vect_os = new os (alloc, 0);
+  csv->new_core_symb_vect_vlo = new vlo (alloc, 0);
+  csv->vect_els_os = new os (alloc, 0);
 #endif
-  vlo_array_init ();
+  vlo_array_init (alloc);
 #ifdef USE_CORE_SYMB_HASH_TABLE
 #ifndef __cplusplus
   csv->core_symb_to_vect_tab =
-    create_hash_table (NULL, grammar->alloc, 3000, core_symb_vect_hash,
+    create_hash_table (NULL, alloc, 3000, core_symb_vect_hash,
 		       core_symb_vect_eq);
 #else
   csv->core_symb_to_vect_tab =
-    new hash_table (nullptr, grammar->alloc, 3000, core_symb_vect_hash,
+    new hash_table (nullptr, alloc, 3000, core_symb_vect_hash,
 		    core_symb_vect_eq);
 #endif
 #else
 #ifndef __cplusplus
-  VLO_CREATE (csv->core_symb_table_vlo, grammar->alloc, 4096);
+  VLO_CREATE (csv->core_symb_table_vlo, alloc, 4096);
   csv->core_symb_table
     = (struct core_symb_vect ***) VLO_BEGIN (csv->core_symb_table_vlo);
-  OS_CREATE (csv->core_symb_tab_rows, grammar->alloc, 8192);
+  OS_CREATE (csv->core_symb_tab_rows, alloc, 8192);
 #else
-  csv->core_symb_table_vlo = new vlo (grammar->alloc, 4096);
+  csv->core_symb_table_vlo = new vlo (alloc, 4096);
   csv->core_symb_table
     = (struct core_symb_vect ***) csv->core_symb_table_vlo->begin ();
-  csv->core_symb_tab_rows = new os (grammar->alloc, 8192);
+  csv->core_symb_tab_rows = new os (alloc, 8192);
 #endif
 #endif
 
 #ifndef __cplusplus
   csv->transition_els_tab =
-    create_hash_table (NULL, grammar->alloc, 3000, transition_els_hash,
+    create_hash_table (NULL, alloc, 3000, transition_els_hash,
 		       transition_els_eq);
 #ifdef TRANSITIVE_TRANSITION
   csv->transitive_transition_els_tab =
-    create_hash_table (NULL, grammar->alloc, 5000,
+    create_hash_table (NULL, alloc, 5000,
              transitive_transition_els_hash, transitive_transition_els_eq);
 #endif
   csv->reduce_els_tab =
-    create_hash_table (NULL, grammar->alloc, 3000,
-            reduce_els_hash, reduce_els_eq);
+    create_hash_table (NULL, alloc, 3000, reduce_els_hash, reduce_els_eq);
 #else
   csv->transition_els_tab =
-    new hash_table (nullptr, grammar->alloc, 3000, transition_els_hash,
+    new hash_table (nullptr, alloc, 3000, transition_els_hash,
 		    transition_els_eq);
 #ifdef TRANSITIVE_TRANSITION
   csv->transitive_transition_els_tab =
-    new hash_table (nullptr, grammar->alloc, 5000,
+    new hash_table (nullptr, alloc, 5000,
              transitive_transition_els_hash, transitive_transition_els_eq);
 #endif
   csv->reduce_els_tab =
-    new hash_table (nullptr, grammar->alloc, 3000,
-            reduce_els_hash, reduce_els_eq);
+    new hash_table (nullptr, alloc, 3000, reduce_els_hash, reduce_els_eq);
 #endif
   csv->n_core_symb_pairs = csv->n_core_symb_vect_len = 0;
   csv->n_transition_vects = csv->n_transition_vect_len = 0;
@@ -2683,7 +2667,7 @@ core_symb_vect_addr_get (struct core_symb_vect_set *csv,
 INLINE
 #endif
 static struct core_symb_vect **
-core_symb_vect_addr_get (struct core_symb_vect_set *csv,
+core_symb_vect_addr_get (struct core_symb_vect_set *csv, struct symbs *symbs,
                          struct set_core *set_core, struct symb *symb)
 {
   struct core_symb_vect ***core_symb_vect_ptr;
@@ -2728,23 +2712,19 @@ core_symb_vect_addr_get (struct core_symb_vect_set *csv,
 	{
 #ifndef __cplusplus
 	  OS_TOP_EXPAND (csv->core_symb_tab_rows,
-			 (grammar->symbs_ptr->n_terms +
-                                 grammar->symbs_ptr->n_nonterms)
+			 (symbs->n_terms + symbs->n_nonterms)
 			 * sizeof (struct core_symb_vect *));
 	  *ptr = OS_TOP_BEGIN (csv->core_symb_tab_rows);
 	  OS_TOP_FINISH (csv->core_symb_tab_rows);
 #else
 	  csv->core_symb_tab_rows->top_expand
-	    ((grammar->symbs_ptr->n_terms + grammar->symbs_ptr->n_nonterms)
+	    ((symbs->n_terms + symbs->n_nonterms)
 	     * sizeof (struct core_symb_vect *));
 	  *ptr
             = (struct core_symb_vect **) csv->core_symb_tab_rows->top_begin ();
 	  csv->core_symb_tab_rows->top_finish ();
 #endif
-	  for (i = 0;
-               i < grammar->symbs_ptr->n_terms +
-                grammar->symbs_ptr->n_nonterms;
-               i++)
+	  for (i = 0; i < symbs->n_terms + symbs->n_nonterms; i++)
 	    (*ptr)[i] = NULL;
 	  ptr++;
 	}
@@ -2759,7 +2739,7 @@ core_symb_vect_addr_get (struct core_symb_vect_set *csv,
 INLINE
 #endif
 static struct core_symb_vect *
-core_symb_vect_find (struct core_symb_vect_set *csv,
+core_symb_vect_find (struct core_symb_vect_set *csv, struct symbs *symbs,
                      struct set_core *set_core, struct symb *symb)
 {
 #ifdef USE_CORE_SYMB_HASH_TABLE
@@ -2769,15 +2749,16 @@ core_symb_vect_find (struct core_symb_vect_set *csv,
   core_symb_vect.symb = symb;
   return *core_symb_vect_addr_get (csv, &core_symb_vect, FALSE);
 #else
-  return *core_symb_vect_addr_get (csv, set_core, symb);
+  return *core_symb_vect_addr_get (csv, symbs, set_core, symb);
 #endif
 }
 
 /* Add given triple (SET_CORE, TERM, ...) to the table and return
    pointer to it. */
 static struct core_symb_vect *
-core_symb_vect_new (struct core_symb_vect_set *csv, struct set_core *set_core,
-                    struct symb *symb)
+core_symb_vect_new (struct core_symb_vect_set *csv, struct symbs *symbs,
+        struct set_core *set_core, struct symb *symb,
+        struct YaepAllocator *alloc)
 {
   struct core_symb_vect *triple;
   struct core_symb_vect **addr;
@@ -2802,12 +2783,12 @@ core_symb_vect_new (struct core_symb_vect_set *csv, struct set_core *set_core,
 #ifdef USE_CORE_SYMB_HASH_TABLE
   addr = core_symb_vect_addr_get (csv, triple, TRUE);
 #else
-  addr = core_symb_vect_addr_get (csv, set_core, symb);
+  addr = core_symb_vect_addr_get (csv, symbs, set_core, symb);
 #endif
   assert (*addr == NULL);
   *addr = triple;
 
-  triple->transitions.intern = vlo_array_expand ();
+  triple->transitions.intern = vlo_array_expand (alloc);
   vlo_ptr = vlo_array_el (triple->transitions.intern);
   triple->transitions.len = 0;
 #ifndef __cplusplus
@@ -2817,7 +2798,7 @@ core_symb_vect_new (struct core_symb_vect_set *csv, struct set_core *set_core,
 #endif
 
 #ifdef TRANSITIVE_TRANSITION
-  triple->transitive_transitions.intern = vlo_array_expand ();
+  triple->transitive_transitions.intern = vlo_array_expand (alloc);
   vlo_ptr = vlo_array_el (triple->transitive_transitions.intern);
   triple->transitive_transitions.len = 0;
 #ifndef __cplusplus
@@ -2827,7 +2808,7 @@ core_symb_vect_new (struct core_symb_vect_set *csv, struct set_core *set_core,
 #endif
 #endif
 
-  triple->reduces.intern = vlo_array_expand ();
+  triple->reduces.intern = vlo_array_expand (alloc);
   vlo_ptr = vlo_array_el (triple->reduces.intern);
   triple->reduces.len = 0;
 #ifndef __cplusplus
@@ -3030,25 +3011,25 @@ core_symb_vect_fin (struct core_symb_vect_set *csv)
    makes long jump after that.  So the function is designed to process
    only one error. */
 static void
-yaep_error (int code, const char *format, ...)
+yaep_error (struct grammar *g, int code, const char *format, ...)
 {
   va_list arguments;
 
-  grammar->error_code = code;
+  g->error_code = code;
   va_start (arguments, format);
-  vsprintf (grammar->error_message, format, arguments);
+  vsprintf (g->error_message, format, arguments);
   va_end (arguments);
-  assert (strlen (grammar->error_message) < YAEP_MAX_ERROR_MESSAGE_LENGTH);
-  longjmp (grammar->error_longjump_buff, code);
+  assert (strlen (g->error_message) < YAEP_MAX_ERROR_MESSAGE_LENGTH);
+  longjmp (g->error_longjump_buff, code);
 }
 
 /* The following function processes allocation errors. */
 static void
-error_func_for_allocate (void *ignored)
+error_func_for_allocate (void *userptr)
 {
-  (void) ignored;
+  struct grammar *g = (struct grammar *) userptr;
 
-  yaep_error (YAEP_NO_MEMORY, "no memory");
+  yaep_error (g, YAEP_NO_MEMORY, "no memory");
 }
 
 /* The following function allocates memory for new grammar. */
@@ -3065,35 +3046,33 @@ yaep_create_grammar (void)
     {
       return NULL;
     }
-  grammar = NULL;
-  grammar = (struct grammar *) yaep_malloc (allocator, sizeof (*grammar));
-  if (grammar == NULL)
+  struct grammar *g = (struct grammar *) yaep_malloc (allocator, sizeof (*g));
+  if (g == NULL)
     {
       yaep_alloc_del (allocator);
       return NULL;
     }
-  grammar->alloc = allocator;
-  yaep_alloc_seterr (allocator, error_func_for_allocate,
-		     yaep_alloc_getuserptr (allocator));
-  if (setjmp (grammar->error_longjump_buff) != 0)
+  g->alloc = allocator;
+  yaep_alloc_seterr (allocator, error_func_for_allocate, g);
+  if (setjmp (g->error_longjump_buff) != 0)
     {
-      yaep_free_grammar (grammar);
+      yaep_free_grammar (g);
       return NULL;
     }
-  grammar->undefined_p = TRUE;
-  grammar->error_code = 0;
-  *grammar->error_message = '\0';
-  grammar->debug_level = 0;
-  grammar->lookahead_level = 1;
-  grammar->one_parse_p = 1;
-  grammar->cost_p = 0;
-  grammar->error_recovery_p = 1;
-  grammar->recovery_token_matches = DEFAULT_RECOVERY_TOKEN_MATCHES;
-  grammar->symbs_ptr = symb_init ();
-  grammar->term_sets_ptr = term_set_init ();
-  grammar->rules_ptr = rule_init ();
-  grammar->userptr = NULL;
-  return grammar;
+  g->undefined_p = TRUE;
+  g->error_code = 0;
+  *g->error_message = '\0';
+  g->debug_level = 0;
+  g->lookahead_level = 1;
+  g->one_parse_p = 1;
+  g->cost_p = 0;
+  g->error_recovery_p = 1;
+  g->recovery_token_matches = DEFAULT_RECOVERY_TOKEN_MATCHES;
+  g->symbs_ptr = symb_init (allocator);
+  g->term_sets_ptr = term_set_init (g->symbs_ptr, allocator);
+  g->rules_ptr = rule_init (allocator);
+  g->userptr = NULL;
+  return g;
 }
 
 /* The following function sets the user pointer for a grammar. */
@@ -3128,13 +3107,13 @@ yaep_grammar_getuserptr (struct grammar *g)
 
 /* The following function makes grammar empty. */
 static void
-yaep_empty_grammar (void)
+yaep_empty_grammar (struct grammar *g)
 {
-  if (grammar != NULL)
+  if (g != NULL)
     {
-      rule_empty (grammar->rules_ptr);
-      term_set_empty (grammar->term_sets_ptr);
-      symb_empty (grammar->symbs_ptr);
+      rule_empty (g->rules_ptr);
+      term_set_empty (g->term_sets_ptr);
+      symb_empty (g->symbs_ptr, g->alloc);
     }
 }
 
@@ -3165,26 +3144,24 @@ yaep_error_message (struct grammar *g)
 /* The following function creates sets FIRST and FOLLOW for all
    grammar nonterminals. */
 static void
-create_first_follow_sets (void)
+create_first_follow_sets (struct grammar *g)
 {
   struct symb *symb, **rhs, *rhs_symb, *next_rhs_symb;
   struct rule *rule;
   int changed_p, first_continue_p;
   int i, j, k, rhs_len;
 
-  for (i = 0; (symb = nonterm_get (grammar->symbs_ptr, i)) != NULL; i++)
+  for (i = 0; (symb = nonterm_get (g->symbs_ptr, i)) != NULL; i++)
     {
-      symb->u.nonterm.first = term_set_create (grammar->symbs_ptr,
-              grammar->term_sets_ptr);
-      term_set_clear (grammar->symbs_ptr, symb->u.nonterm.first);
-      symb->u.nonterm.follow = term_set_create (grammar->symbs_ptr,
-              grammar->term_sets_ptr);
-      term_set_clear (grammar->symbs_ptr, symb->u.nonterm.follow);
+      symb->u.nonterm.first = term_set_create (g->symbs_ptr, g->term_sets_ptr);
+      term_set_clear (g->symbs_ptr, symb->u.nonterm.first);
+      symb->u.nonterm.follow = term_set_create (g->symbs_ptr, g->term_sets_ptr);
+      term_set_clear (g->symbs_ptr, symb->u.nonterm.follow);
     }
   do
     {
       changed_p = 0;
-      for (i = 0; (symb = nonterm_get (grammar->symbs_ptr, i)) != NULL; i++)
+      for (i = 0; (symb = nonterm_get (g->symbs_ptr, i)) != NULL; i++)
 	for (rule = symb->u.nonterm.rules;
 	     rule != NULL; rule = rule->lhs_next)
 	  {
@@ -3197,32 +3174,32 @@ create_first_follow_sets (void)
 		if (rhs_symb->term_p)
 		  {
 		    if (first_continue_p)
-		      changed_p |= term_set_up (grammar->symbs_ptr,
+		      changed_p |= term_set_up (g->symbs_ptr,
                               symb->u.nonterm.first, rhs_symb->u.term.term_num);
 		  }
 		else
 		  {
 		    if (first_continue_p)
-		      changed_p |= term_set_or (grammar->symbs_ptr,
+		      changed_p |= term_set_or (g->symbs_ptr,
                               symb->u.nonterm.first, rhs_symb->u.nonterm.first);
 		    for (k = j + 1; k < rhs_len; k++)
 		      {
 			next_rhs_symb = rhs[k];
 			if (next_rhs_symb->term_p)
 			  changed_p
-			    |= term_set_up (grammar->symbs_ptr,
+			    |= term_set_up (g->symbs_ptr,
                                             rhs_symb->u.nonterm.follow,
 					    next_rhs_symb->u.term.term_num);
 			else
 			  changed_p
-			    |= term_set_or (grammar->symbs_ptr,
+			    |= term_set_or (g->symbs_ptr,
                                             rhs_symb->u.nonterm.follow,
 					    next_rhs_symb->u.nonterm.first);
 			if (!next_rhs_symb->empty_p)
 			  break;
 		      }
 		    if (k == rhs_len)
-		      changed_p |= term_set_or (grammar->symbs_ptr,
+		      changed_p |= term_set_or (g->symbs_ptr,
                                                 rhs_symb->u.nonterm.follow,
 						symb->u.nonterm.follow);
 		  }
@@ -3237,7 +3214,7 @@ create_first_follow_sets (void)
 /* The following function sets up flags empty_p, access_p and
    derivation_p for all grammar symbols. */
 static void
-set_empty_access_derives (void)
+set_empty_access_derives (struct grammar *g)
 {
   struct symb *symb, *rhs_symb;
   struct rule *rule;
@@ -3245,17 +3222,17 @@ set_empty_access_derives (void)
   int empty_changed_p, derivation_changed_p, accessibility_change_p;
   int i, j;
 
-  for (i = 0; (symb = symb_get (grammar->symbs_ptr, i)) != NULL; i++)
+  for (i = 0; (symb = symb_get (g->symbs_ptr, i)) != NULL; i++)
     {
       symb->empty_p = 0;
       symb->derivation_p = (symb->term_p ? 1 : 0);
       symb->access_p = 0;
     }
-  grammar->axiom->access_p = 1;
+  g->axiom->access_p = 1;
   do
     {
       empty_changed_p = derivation_changed_p = accessibility_change_p = 0;
-      for (i = 0; (symb = nonterm_get (grammar->symbs_ptr, i)) != NULL; i++)
+      for (i = 0; (symb = nonterm_get (g->symbs_ptr, i)) != NULL; i++)
 	for (rule = symb->u.nonterm.rules;
 	     rule != NULL; rule = rule->lhs_next)
 	  {
@@ -3289,7 +3266,7 @@ set_empty_access_derives (void)
 
 /* The following function sets up flags loop_p for nonterminals. */
 static void
-set_loop_p (void)
+set_loop_p (struct grammar *g)
 {
   struct symb *symb, *lhs;
   struct rule *rule;
@@ -3298,7 +3275,7 @@ set_loop_p (void)
   /* Initialize accoding to minimal criteria: There is a rule in which
      the nonterminal stands and all the rest symbols can derive empty
      strings. */
-  for (rule = grammar->rules_ptr->first_rule; rule != NULL; rule = rule->next)
+  for (rule = g->rules_ptr->first_rule; rule != NULL; rule = rule->next)
     for (i = 0; i < rule->rhs_len; i++)
       if (!(symb = rule->rhs[i])->term_p)
 	{
@@ -3316,7 +3293,7 @@ set_loop_p (void)
   do
     {
       changed_p = FALSE;
-      for (i = 0; (lhs = nonterm_get (grammar->symbs_ptr, i)) != NULL; i++)
+      for (i = 0; (lhs = nonterm_get (g->symbs_ptr, i)) != NULL; i++)
 	if (lhs->u.nonterm.loop_p)
 	  {
 	    loop_p = 0;
@@ -3344,39 +3321,38 @@ set_loop_p (void)
 /* The following function evaluates different sets and flags for
    grammar and checks the grammar on correctness. */
 static void
-check_grammar (int strict_p)
+check_grammar (struct grammar *g, int strict_p)
 {
   struct symb *symb;
   int i;
 
-  set_empty_access_derives ();
-  set_loop_p ();
+  set_empty_access_derives (g);
+  set_loop_p (g);
   if (strict_p)
     {
-      for (i = 0; (symb = nonterm_get (grammar->symbs_ptr, i)) != NULL; i++)
+      for (i = 0; (symb = nonterm_get (g->symbs_ptr, i)) != NULL; i++)
 	{
 	  if (!symb->derivation_p)
 	    yaep_error
-	      (YAEP_NONTERM_DERIVATION,
+	      (g, YAEP_NONTERM_DERIVATION,
 	       "nonterm `%s' does not derive any term string", symb->repr);
 	  else if (!symb->access_p)
-	    yaep_error (YAEP_UNACCESSIBLE_NONTERM,
+	    yaep_error (g, YAEP_UNACCESSIBLE_NONTERM,
 			"nonterm `%s' is not accessible from axiom",
 			symb->repr);
 	}
     }
-  else if (!grammar->axiom->derivation_p)
-    yaep_error (YAEP_NONTERM_DERIVATION,
-		"nonterm `%s' does not derive any term string",
-		grammar->axiom->repr);
-  for (i = 0; (symb = nonterm_get (grammar->symbs_ptr, i)) != NULL; i++)
+  else if (!g->axiom->derivation_p)
+    yaep_error (g, YAEP_NONTERM_DERIVATION,
+		"nonterm `%s' does not derive any term string",	g->axiom->repr);
+  for (i = 0; (symb = nonterm_get (g->symbs_ptr, i)) != NULL; i++)
     if (symb->u.nonterm.loop_p)
       yaep_error
-	(YAEP_LOOP_NONTERM,
+	(g, YAEP_LOOP_NONTERM,
 	 "nonterm `%s' can derive only itself (grammar with loops)",
 	 symb->repr);
   /* We should have correct flags empty_p here. */
-  create_first_follow_sets ();
+  create_first_follow_sets (g);
 }
 
 /* The following are names of additional symbols.  Don't use them in
@@ -3412,92 +3388,90 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   assert (g != NULL);
   anode_cost.grammar = g;
   code.grammar = g;
-  grammar = g;
   if ((code.value.code = setjmp (g->error_longjump_buff)) != 0)
     {
       return code.value.code;
     }
-  if (!grammar->undefined_p)
-    yaep_empty_grammar ();
+  if (!g->undefined_p)
+    yaep_empty_grammar (g);
   while ((name = (*read_terminal) (&code.value.code)) != NULL)
     {
       if (code.value.code < 0)
-	yaep_error (YAEP_NEGATIVE_TERM_CODE,
+	yaep_error (g, YAEP_NEGATIVE_TERM_CODE,
 		    "term `%s' has negative code", name);
-      symb = symb_find_by_repr (grammar->symbs_ptr, name);
+      symb = symb_find_by_repr (g->symbs_ptr, name);
       if (symb != NULL)
-	yaep_error (YAEP_REPEATED_TERM_DECL,
+	yaep_error (g, YAEP_REPEATED_TERM_DECL,
 		    "repeated declaration of term `%s'", name);
-      if (symb_find_by_code (grammar->symbs_ptr, code.value.code) != NULL)
-	yaep_error (YAEP_REPEATED_TERM_CODE,
+      if (symb_find_by_code (g->symbs_ptr, code.value.code) != NULL)
+	yaep_error (g, YAEP_REPEATED_TERM_CODE,
 		    "repeated code %d in term `%s'", code.value.code, name);
-      symb_add_term (grammar->symbs_ptr, name, code.value.code);
+      symb_add_term (g->symbs_ptr, name, code.value.code);
     }
 
   /* Adding error symbol. */
-  if (symb_find_by_repr (grammar->symbs_ptr, TERM_ERROR_NAME) != NULL)
-    yaep_error (YAEP_FIXED_NAME_USAGE,
+  if (symb_find_by_repr (g->symbs_ptr, TERM_ERROR_NAME) != NULL)
+    yaep_error (g, YAEP_FIXED_NAME_USAGE,
 		"do not use fixed name `%s'", TERM_ERROR_NAME);
-  if (symb_find_by_code (grammar->symbs_ptr, TERM_ERROR_CODE) != NULL)
+  if (symb_find_by_code (g->symbs_ptr, TERM_ERROR_CODE) != NULL)
     abort ();
-  grammar->term_error = symb_add_term (grammar->symbs_ptr,
+  g->term_error = symb_add_term (g->symbs_ptr,
           TERM_ERROR_NAME, TERM_ERROR_CODE);
-  grammar->term_error_num = grammar->term_error->u.term.term_num;
-  grammar->axiom = grammar->end_marker = NULL;
+  g->term_error_num = g->term_error->u.term.term_num;
+  g->axiom = g->end_marker = NULL;
   while ((lhs = (*read_rule) (&rhs, &anode, &anode_cost.value.anode_cost,
           &transl)) != NULL)
     {
-      symb = symb_find_by_repr (grammar->symbs_ptr, lhs);
+      symb = symb_find_by_repr (g->symbs_ptr, lhs);
       if (symb == NULL)
-	symb = symb_add_nonterm (grammar->symbs_ptr, lhs);
+	symb = symb_add_nonterm (g->symbs_ptr, lhs);
       else if (symb->term_p)
-	yaep_error (YAEP_TERM_IN_RULE_LHS,
+	yaep_error (g, YAEP_TERM_IN_RULE_LHS,
 		    "term `%s' in the left hand side of rule", lhs);
       if (anode == NULL && transl != NULL && *transl >= 0 && transl[1] >= 0)
-	yaep_error (YAEP_INCORRECT_TRANSLATION,
+	yaep_error (g, YAEP_INCORRECT_TRANSLATION,
 		    "rule for `%s' has incorrect translation", lhs);
       if (anode != NULL && anode_cost.value.anode_cost < 0)
-	yaep_error (YAEP_NEGATIVE_COST,
+	yaep_error (g, YAEP_NEGATIVE_COST,
 		    "translation for `%s' has negative cost", lhs);
-      if (grammar->axiom == NULL)
+      if (g->axiom == NULL)
 	{
 	  /* We made this here becuase we want that the start rule has
 	     number 0. */
 	  /* Add axiom and end marker. */
 	  start = symb;
-	  grammar->axiom = symb_find_by_repr (grammar->symbs_ptr, AXIOM_NAME);
-	  if (grammar->axiom != NULL)
-	    yaep_error (YAEP_FIXED_NAME_USAGE,
+	  g->axiom = symb_find_by_repr (g->symbs_ptr, AXIOM_NAME);
+	  if (g->axiom != NULL)
+	    yaep_error (g, YAEP_FIXED_NAME_USAGE,
 			"do not use fixed name `%s'", AXIOM_NAME);
-	  grammar->axiom = symb_add_nonterm (grammar->symbs_ptr, AXIOM_NAME);
-	  grammar->end_marker = symb_find_by_repr (grammar->symbs_ptr,
-                  END_MARKER_NAME);
-	  if (grammar->end_marker != NULL)
-	    yaep_error (YAEP_FIXED_NAME_USAGE,
+	  g->axiom = symb_add_nonterm (g->symbs_ptr, AXIOM_NAME);
+	  g->end_marker = symb_find_by_repr (g->symbs_ptr, END_MARKER_NAME);
+	  if (g->end_marker != NULL)
+	    yaep_error (g, YAEP_FIXED_NAME_USAGE,
 			"do not use fixed name `%s'", END_MARKER_NAME);
-	  if (symb_find_by_code (grammar->symbs_ptr, END_MARKER_CODE) != NULL)
+	  if (symb_find_by_code (g->symbs_ptr, END_MARKER_CODE) != NULL)
 	    abort ();
-	  grammar->end_marker = symb_add_term (grammar->symbs_ptr,
+	  g->end_marker = symb_add_term (g->symbs_ptr,
                   END_MARKER_NAME, END_MARKER_CODE);
 	  /* Add rules for start */
-	  rule = rule_new_start (grammar->rules_ptr, grammar->axiom, NULL, 0);
-	  rule_new_symb_add (grammar->rules_ptr, symb);
-	  rule_new_symb_add (grammar->rules_ptr, grammar->end_marker);
-	  rule_new_stop (grammar->rules_ptr);
+	  rule = rule_new_start (g->rules_ptr, g->axiom, NULL, 0);
+	  rule_new_symb_add (g->rules_ptr, symb);
+	  rule_new_symb_add (g->rules_ptr, g->end_marker);
+	  rule_new_stop (g->rules_ptr);
 	  rule->order[0] = 0;
 	  rule->trans_len = 1;
 	}
-      rule = rule_new_start (grammar->rules_ptr, symb, anode,
+      rule = rule_new_start (g->rules_ptr, symb, anode,
           (anode != NULL ? anode_cost.value.anode_cost : 0));
       while (*rhs != NULL)
 	{
-	  symb = symb_find_by_repr (grammar->symbs_ptr, *rhs);
+	  symb = symb_find_by_repr (g->symbs_ptr, *rhs);
 	  if (symb == NULL)
-	    symb = symb_add_nonterm (grammar->symbs_ptr, *rhs);
-	  rule_new_symb_add (grammar->rules_ptr, symb);
+	    symb = symb_add_nonterm (g->symbs_ptr, *rhs);
+	  rule_new_symb_add (g->rules_ptr, symb);
 	  rhs++;
 	}
-      rule_new_stop (grammar->rules_ptr);
+      rule_new_stop (g->rules_ptr);
       if (transl != NULL)
 	{
 	  for (i = 0; (el = transl[i]) >= 0; i++)
@@ -3505,7 +3479,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 	      {
 		if (el != YAEP_NIL_TRANSLATION_NUMBER)
 		  yaep_error
-		    (YAEP_INCORRECT_SYMBOL_NUMBER,
+		    (g, YAEP_INCORRECT_SYMBOL_NUMBER,
 		     "translation symbol number %d in rule for `%s' is out of range",
 		     el, lhs);
 		else
@@ -3513,7 +3487,7 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 	      }
 	    else if (rule->order[el] >= 0)
 	      yaep_error
-		(YAEP_REPEATED_SYMBOL_NUMBER,
+		(g, YAEP_REPEATED_SYMBOL_NUMBER,
 		 "repeated translation symbol number %d in rule for `%s'",
 		 el, lhs);
 	    else
@@ -3524,59 +3498,55 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 	  assert (i < rule->rhs_len || transl[i] < 0);
 	}
     }
-  if (grammar->axiom == NULL)
-    yaep_error (YAEP_NO_RULES, "grammar does not contains rules");
+  if (g->axiom == NULL)
+    yaep_error (g, YAEP_NO_RULES, "grammar does not contains rules");
   assert (start != NULL);
   /* Adding axiom : error $eof if it is neccessary. */
   for (rule = start->u.nonterm.rules; rule != NULL; rule = rule->lhs_next)
-    if (rule->rhs[0] == grammar->term_error)
+    if (rule->rhs[0] == g->term_error)
       break;
   if (rule == NULL)
     {
-      rule = rule_new_start (grammar->rules_ptr, grammar->axiom, NULL, 0);
-      rule_new_symb_add (grammar->rules_ptr, grammar->term_error);
-      rule_new_symb_add (grammar->rules_ptr, grammar->end_marker);
-      rule_new_stop (grammar->rules_ptr);
+      rule = rule_new_start (g->rules_ptr, g->axiom, NULL, 0);
+      rule_new_symb_add (g->rules_ptr, g->term_error);
+      rule_new_symb_add (g->rules_ptr, g->end_marker);
+      rule_new_stop (g->rules_ptr);
       rule->trans_len = 0;
     }
-  check_grammar (strict_p);
+  check_grammar (g, strict_p);
 #ifdef SYMB_CODE_TRANS_VECT
-  symb_finish_adding_terms (grammar->symbs_ptr);
+  symb_finish_adding_terms (g->symbs_ptr, g->alloc);
 #endif
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     {
       /* Print rules. */
       fprintf (stderr, "Rules:\n");
-      for (rule = grammar->rules_ptr->first_rule;
-           rule != NULL;
-           rule = rule->next)
+      for (rule = g->rules_ptr->first_rule; rule != NULL; rule = rule->next)
 	{
 	  fprintf (stderr, "  ");
 	  rule_print (stderr, rule, TRUE);
 	}
       fprintf (stderr, "\n");
       /* Print symbol sets. */
-      for (i = 0; (symb = nonterm_get (grammar->symbs_ptr, i)) != NULL; i++)
+      for (i = 0; (symb = nonterm_get (g->symbs_ptr, i)) != NULL; i++)
 	{
 	  fprintf (stderr, "Nonterm %s:  Empty=%s , Access=%s, Derive=%s\n",
 		   symb->repr, (symb->empty_p ? "Yes" : "No"),
 		   (symb->access_p ? "Yes" : "No"),
 		   (symb->derivation_p ? "Yes" : "No"));
-	  if (grammar->debug_level > 3)
+	  if (g->debug_level > 3)
 	    {
 	      fprintf (stderr, "  First: ");
-	      term_set_print (grammar->symbs_ptr,
-                      stderr, symb->u.nonterm.first);
+	      term_set_print (g->symbs_ptr, stderr, symb->u.nonterm.first);
 	      fprintf (stderr, "\n  Follow: ");
-	      term_set_print (grammar->symbs_ptr,
-                      stderr, symb->u.nonterm.follow);
+	      term_set_print (g->symbs_ptr, stderr, symb->u.nonterm.follow);
 	      fprintf (stderr, "\n\n");
 	    }
 	}
     }
 #endif
-  grammar->undefined_p = FALSE;
+  g->undefined_p = FALSE;
   return 0;
 }
 
@@ -3589,13 +3559,13 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 static
 #endif
 int
-yaep_set_lookahead_level (struct grammar *grammar, int level)
+yaep_set_lookahead_level (struct grammar *g, int level)
 {
   int old;
 
-  assert (grammar != NULL);
-  old = grammar->lookahead_level;
-  grammar->lookahead_level = (level < 0 ? 0 : level > 2 ? 2 : level);
+  assert (g != NULL);
+  old = g->lookahead_level;
+  g->lookahead_level = (level < 0 ? 0 : level > 2 ? 2 : level);
   return old;
 }
 
@@ -3603,13 +3573,13 @@ yaep_set_lookahead_level (struct grammar *grammar, int level)
 static
 #endif
 int
-yaep_set_debug_level (struct grammar *grammar, int level)
+yaep_set_debug_level (struct grammar *g, int level)
 {
   int old;
 
-  assert (grammar != NULL);
-  old = grammar->debug_level;
-  grammar->debug_level = level;
+  assert (g != NULL);
+  old = g->debug_level;
+  g->debug_level = level;
   return old;
 }
 
@@ -3617,13 +3587,13 @@ yaep_set_debug_level (struct grammar *grammar, int level)
 static
 #endif
 int
-yaep_set_one_parse_flag (struct grammar *grammar, int flag)
+yaep_set_one_parse_flag (struct grammar *g, int flag)
 {
   int old;
 
-  assert (grammar != NULL);
-  old = grammar->one_parse_p;
-  grammar->one_parse_p = flag;
+  assert (g != NULL);
+  old = g->one_parse_p;
+  g->one_parse_p = flag;
   return old;
 }
 
@@ -3631,13 +3601,13 @@ yaep_set_one_parse_flag (struct grammar *grammar, int flag)
 static
 #endif
 int
-yaep_set_cost_flag (struct grammar *grammar, int flag)
+yaep_set_cost_flag (struct grammar *g, int flag)
 {
   int old;
 
-  assert (grammar != NULL);
-  old = grammar->cost_p;
-  grammar->cost_p = flag;
+  assert (g != NULL);
+  old = g->cost_p;
+  g->cost_p = flag;
   return old;
 }
 
@@ -3645,13 +3615,13 @@ yaep_set_cost_flag (struct grammar *grammar, int flag)
 static
 #endif
 int
-yaep_set_error_recovery_flag (struct grammar *grammar, int flag)
+yaep_set_error_recovery_flag (struct grammar *g, int flag)
 {
   int old;
 
-  assert (grammar != NULL);
-  old = grammar->error_recovery_p;
-  grammar->error_recovery_p = flag;
+  assert (g != NULL);
+  old = g->error_recovery_p;
+  g->error_recovery_p = flag;
   return old;
 }
 
@@ -3659,26 +3629,26 @@ yaep_set_error_recovery_flag (struct grammar *grammar, int flag)
 static
 #endif
 int
-yaep_set_recovery_match (struct grammar *grammar, int n_toks)
+yaep_set_recovery_match (struct grammar *g, int n_toks)
 {
   int old;
 
-  assert (grammar != NULL);
-  old = grammar->recovery_token_matches;
-  grammar->recovery_token_matches = n_toks;
+  assert (g != NULL);
+  old = g->recovery_token_matches;
+  g->recovery_token_matches = n_toks;
   return old;
 }
 
 /* The function initializes all internal data for parser for N_TOKS
    tokens. */
 static void
-yaep_parse_init (struct core_symb_vect_set *csv, int n_toks)
+yaep_parse_init (struct grammar *g, struct core_symb_vect_set *csv, int n_toks)
 {
   struct rule *rule;
 
-  sit_init ();
-  set_init (n_toks);
-  core_symb_vect_init (csv);
+  sit_init (g->alloc);
+  set_init (g->alloc, n_toks);
+  core_symb_vect_init (g->alloc, csv);
 #ifdef USE_CORE_SYMB_HASH_TABLE
   {
     int i;
@@ -3688,7 +3658,7 @@ yaep_parse_init (struct core_symb_vect_set *csv, int n_toks)
       symb->cached_core_symb_vect = NULL;
   }
 #endif
-  for (rule = grammar->rules_ptr->first_rule; rule != NULL; rule = rule->next)
+  for (rule = g->rules_ptr->first_rule; rule != NULL; rule = rule->next)
     rule->caller_anode = NULL;
 }
 
@@ -3704,15 +3674,15 @@ yaep_parse_fin (struct core_symb_vect_set *csv)
 
 /* The following function reads all input tokens. */
 static void
-read_toks (void)
+read_toks (struct grammar *g)
 {
   int code;
   struct _yaep_reentrant_hack attr;
 
-  attr.grammar = grammar;
+  attr.grammar = g;
   while ((code = read_token (&attr.value.attr)) >= 0)
-    tok_add (code, attr.value.attr);
-  tok_add (END_MARKER_CODE, NULL);
+    tok_add (g, code, attr.value.attr);
+  tok_add (g, END_MARKER_CODE, NULL);
 }
 
 /* The following function add start situations which is formed from
@@ -3724,7 +3694,7 @@ read_toks (void)
 INLINE
 #endif
 static void
-add_derived_nonstart_sits (struct sit *sit, int parent)
+add_derived_nonstart_sits (struct grammar *g, struct sit *sit, int parent)
 {
   struct symb *symb;
   struct rule *rule = sit->rule;
@@ -3732,14 +3702,14 @@ add_derived_nonstart_sits (struct sit *sit, int parent)
   int i;
 
   for (i = sit->pos; (symb = rule->rhs[i]) != NULL && symb->empty_p; i++)
-    set_add_new_nonstart_sit (sit_create (rule, i + 1, context), parent);
+    set_add_new_nonstart_sit (sit_create (g, rule, i + 1, context), parent);
 }
 
 #ifdef TRANSITIVE_TRANSITION
 /* Collect all symbols before the dot in new situations in
    CORE_SYMBOL_VLO.  */
 static void
-collect_core_symbols (void)
+collect_core_symbols (struct grammar *g)
 {
   int i;
   int *core_symbol_check_vec = (int *) VLO_BEGIN (core_symbol_check_vlo);
@@ -3754,7 +3724,7 @@ collect_core_symbols (void)
       /* There is a symbol after dot in the situation. */
       symb = sit->rule->rhs[sit->pos];
       if (core_symbol_check_vec[symb->num] == core_symbol_check
-	  || symb == grammar->term_error)
+	  || symb == g->term_error)
 	continue;
       core_symbol_check_vec[symb->num] = core_symbol_check;
       VLO_ADD_MEMORY (core_symbols_vlo, &symb, sizeof (symb));
@@ -3764,7 +3734,8 @@ collect_core_symbols (void)
 /* Create transitive transition vectors for the new situations.
    Transition vectors should be already created.  */
 static void
-form_transitive_transition_vectors (struct core_symb_vect_set *csv)
+form_transitive_transition_vectors (struct grammar *g,
+        struct core_symb_vect_set *csv)
 {
   int i, j, k, sit_ind;
   struct symb *symb, *new_symb;
@@ -3773,15 +3744,17 @@ form_transitive_transition_vectors (struct core_symb_vect_set *csv)
 
   core_symbol_check++;
   expand_int_vlo (&core_symbol_check_vlo,
-                  grammar->symbs_ptr->n_terms + grammar->symbs_ptr->n_nonterms);
+                  g->symbs_ptr->n_terms + g->symbs_ptr->n_nonterms);
   VLO_NULLIFY (core_symbols_vlo);
-  collect_core_symbols ();
+  collect_core_symbols (g);
   for (i = 0; i < VLO_LENGTH (core_symbols_vlo) / sizeof (struct symb *); i++)
     {
       symb = ((struct symb **) VLO_BEGIN (core_symbols_vlo))[i];
-      core_symb_vect = core_symb_vect_find (csv, new_core, symb);
+      core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr, new_core,
+              symb);
       if (core_symb_vect == NULL)
-	core_symb_vect = core_symb_vect_new (csv, new_core, symb);
+	core_symb_vect = core_symb_vect_new (csv, g->symbs_ptr, new_core,
+                symb, g->alloc);
       core_symbol_check++;
       VLO_NULLIFY (core_symbol_queue_vlo);
       /* Put the symbol into the queue.  */
@@ -3791,7 +3764,8 @@ form_transitive_transition_vectors (struct core_symb_vect_set *csv)
 	   j++)
 	{
 	  symb = ((struct symb **) VLO_BEGIN (core_symbol_queue_vlo))[j];
-	  symb_core_symb_vect = core_symb_vect_find (csv, new_core, symb);
+	  symb_core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
+                  new_core, symb);
 	  if (symb_core_symb_vect == NULL)
 	    continue;
 	  for (k = 0; k < symb_core_symb_vect->transitions.len; k++)
@@ -3805,7 +3779,7 @@ form_transitive_transition_vectors (struct core_symb_vect_set *csv)
 		   stop.  */
 		continue;
 	      sit = new_sits[sit_ind];
-	      sit = sit_create (sit->rule, sit->pos + 1, sit->context);
+	      sit = sit_create (g, sit->rule, sit->pos + 1, sit->context);
 	      if (sit->empty_tail_p)
 		{
 		  new_symb = sit->rule->lhs;
@@ -3836,7 +3810,7 @@ form_transitive_transition_vectors (struct core_symb_vect_set *csv)
 INLINE
 #endif
 static void
-expand_new_start_set (struct core_symb_vect_set *csv)
+expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 {
   struct sit *sit;
   struct symb *symb;
@@ -3846,7 +3820,7 @@ expand_new_start_set (struct core_symb_vect_set *csv)
 
   /* Add non start situations with nonzero distances. */
   for (i = 0; i < new_n_start_sits; i++)
-    add_derived_nonstart_sits (new_sits[i], i);
+    add_derived_nonstart_sits (g, new_sits[i], i);
   /* Add non start situations and form transitions vectors. */
   for (i = 0; i < new_core->n_sits; i++)
     {
@@ -3855,18 +3829,21 @@ expand_new_start_set (struct core_symb_vect_set *csv)
 	{
 	  /* There is a symbol after dot in the situation. */
 	  symb = sit->rule->rhs[sit->pos];
-	  core_symb_vect = core_symb_vect_find (csv, new_core, symb);
+	  core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
+                  new_core, symb);
 	  if (core_symb_vect == NULL)
 	    {
-	      core_symb_vect = core_symb_vect_new (csv, new_core, symb);
+	      core_symb_vect = core_symb_vect_new (csv, g->symbs_ptr,
+                      new_core, symb, g->alloc);
 	      if (!symb->term_p)
 		for (rule = symb->u.nonterm.rules;
 		     rule != NULL; rule = rule->lhs_next)
-		  set_new_add_initial_sit (sit_create (rule, 0, 0));
+		  set_new_add_initial_sit (sit_create (g, rule, 0, 0));
 	    }
 	  core_symb_vect_new_add_transition_el (csv, core_symb_vect, i);
 	  if (symb->empty_p && i >= new_core->n_all_dists)
-	    set_new_add_initial_sit (sit_create (sit->rule, sit->pos + 1, 0));
+	    set_new_add_initial_sit (
+                    sit_create (g, sit->rule, sit->pos + 1, 0));
 	}
     }
   /* Now forming reduce vectors. */
@@ -3876,16 +3853,18 @@ expand_new_start_set (struct core_symb_vect_set *csv)
       if (sit->pos == sit->rule->rhs_len)
 	{
 	  symb = sit->rule->lhs;
-	  core_symb_vect = core_symb_vect_find (csv, new_core, symb);
+	  core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
+                  new_core, symb);
 	  if (core_symb_vect == NULL)
-	    core_symb_vect = core_symb_vect_new (csv, new_core, symb);
+	    core_symb_vect = core_symb_vect_new (csv, g->symbs_ptr,
+                    new_core, symb, g->alloc);
 	  core_symb_vect_new_add_reduce_el (csv, core_symb_vect, i);
 	}
     }
 #ifdef TRANSITIVE_TRANSITION
-  form_transitive_transition_vectors (csv);
+  form_transitive_transition_vectors (g, csv);
 #endif
-  if (grammar->lookahead_level > 1)
+  if (g->lookahead_level > 1)
     {
       struct sit *new_sit, *shifted_sit;
       term_set_el_t *context_set;
@@ -3893,33 +3872,31 @@ expand_new_start_set (struct core_symb_vect_set *csv)
 
       /* Now we have incorrect initial situations because their
          context is not correct. */
-      context_set = term_set_create (grammar->symbs_ptr,
-              grammar->term_sets_ptr);
+      context_set = term_set_create (g->symbs_ptr, g->term_sets_ptr);
       do
 	{
 	  changed_p = FALSE;
 	  for (i = new_core->n_all_dists; i < new_core->n_sits; i++)
 	    {
-	      term_set_clear (grammar->symbs_ptr, context_set);
+	      term_set_clear (g->symbs_ptr, context_set);
 	      new_sit = new_sits[i];
-	      core_symb_vect = core_symb_vect_find (csv, new_core,
+	      core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr, new_core,
 						    new_sit->rule->lhs);
 	      for (j = 0; j < core_symb_vect->transitions.len; j++)
 		{
 		  sit_ind = core_symb_vect->transitions.els[j];
 		  sit = new_sits[sit_ind];
-		  shifted_sit = sit_create (sit->rule, sit->pos + 1,
+		  shifted_sit = sit_create (g, sit->rule, sit->pos + 1,
 					    sit->context);
-		  term_set_or (grammar->symbs_ptr,
+		  term_set_or (g->symbs_ptr,
                           context_set, shifted_sit->lookahead);
 		}
-	      context = term_set_insert (grammar->term_sets_ptr, context_set);
+	      context = term_set_insert (g->term_sets_ptr, context_set);
 	      if (context >= 0)
-		context_set = term_set_create (grammar->symbs_ptr,
-                        grammar->term_sets_ptr);
+		context_set = term_set_create (g->symbs_ptr, g->term_sets_ptr);
 	      else
 		context = -context - 1;
-	      sit = sit_create (new_sit->rule, new_sit->pos, context);
+	      sit = sit_create (g, new_sit->rule, new_sit->pos, context);
 	      if (sit != new_sit)
 		{
 		  new_sits[i] = sit;
@@ -3935,7 +3912,7 @@ expand_new_start_set (struct core_symb_vect_set *csv)
 
 /* The following function forms the 1st set. */
 static void
-build_start_set (struct core_symb_vect_set *csv)
+build_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 {
   struct rule *rule;
   struct sit *sit;
@@ -3943,34 +3920,32 @@ build_start_set (struct core_symb_vect_set *csv)
   int context;
 
   set_new_start ();
-  if (grammar->lookahead_level <= 1)
+  if (g->lookahead_level <= 1)
     context = 0;
   else
     {
-      context_set = term_set_create (grammar->symbs_ptr,
-              grammar->term_sets_ptr);
-      term_set_clear (grammar->symbs_ptr, context_set);
-      context = term_set_insert (grammar->term_sets_ptr, context_set);
+      context_set = term_set_create (g->symbs_ptr, g->term_sets_ptr);
+      term_set_clear (g->symbs_ptr, context_set);
+      context = term_set_insert (g->term_sets_ptr, context_set);
       /* Empty context in the table has always number zero. */
       assert (context == 0);
     }
-  for (rule = grammar->axiom->u.nonterm.rules;
-       rule != NULL; rule = rule->lhs_next)
+  for (rule = g->axiom->u.nonterm.rules; rule != NULL; rule = rule->lhs_next)
     {
-      sit = sit_create (rule, 0, context);
+      sit = sit_create (g, rule, 0, context);
       set_new_add_start_sit (sit, 0);
     }
   if (!set_insert ())
     assert (FALSE);
-  expand_new_start_set (csv);
+  expand_new_start_set (g, csv);
   pl[0] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     {
       fprintf (stderr, "\nParsing start...\n");
-      if (grammar->debug_level > 3)
-	set_print (stderr, new_set, 0, grammar->debug_level > 4,
-		   grammar->debug_level > 5);
+      if (g->debug_level > 3)
+	set_print (stderr, new_set, g, 0,
+                g->debug_level > 4, g->debug_level > 5);
     }
 #endif
 }
@@ -3979,8 +3954,8 @@ build_start_set (struct core_symb_vect_set *csv)
    given in CORE_SYMB_VECT with given lookahead terminal number.  If
    the number is negative, we ignore lookahead at all. */
 static void
-build_new_set (struct core_symb_vect_set *csv, struct set *set,
-               struct core_symb_vect *core_symb_vect,
+build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
+               struct set *set, struct core_symb_vect *core_symb_vect,
 	       int lookahead_term_num)
 {
   struct set *prev_set;
@@ -3991,8 +3966,7 @@ build_new_set (struct core_symb_vect_set *csv, struct set *set,
   int i, place;
   struct vect *transitions;
 
-  local_lookahead_level = (lookahead_term_num < 0
-			   ? 0 : grammar->lookahead_level);
+  local_lookahead_level = (lookahead_term_num < 0 ? 0 : g->lookahead_level);
   set_core = set->core;
   set_new_start ();
 #ifdef TRANSITIVE_TRANSITION
@@ -4006,12 +3980,12 @@ build_new_set (struct core_symb_vect_set *csv, struct set *set,
     {
       sit_ind = transitions->els[i];
       sit = set_core->sits[sit_ind];
-      new_sit = sit_create (sit->rule, sit->pos + 1, sit->context);
+      new_sit = sit_create (g, sit->rule, sit->pos + 1, sit->context);
       if (local_lookahead_level != 0
-	  && !term_set_test (grammar->symbs_ptr,
+	  && !term_set_test (g->symbs_ptr,
                   new_sit->lookahead, lookahead_term_num)
-	  && !term_set_test (grammar->symbs_ptr,
-                  new_sit->lookahead, grammar->term_error_num))
+	  && !term_set_test (g->symbs_ptr,
+                  new_sit->lookahead, g->term_error_num))
 	continue;
 #ifndef ABSOLUTE_DISTANCES
       dist = 0;
@@ -4031,7 +4005,7 @@ build_new_set (struct core_symb_vect_set *csv, struct set *set,
 #ifndef ABSOLUTE_DISTANCES
       dist++;
 #endif
-      if (sit_dist_insert (new_sit, dist))
+      if (sit_dist_insert (new_sit, dist, g->alloc))
 	set_new_add_start_sit (new_sit, dist);
     }
   for (i = 0; i < new_n_start_sits; i++)
@@ -4055,11 +4029,11 @@ build_new_set (struct core_symb_vect_set *csv, struct set *set,
 #endif
 	  prev_set = pl[place];
 	  prev_set_core = prev_set->core;
-	  prev_core_symb_vect = core_symb_vect_find (csv, prev_set_core,
-						     new_sit->rule->lhs);
+	  prev_core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
+                  prev_set_core, new_sit->rule->lhs);
 	  if (prev_core_symb_vect == NULL)
 	    {
-	      assert (new_sit->rule->lhs == grammar->axiom);
+	      assert (new_sit->rule->lhs == g->axiom);
 	      continue;
 	    }
 #ifdef TRANSITIVE_TRANSITION
@@ -4075,12 +4049,12 @@ build_new_set (struct core_symb_vect_set *csv, struct set *set,
 	    {
 	      sit_ind = *curr_el++;
 	      sit = prev_sits[sit_ind];
-	      new_sit = sit_create (sit->rule, sit->pos + 1, sit->context);
+	      new_sit = sit_create (g, sit->rule, sit->pos + 1, sit->context);
 	      if (local_lookahead_level != 0
-		  && !term_set_test (grammar->symbs_ptr,
+		  && !term_set_test (g->symbs_ptr,
                           new_sit->lookahead, lookahead_term_num)
-		  && !term_set_test (grammar->symbs_ptr, new_sit->lookahead,
-				     grammar->term_error_num))
+		  && !term_set_test (g->symbs_ptr, new_sit->lookahead,
+				     g->term_error_num))
 		continue;
 #ifndef ABSOLUTE_DISTANCES
 	      dist = 0;
@@ -4101,7 +4075,7 @@ build_new_set (struct core_symb_vect_set *csv, struct set *set,
 #ifndef ABSOLUTE_DISTANCES
 	      dist += new_dist;
 #endif
-	      if (sit_dist_insert (new_sit, dist))
+	      if (sit_dist_insert (new_sit, dist, g->alloc))
 		set_new_add_start_sit (new_sit, dist);
 	    }
 	  while (curr_el < bound);
@@ -4109,7 +4083,7 @@ build_new_set (struct core_symb_vect_set *csv, struct set *set,
     }
   if (set_insert ())
     {
-      expand_new_start_set (csv);
+      expand_new_start_set (g, csv);
       new_core->term = core_symb_vect->symb;
     }
 }
@@ -4206,7 +4180,7 @@ set_original_set_bound (struct recovery_state_sets *recovery, int last)
    should be called after any decreasing pl_curr with subsequent
    writing to pl [pl_curr]. */
 static void
-save_original_sets (struct recovery_state_sets *recovery)
+save_original_sets (struct recovery_state_sets *recovery, struct grammar *g)
 {
   int length, curr_pl;
 
@@ -4221,13 +4195,13 @@ save_original_sets (struct recovery_state_sets *recovery)
       VLO_ADD_MEMORY (recovery->original_pl_tail_stack, &pl[curr_pl],
 		      sizeof (struct set *));
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 2)
+      if (g->debug_level > 2)
 	{
 	  fprintf (stderr, "++++Save original set=%d\n", curr_pl);
-	  if (grammar->debug_level > 3)
+	  if (g->debug_level > 3)
 	    {
-	      set_print (stderr, pl[curr_pl], curr_pl,
-			 grammar->debug_level > 4, grammar->debug_level > 5);
+	      set_print (stderr, pl[curr_pl], g, curr_pl,
+			 g->debug_level > 4, g->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
 	}
@@ -4239,7 +4213,8 @@ save_original_sets (struct recovery_state_sets *recovery)
 /* If it is necessary, the following function restores original pl
    part with states in range [0, last_pl_el]. */
 static void
-restore_original_sets (struct recovery_state_sets *recovery, int last_pl_el)
+restore_original_sets (struct recovery_state_sets *recovery,
+        struct grammar *g, int last_pl_el)
 {
   assert (last_pl_el <= recovery->start_pl_curr
 	  && recovery->original_last_pl_el <= recovery->start_pl_curr);
@@ -4255,15 +4230,15 @@ restore_original_sets (struct recovery_state_sets *recovery, int last_pl_el)
 	= ((struct set **) VLO_BEGIN (recovery->original_pl_tail_stack))
 	[recovery->start_pl_curr - recovery->original_last_pl_el];
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 2)
+      if (g->debug_level > 2)
 	{
 	  fprintf (stderr, "++++++Restore original set=%d\n",
 		   recovery->original_last_pl_el);
-	  if (grammar->debug_level > 3)
+	  if (g->debug_level > 3)
 	    {
-	      set_print (stderr, pl[recovery->original_last_pl_el],
+	      set_print (stderr, pl[recovery->original_last_pl_el], g,
                          recovery->original_last_pl_el,
-			 grammar->debug_level > 4, grammar->debug_level > 5);
+			 g->debug_level > 4, g->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
 	}
@@ -4283,17 +4258,18 @@ restore_original_sets (struct recovery_state_sets *recovery, int last_pl_el)
 INLINE
 #endif
 static int
-find_error_pl_set (struct core_symb_vect_set *csv, int start_pl_set, int *cost)
+find_error_pl_set (struct core_symb_vect_set *csv, struct symbs *symbs,
+        struct symb *term_error, int start_pl_set, int *cost)
 {
   int curr_pl;
 
   assert (start_pl_set >= 0);
   *cost = 0;
   for (curr_pl = start_pl_set; curr_pl >= 0; curr_pl--)
-    if (core_symb_vect_find (csv, pl[curr_pl]->core, grammar->term_error)
+    if (core_symb_vect_find (csv, symbs, pl[curr_pl]->core, term_error)
         != NULL)
       break;
-    else if (pl[curr_pl]->core->term != grammar->term_error)
+    else if (pl[curr_pl]->core->term != term_error)
       (*cost)++;
   assert (curr_pl >= 0);
   return curr_pl;
@@ -4303,15 +4279,15 @@ find_error_pl_set (struct core_symb_vect_set *csv, int start_pl_set, int *cost)
    with charcteristics (LAST_ORIGINAL_PL_EL, BACKWARD_MOVE_COST,
    pl_curr, tok_curr). */
 static struct recovery_state
-new_recovery_state (struct recovery_state_sets *recovery,
-                    int last_original_pl_el, int backward_move_cost)
+new_recovery_state (struct recovery_state_sets *recovery, struct grammar *g,
+        int last_original_pl_el, int backward_move_cost)
 {
   struct recovery_state state;
   int i;
 
   assert (backward_move_cost >= 0);
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     {
       fprintf (stderr,
 	       "++++Creating recovery state: original set=%d, tok=%d, ",
@@ -4328,11 +4304,11 @@ new_recovery_state (struct recovery_state_sets *recovery,
       OS_TOP_ADD_MEMORY (recovery->recovery_state_tail_sets, &pl[i],
                          sizeof (pl[i]));
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 3)
+      if (g->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++Saving set=%d\n", i);
-	  set_print (stderr, pl[i], i, grammar->debug_level > 4,
-		     grammar->debug_level > 5);
+	  set_print (stderr, pl[i], g, i,
+                  g->debug_level > 4, g->debug_level > 5);
 	  fprintf (stderr, "\n");
 	}
 #endif
@@ -4351,15 +4327,15 @@ new_recovery_state (struct recovery_state_sets *recovery,
 INLINE
 #endif
 static void
-push_recovery_state (struct recovery_state_sets *recovery,
+push_recovery_state (struct recovery_state_sets *recovery, struct grammar *g,
                      int last_original_pl_el, int backward_move_cost)
 {
   struct recovery_state state;
 
-  state = new_recovery_state (recovery, last_original_pl_el,
+  state = new_recovery_state (recovery, g, last_original_pl_el,
                               backward_move_cost);
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     {
       fprintf (stderr, "++++Push recovery state: original set=%d, tok=%d, ",
 	       last_original_pl_el, tok_curr);
@@ -4373,16 +4349,16 @@ push_recovery_state (struct recovery_state_sets *recovery,
 /* The following function sets up parser state (pl, pl_curr, tok_curr)
    according to error recovery STATE. */
 static void
-set_recovery_state (struct recovery_state_sets *recovery,
+set_recovery_state (struct recovery_state_sets *recovery, struct grammar *g,
                     struct recovery_state *state)
 {
   int i;
 
   tok_curr = state->start_tok;
-  restore_original_sets (recovery, state->last_original_pl_el);
+  restore_original_sets (recovery, g, state->last_original_pl_el);
   pl_curr = state->last_original_pl_el;
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     {
       fprintf (stderr, "++++Set recovery state: set=%d, tok=%d, ",
 	       pl_curr, tok_curr);
@@ -4394,11 +4370,11 @@ set_recovery_state (struct recovery_state_sets *recovery,
     {
       pl[++pl_curr] = state->pl_tail[i];
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 3)
+      if (g->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++Add saved set=%d\n", pl_curr);
-	  set_print (stderr, pl[pl_curr], pl_curr, grammar->debug_level > 4,
-		     grammar->debug_level > 5);
+	  set_print (stderr, pl[pl_curr], g, pl_curr, g->debug_level > 4,
+		     g->debug_level > 5);
 	  fprintf (stderr, "\n");
 	}
 #endif
@@ -4412,7 +4388,7 @@ set_recovery_state (struct recovery_state_sets *recovery,
 INLINE
 #endif
 static struct recovery_state
-pop_recovery_state (struct recovery_state_sets *recovery)
+pop_recovery_state (struct recovery_state_sets *recovery, struct grammar *g)
 {
   struct recovery_state *state;
 
@@ -4420,10 +4396,10 @@ pop_recovery_state (struct recovery_state_sets *recovery)
             VLO_BOUND (recovery->recovery_state_stack))[-1];
   VLO_SHORTEN (recovery->recovery_state_stack, sizeof (struct recovery_state));
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     fprintf (stderr, "++++Pop error recovery state\n");
 #endif
-  set_recovery_state (recovery, state);
+  set_recovery_state (recovery, g, state);
   return *state;
 }
 
@@ -4434,7 +4410,7 @@ pop_recovery_state (struct recovery_state_sets *recovery)
    tokens is zero, *START will be equal to *STOP and number of token
    on which the error occurred. */
 static void
-error_recovery (struct core_symb_vect_set *csv,
+error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
                 struct recovery_state_sets *recovery, int *start, int *stop)
 {
   struct set *set;
@@ -4444,25 +4420,27 @@ error_recovery (struct core_symb_vect_set *csv,
   int back_to_frontier_move_cost, backward_move_cost;
 
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     fprintf (stderr, "\n++Error recovery start\n");
 #endif
   *stop = *start = -1;
-  OS_CREATE (recovery->recovery_state_tail_sets, grammar->alloc, 0);
+  OS_CREATE (recovery->recovery_state_tail_sets, g->alloc, 0);
   VLO_NULLIFY (recovery->original_pl_tail_stack);
   VLO_NULLIFY (recovery->recovery_state_stack);
   recovery->start_pl_curr = pl_curr;
   recovery->start_tok_curr = tok_curr;
   /* Initialize error recovery state stack. */
   pl_curr = recovery->back_pl_frontier
-    = find_error_pl_set (csv, pl_curr, &backward_move_cost);
+    = find_error_pl_set (csv, g->symbs_ptr, g->term_error,
+            pl_curr, &backward_move_cost);
   back_to_frontier_move_cost = backward_move_cost;
-  save_original_sets (recovery);
-  push_recovery_state (recovery, recovery->back_pl_frontier, backward_move_cost);
+  save_original_sets (recovery, g);
+  push_recovery_state (recovery, g,
+          recovery->back_pl_frontier, backward_move_cost);
   best_cost = 2 * toks_len;
   while (VLO_LENGTH (recovery->recovery_state_stack) > 0)
     {
-      state = pop_recovery_state (recovery);
+      state = pop_recovery_state (recovery, g);
       cost = state.backward_move_cost;
       assert (cost >= 0);
       /* Advance back frontier. */
@@ -4471,10 +4449,10 @@ error_recovery (struct core_symb_vect_set *csv,
 	  int saved_pl_curr = pl_curr, saved_tok_curr = tok_curr;
 
 	  /* Advance back frontier. */
-	  pl_curr = find_error_pl_set (csv, recovery->back_pl_frontier - 1,
-				       &backward_move_cost);
+	  pl_curr = find_error_pl_set (csv, g->symbs_ptr, g->term_error,
+                  recovery->back_pl_frontier - 1, &backward_move_cost);
 #ifndef NO_YAEP_DEBUG_PRINT
-	  if (grammar->debug_level > 2)
+	  if (g->debug_level > 2)
 	    fprintf (stderr, "++++Advance back frontier: old=%d, new=%d\n",
 		     recovery->back_pl_frontier, pl_curr);
 #endif
@@ -4482,9 +4460,9 @@ error_recovery (struct core_symb_vect_set *csv,
 	    {
 	      recovery->back_pl_frontier = pl_curr;
 	      tok_curr = recovery->start_tok_curr;
-	      save_original_sets (recovery);
+	      save_original_sets (recovery, g);
 	      back_to_frontier_move_cost += backward_move_cost;
-	      push_recovery_state (recovery, recovery->back_pl_frontier,
+	      push_recovery_state (recovery, g, recovery->back_pl_frontier,
 				   back_to_frontier_move_cost);
 	      set_original_set_bound (recovery, state.last_original_pl_el);
 	      tok_curr = saved_tok_curr;
@@ -4498,7 +4476,7 @@ error_recovery (struct core_symb_vect_set *csv,
 	  if (tok_curr < toks_len)
 	    {
 #ifndef NO_YAEP_DEBUG_PRINT
-	      if (grammar->debug_level > 2)
+	      if (g->debug_level > 2)
 		{
 		  fprintf (stderr,
 			   "++++Advance head frontier (one pos): tok=%d, ",
@@ -4507,14 +4485,14 @@ error_recovery (struct core_symb_vect_set *csv,
 		  fprintf (stderr, "\n");
 		}
 #endif
-	      push_recovery_state (recovery, state.last_original_pl_el,
+	      push_recovery_state (recovery, g, state.last_original_pl_el,
                                    cost + 1);
 	    }
 	  tok_curr--;
 	}
       set = pl[pl_curr];
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 2)
+      if (g->debug_level > 2)
 	{
 	  fprintf (stderr, "++++Trying set=%d, tok=%d, ", pl_curr, tok_curr);
 	  symb_print (stderr, toks[tok_curr].symb, TRUE);
@@ -4522,22 +4500,23 @@ error_recovery (struct core_symb_vect_set *csv,
 	}
 #endif
       /* Shift error: */
-      core_symb_vect = core_symb_vect_find (csv, set->core, grammar->term_error);
+      core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
+              set->core, g->term_error);
       assert (core_symb_vect != NULL);
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 2)
+      if (g->debug_level > 2)
 	fprintf (stderr, "++++Making error shift in set=%d\n", pl_curr);
 #endif
-      build_new_set (csv, set, core_symb_vect, -1);
+      build_new_set (g, csv, set, core_symb_vect, -1);
       pl[++pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 2)
+      if (g->debug_level > 2)
 	{
 	  fprintf (stderr, "++Trying new set=%d\n", pl_curr);
-	  if (grammar->debug_level > 3)
+	  if (g->debug_level > 3)
 	    {
-	      set_print (stderr, new_set, pl_curr, grammar->debug_level > 4,
-			 grammar->debug_level > 5);
+	      set_print (stderr, new_set, g, pl_curr, g->debug_level > 4,
+			 g->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
 	}
@@ -4545,12 +4524,12 @@ error_recovery (struct core_symb_vect_set *csv,
       /* Search the first right token. */
       while (tok_curr < toks_len)
 	{
-	  core_symb_vect = core_symb_vect_find (csv, new_core,
+	  core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr, new_core,
 						toks[tok_curr].symb);
 	  if (core_symb_vect != NULL)
 	    break;
 #ifndef NO_YAEP_DEBUG_PRINT
-	  if (grammar->debug_level > 2)
+	  if (g->debug_level > 2)
 	    {
 	      fprintf (stderr, "++++++Skipping=%d ", tok_curr);
 	      symb_print (stderr, toks[tok_curr].symb, TRUE);
@@ -4566,7 +4545,7 @@ error_recovery (struct core_symb_vect_set *csv,
       if (cost >= best_cost)
 	{
 #ifndef NO_YAEP_DEBUG_PRINT
-	  if (grammar->debug_level > 2)
+	  if (g->debug_level > 2)
 	    fprintf
 	      (stderr,
 	       "++++Too many ignored tokens %d (already worse recovery)\n",
@@ -4578,7 +4557,7 @@ error_recovery (struct core_symb_vect_set *csv,
       if (tok_curr >= toks_len)
 	{
 #ifndef NO_YAEP_DEBUG_PRINT
-	  if (grammar->debug_level > 2)
+	  if (g->debug_level > 2)
 	    fprintf
 	      (stderr,
 	       "++++We achieved EOF without matching -- reject this state\n");
@@ -4593,22 +4572,22 @@ error_recovery (struct core_symb_vect_set *csv,
       /* Shift the found token. */
       lookahead_term_num = (tok_curr + 1 < toks_len
 			    ? toks[tok_curr + 1].symb->u.term.term_num : -1);
-      build_new_set (csv, new_set, core_symb_vect, lookahead_term_num);
+      build_new_set (g, csv, new_set, core_symb_vect, lookahead_term_num);
       pl[++pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 3)
+      if (g->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++++Building new set=%d\n", pl_curr);
-	  if (grammar->debug_level > 3)
-	    set_print (stderr, new_set, pl_curr, grammar->debug_level > 4,
-		       grammar->debug_level > 5);
+	  if (g->debug_level > 3)
+	    set_print (stderr, new_set, g, pl_curr, g->debug_level > 4,
+		       g->debug_level > 5);
 	}
 #endif
       n_matched_toks = 0;
       for (;;)
 	{
 #ifndef NO_YAEP_DEBUG_PRINT
-	  if (grammar->debug_level > 2)
+	  if (g->debug_level > 2)
 	    {
 	      fprintf (stderr, "++++++Matching=%d ", tok_curr);
 	      symb_print (stderr, toks[tok_curr].symb, TRUE);
@@ -4616,16 +4595,17 @@ error_recovery (struct core_symb_vect_set *csv,
 	    }
 #endif
 	  n_matched_toks++;
-	  if (n_matched_toks >= grammar->recovery_token_matches)
+	  if (n_matched_toks >= g->recovery_token_matches)
 	    break;
 	  tok_curr++;
 	  if (tok_curr >= toks_len)
 	    break;
 	  /* Push secondary recovery state (with error in set). */
-	  if (core_symb_vect_find (csv, new_core, grammar->term_error) != NULL)
+	  if (core_symb_vect_find (csv, g->symbs_ptr,
+                  new_core, g->term_error) != NULL)
 	    {
 #ifndef NO_YAEP_DEBUG_PRINT
-	      if (grammar->debug_level > 2)
+	      if (g->debug_level > 2)
 		{
 		  fprintf
 		    (stderr,
@@ -4635,26 +4615,28 @@ error_recovery (struct core_symb_vect_set *csv,
 		  fprintf (stderr, "\n");
 		}
 #endif
-	      push_recovery_state (recovery, state.last_original_pl_el, cost);
+	      push_recovery_state (recovery, g,
+                      state.last_original_pl_el, cost);
 	    }
 	  core_symb_vect
-	    = core_symb_vect_find (csv, new_core, toks[tok_curr].symb);
+	    = core_symb_vect_find (csv, g->symbs_ptr,
+                    new_core, toks[tok_curr].symb);
 	  if (core_symb_vect == NULL)
 	    break;
 	  lookahead_term_num = (tok_curr + 1 < toks_len
 				? toks[tok_curr + 1].symb->u.term.term_num
 				: -1);
-	  build_new_set (csv, new_set, core_symb_vect, lookahead_term_num);
+	  build_new_set (g, csv, new_set, core_symb_vect, lookahead_term_num);
 	  pl[++pl_curr] = new_set;
 	}
-      if (n_matched_toks >= grammar->recovery_token_matches
+      if (n_matched_toks >= g->recovery_token_matches
 	  || tok_curr >= toks_len)
 	{
 	  /* We found an error recovery.  Compare costs. */
 	  if (best_cost > cost)
 	    {
 #ifndef NO_YAEP_DEBUG_PRINT
-	      if (grammar->debug_level > 2)
+	      if (g->debug_level > 2)
 		fprintf
 		  (stderr,
 		   "++++Ignore %d tokens (the best recovery now): Save it:\n",
@@ -4663,7 +4645,7 @@ error_recovery (struct core_symb_vect_set *csv,
 	      best_cost = cost;
 	      if (tok_curr == toks_len)
 		tok_curr--;
-	      best_state = new_recovery_state (recovery,
+	      best_state = new_recovery_state (recovery, g,
                                                state.last_original_pl_el,
 					       /* It may be any constant here
 					          because it is not used. */
@@ -4672,30 +4654,30 @@ error_recovery (struct core_symb_vect_set *csv,
 	      *stop = *start + cost;
 	    }
 #ifndef NO_YAEP_DEBUG_PRINT
-	  else if (grammar->debug_level > 2)
+	  else if (g->debug_level > 2)
 	    fprintf (stderr, "++++Ignore %d tokens (worse recovery)\n", cost);
 #endif
 	}
 #ifndef NO_YAEP_DEBUG_PRINT
-      else if (cost < best_cost && grammar->debug_level > 2)
+      else if (cost < best_cost && g->debug_level > 2)
 	fprintf (stderr, "++++No %d matched tokens  -- reject this state\n",
-		 grammar->recovery_token_matches);
+		 g->recovery_token_matches);
 #endif
     }
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     fprintf (stderr, "\n++Finishing error recovery: Restore best state\n");
 #endif
-  set_recovery_state (recovery, &best_state);
+  set_recovery_state (recovery, g, &best_state);
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 2)
+  if (g->debug_level > 2)
     {
       fprintf (stderr, "\n++Error recovery end: curr token %d=", tok_curr);
       symb_print (stderr, toks[tok_curr].symb, TRUE);
       fprintf (stderr, ", Current set=%d:\n", pl_curr);
-      if (grammar->debug_level > 3)
-	set_print (stderr, pl[pl_curr], pl_curr, grammar->debug_level > 4,
-		   grammar->debug_level > 5);
+      if (g->debug_level > 3)
+	set_print (stderr, pl[pl_curr], g, pl_curr, g->debug_level > 4,
+		   g->debug_level > 5);
     }
 #endif
   OS_DELETE (recovery->recovery_state_tail_sets);
@@ -4703,10 +4685,11 @@ error_recovery (struct core_symb_vect_set *csv,
 
 /* Initialize work with error recovery. */
 static void
-error_recovery_init (struct recovery_state_sets *recovery)
+error_recovery_init (struct recovery_state_sets *recovery,
+        struct YaepAllocator *alloc)
 {
-  VLO_CREATE (recovery->original_pl_tail_stack, grammar->alloc, 4096);
-  VLO_CREATE (recovery->recovery_state_stack, grammar->alloc, 4096);
+  VLO_CREATE (recovery->original_pl_tail_stack, alloc, 4096);
+  VLO_CREATE (recovery->recovery_state_stack, alloc, 4096);
 }
 
 /* Finalize work with error recovery. */
@@ -4747,7 +4730,7 @@ check_cached_transition_set (struct set *set, int place)
 /* The following function is major function forming parsing list in
    Earley's algorithm. */
 static void
-build_pl (struct core_symb_vect_set *csv)
+build_pl (struct grammar *g, struct core_symb_vect_set *csv)
 {
   int i;
   struct symb *term;
@@ -4760,19 +4743,19 @@ build_pl (struct core_symb_vect_set *csv)
 #endif
   struct recovery_state_sets recovery;
 
-  error_recovery_init (&recovery);
-  build_start_set (csv);
+  error_recovery_init (&recovery, g->alloc);
+  build_start_set (g, csv);
   lookahead_term_num = -1;
   for (tok_curr = pl_curr = 0; tok_curr < toks_len; tok_curr++)
     {
       term = toks[tok_curr].symb;
-      if (grammar->lookahead_level != 0)
+      if (g->lookahead_level != 0)
 	lookahead_term_num = (tok_curr < toks_len - 1
 			      ? toks[tok_curr +
 				     1].symb->u.term.term_num : -1);
 
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 2)
+      if (g->debug_level > 2)
 	{
 	  fprintf (stderr, "\nReading %d=", tok_curr);
 	  symb_print (stderr, term, TRUE);
@@ -4810,7 +4793,7 @@ build_pl (struct core_symb_vect_set *csv)
 	      {
 		new_set = tab_set;
 #ifndef NO_YAEP_DEBUG_PRINT
-		grammar->n_goto_successes++;
+		g->n_goto_successes++;
 #endif
 		break;
 	      }
@@ -4825,7 +4808,8 @@ build_pl (struct core_symb_vect_set *csv)
 #endif
       if (new_set == NULL)
 	{
-	  core_symb_vect = core_symb_vect_find (csv, set->core, term);
+	  core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
+                  set->core, term);
 	  if (core_symb_vect == NULL)
 	    {
 	      int saved_tok_curr, start, stop;
@@ -4834,9 +4818,9 @@ build_pl (struct core_symb_vect_set *csv)
 	         because for terminal transition vector is never NULL
 	         and reduce is always NULL. */
 	      saved_tok_curr = tok_curr;
-	      if (grammar->error_recovery_p)
+	      if (g->error_recovery_p)
 		{
-		  error_recovery (csv, &recovery, &start, &stop);
+		  error_recovery (g, csv, &recovery, &start, &stop);
 		  syntax_error (saved_tok_curr, toks[saved_tok_curr].attr,
 				start, toks[start].attr, stop,
 				toks[stop].attr);
@@ -4849,7 +4833,7 @@ build_pl (struct core_symb_vect_set *csv)
 		  break;
 		}
 	    }
-	  build_new_set (csv, set, core_symb_vect, lookahead_term_num);
+	  build_new_set (g, csv, set, core_symb_vect, lookahead_term_num);
 #ifdef USE_SET_HASH_TABLE
 	  /* Save (set, term, lookahead) -> new_set in the table.  */
 	  i = ((struct set_term_lookahead *) *entry)->curr;
@@ -4863,12 +4847,12 @@ build_pl (struct core_symb_vect_set *csv)
 	}
       pl[++pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
-      if (grammar->debug_level > 2)
+      if (g->debug_level > 2)
 	{
 	  fprintf (stderr, "New set=%d\n", pl_curr);
-	  if (grammar->debug_level > 3)
-	    set_print (stderr, new_set, pl_curr, grammar->debug_level > 4,
-		       grammar->debug_level > 5);
+	  if (g->debug_level > 3)
+	    set_print (stderr, new_set, g, pl_curr, g->debug_level > 4,
+		       g->debug_level > 5);
 	}
 #endif
     }
@@ -4951,18 +4935,19 @@ parse_state_eq (void *unused, hash_table_entry_t s1, hash_table_entry_t s2)
 
 /* The following function initializes work with parser states. */
 static void
-parse_state_init (struct parse_state_set *parse_state_set)
+parse_state_init (struct parse_state_set *parse_state_set, int one_parse_p,
+         struct YaepAllocator *alloc)
 {
   parse_state_set->free_parse_state = NULL;
-  OS_CREATE (parse_state_set->parse_state_os, grammar->alloc, 0);
-  if (!grammar->one_parse_p)
+  OS_CREATE (parse_state_set->parse_state_os, alloc, 0);
+  if (!one_parse_p)
 #ifndef __cplusplus
     parse_state_set->parse_state_tab =
-      create_hash_table (NULL, grammar->alloc, toks_len * 2, parse_state_hash,
+      create_hash_table (NULL, alloc, toks_len * 2, parse_state_hash,
 			 parse_state_eq);
 #else
     parse_state_set->parse_state_tab =
-      new hash_table (nullptr, grammar->alloc, toks_len * 2, parse_state_hash,
+      new hash_table (nullptr, alloc, toks_len * 2, parse_state_hash,
 		      parse_state_eq);
 #endif
 }
@@ -5038,9 +5023,9 @@ parse_state_insert (struct parse_state_set *parse_state_set,
 
 /* The following function finalizes work with parser states. */
 static void
-parse_state_fin (struct parse_state_set *parse_state_set)
+parse_state_fin (struct parse_state_set *parse_state_set, int one_parse_p)
 {
-  if (!grammar->one_parse_p)
+  if (!one_parse_p)
 #ifndef __cplusplus
     delete_hash_table (parse_state_set->parse_state_tab);
 #else
@@ -5134,9 +5119,9 @@ canon_node_num (int num)
    all its children (if debug_level < 0 output format is for
    graphviz). */
 static void
-print_node (FILE * f, struct yaep_tree_node *node,
+print_node (FILE * f, struct yaep_tree_node *node, struct symbs *symbs,
 	    hash_table_t trans_visit_nodes_tab, os_t *trans_visit_nodes_os,
-            int *n_trans_visit_nodes)
+            int *n_trans_visit_nodes, int debug_level)
 {
   struct trans_visit_node *trans_visit_node;
   struct yaep_tree_node *child;
@@ -5148,26 +5133,26 @@ print_node (FILE * f, struct yaep_tree_node *node,
   if (trans_visit_node->num >= 0)
     return;
   trans_visit_node->num = -trans_visit_node->num - 1;
-  if (grammar->debug_level > 0)
+  if (debug_level > 0)
     fprintf (f, "%7d: ", trans_visit_node->num);
   switch (node->type)
     {
     case YAEP_NIL:
-      if (grammar->debug_level > 0)
+      if (debug_level > 0)
 	fprintf (f, "EMPTY\n");
       break;
     case YAEP_ERROR:
-      if (grammar->debug_level > 0)
+      if (debug_level > 0)
 	fprintf (f, "ERROR\n");
       break;
     case YAEP_TERM:
-      if (grammar->debug_level > 0)
+      if (debug_level > 0)
 	fprintf (f, "TERMINAL: code=%d, repr=%s\n", node->val.term.code,
-		 symb_find_by_code (grammar->symbs_ptr, node->val.term.code)
+		 symb_find_by_code (symbs, node->val.term.code)
                         ->repr);
       break;
     case YAEP_ANODE:
-      if (grammar->debug_level > 0)
+      if (debug_level > 0)
 	{
 	  fprintf (f, "ABSTRACT: %s (", node->val.anode.name);
 	  for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
@@ -5196,7 +5181,7 @@ print_node (FILE * f, struct yaep_tree_node *node,
 		  break;
 		case YAEP_TERM:
 		  fprintf (f, "%s",
-			   symb_find_by_code (grammar->symbs_ptr,
+			   symb_find_by_code (symbs,
                                    child->val.term.code)->repr);
 		  break;
 		case YAEP_ANODE:
@@ -5212,11 +5197,11 @@ print_node (FILE * f, struct yaep_tree_node *node,
 	    }
 	}
       for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
-	print_node (f, child, trans_visit_nodes_tab, trans_visit_nodes_os,
-                    n_trans_visit_nodes);
+	print_node (f, child, symbs, trans_visit_nodes_tab,
+                trans_visit_nodes_os, n_trans_visit_nodes, debug_level);
       break;
     case YAEP_ALT:
-      if (grammar->debug_level > 0)
+      if (debug_level > 0)
 	{
 	  fprintf (f, "ALTERNATIVE: node=%d, next=",
 		   canon_node_num (visit_node (node->val.alt.node,
@@ -5249,7 +5234,7 @@ print_node (FILE * f, struct yaep_tree_node *node,
 	      break;
 	    case YAEP_TERM:
 	      fprintf (f, "%s",
-		       symb_find_by_code (grammar->symbs_ptr,
+		       symb_find_by_code (symbs,
                                node->val.alt.node->val.term.code)->repr);
 	      break;
 	    case YAEP_ANODE:
@@ -5270,11 +5255,11 @@ print_node (FILE * f, struct yaep_tree_node *node,
                                                  trans_visit_nodes_os,
                                                  n_trans_visit_nodes)->num));
 	}
-      print_node (f, node->val.alt.node, trans_visit_nodes_tab,
-                  trans_visit_nodes_os, n_trans_visit_nodes);
+      print_node (f, node->val.alt.node, symbs, trans_visit_nodes_tab,
+                  trans_visit_nodes_os, n_trans_visit_nodes, debug_level);
       if (node->val.alt.next != NULL)
-	print_node (f, node->val.alt.next, trans_visit_nodes_tab,
-                    trans_visit_nodes_os, n_trans_visit_nodes);
+	print_node (f, node->val.alt.next, symbs, trans_visit_nodes_tab,
+                    trans_visit_nodes_os, n_trans_visit_nodes, debug_level);
       break;
     default:
       assert (FALSE);
@@ -5283,7 +5268,8 @@ print_node (FILE * f, struct yaep_tree_node *node,
 
 /* The following function prints parse tree with ROOT. */
 static void
-print_parse (FILE * f, struct yaep_tree_node *root)
+print_parse (FILE * f, struct yaep_tree_node *root,
+        struct symbs *symbs, int debug_level, struct YaepAllocator *alloc)
 {
   /* The key of the following table is node itself. */
   hash_table_t trans_visit_nodes_tab;
@@ -5301,21 +5287,21 @@ print_parse (FILE * f, struct yaep_tree_node *root)
 
 #ifndef __cplusplus
   trans_visit_nodes_tab =
-    create_hash_table (NULL, grammar->alloc, toks_len * 2,
+    create_hash_table (NULL, alloc, toks_len * 2,
              trans_visit_node_hash, trans_visit_node_eq);
 #else
   trans_visit_nodes_tab =
-    new hash_table (nullptr, grammar->alloc, toks_len * 2,
+    new hash_table (nullptr, alloc, toks_len * 2,
              trans_visit_node_hash, trans_visit_node_eq);
 #endif
   n_trans_visit_nodes = 0;
-  OS_CREATE (trans_visit_nodes_os, grammar->alloc, 0);
+  OS_CREATE (trans_visit_nodes_os, alloc, 0);
 #ifndef __cplusplus
-  print_node (f, root, trans_visit_nodes_tab, &trans_visit_nodes_os,
-              &n_trans_visit_nodes);
+  print_node (f, root, symbs, trans_visit_nodes_tab, &trans_visit_nodes_os,
+              &n_trans_visit_nodes, debug_level);
 #else
-  print_node (f, root, trans_visit_nodes_tab, trans_visit_nodes_os,
-              &n_trans_visit_nodes);
+  print_node (f, root, symbs, trans_visit_nodes_tab, trans_visit_nodes_os,
+              &n_trans_visit_nodes, debug_level);
 #endif
   OS_DELETE (trans_visit_nodes_os);
 #ifndef __cplusplus
@@ -5333,7 +5319,8 @@ print_parse (FILE * f, struct yaep_tree_node *root)
 INLINE
 #endif
 static void
-place_translation (struct yaep_tree_node **place, struct yaep_tree_node *node)
+place_translation (struct grammar *g,
+        struct yaep_tree_node **place, struct yaep_tree_node *node)
 {
   struct yaep_tree_node *alt, *next_alt;
 
@@ -5345,7 +5332,7 @@ place_translation (struct yaep_tree_node **place, struct yaep_tree_node *node)
     }
   /* We need an alternative. */
 #ifndef NO_YAEP_DEBUG_PRINT
-  grammar->n_parse_alt_nodes++;
+  g->n_parse_alt_nodes++;
 #endif
   alt = (struct yaep_tree_node *) (*parse_alloc) (sizeof
 						  (struct yaep_tree_node));
@@ -5358,7 +5345,7 @@ place_translation (struct yaep_tree_node **place, struct yaep_tree_node *node)
       /* We need alternative node for the 1st
          alternative too. */
 #ifndef NO_YAEP_DEBUG_PRINT
-      grammar->n_parse_alt_nodes++;
+      g->n_parse_alt_nodes++;
 #endif
       next_alt = alt->val.alt.next
 	= ((struct yaep_tree_node *)
@@ -5371,8 +5358,9 @@ place_translation (struct yaep_tree_node **place, struct yaep_tree_node *node)
 }
 
 static struct yaep_tree_node *
-copy_anode (struct yaep_tree_node **place, struct yaep_tree_node *anode,
-	    struct rule *rule, int disp)
+copy_anode (struct grammar *g,
+        struct yaep_tree_node **place, struct yaep_tree_node *anode,
+        struct rule *rule, int disp)
 {
   struct yaep_tree_node *node;
   int i;
@@ -5388,7 +5376,7 @@ copy_anode (struct yaep_tree_node **place, struct yaep_tree_node *anode,
   for (i = 0; i <= rule->trans_len; i++)
     node->val.anode.children[i] = anode->val.anode.children[i];
   node->val.anode.children[disp] = NULL;
-  place_translation (place, node);
+  place_translation (g, place, node);
   return node;
 }
 
@@ -5412,7 +5400,8 @@ reserv_mem_eq (void *unused, hash_table_entry_t m1, hash_table_entry_t m2)
    freed. Remeber that the translation is DAG, altenatives form lists
    (alt node may not refer for another alternative). */
 static struct yaep_tree_node *
-prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node, int *cost)
+prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node,
+        int one_parse_p, int *cost)
 {
   struct yaep_tree_node *child, *alt, *next_alt, *result;
   int i, min_cost;
@@ -5443,7 +5432,7 @@ prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node, int *cost)
 	  for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
 	    {
 	      node->val.anode.children[i] = prune_to_minimal
-                (tnodes_vlo, child, cost);
+                (tnodes_vlo, child, one_parse_p, cost);
 	      node->val.anode.cost += *cost;
 	    }
 	  *cost = node->val.anode.cost;
@@ -5461,14 +5450,14 @@ prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node, int *cost)
 #endif
 	  next_alt = alt->val.alt.next;
 	  alt->val.alt.node = prune_to_minimal
-            (tnodes_vlo, alt->val.alt.node, cost);
+            (tnodes_vlo, alt->val.alt.node, one_parse_p, cost);
 	  if (alt == node || min_cost > *cost)
 	    {
 	      min_cost = *cost;
 	      alt->val.alt.next = NULL;
 	      result = alt;
 	    }
-	  else if (min_cost == *cost && !grammar->one_parse_p)
+	  else if (min_cost == *cost && !one_parse_p)
 	    {
 	      alt->val.alt.next = result;
 	      result = alt;
@@ -5529,7 +5518,8 @@ traverse_pruned_translation
 
 /* The function finds and returns a minimal cost parse(s). */
 static struct yaep_tree_node *
-find_minimal_translation (struct yaep_tree_node *root)
+find_minimal_translation (struct yaep_tree_node *root, int one_parse_p,
+        struct YaepAllocator *alloc)
 {
   struct yaep_tree_node **node_ptr;
   int cost;
@@ -5550,19 +5540,19 @@ find_minimal_translation (struct yaep_tree_node *root)
     {
 #ifndef __cplusplus
       reserv_mem_tab =
-	create_hash_table (NULL, grammar->alloc, toks_len * 4, reserv_mem_hash,
+	create_hash_table (NULL, alloc, toks_len * 4, reserv_mem_hash,
 			   reserv_mem_eq);
 #else
       reserv_mem_tab =
-	new hash_table (nullptr, grammar->alloc, toks_len * 4, reserv_mem_hash,
+	new hash_table (nullptr, alloc, toks_len * 4, reserv_mem_hash,
 			reserv_mem_eq);
 #endif
-      VLO_CREATE (tnodes_vlo, grammar->alloc, toks_len * 4 * sizeof (void *));
+      VLO_CREATE (tnodes_vlo, alloc, toks_len * 4 * sizeof (void *));
     }
 #ifndef __cplusplus
-  root = prune_to_minimal (&tnodes_vlo, root, &cost);
+  root = prune_to_minimal (&tnodes_vlo, root, one_parse_p, &cost);
 #else
-  root = prune_to_minimal (tnodes_vlo, root, &cost);
+  root = prune_to_minimal (tnodes_vlo, root, one_parse_p, &cost);
 #endif
   traverse_pruned_translation (reserv_mem_tab, root);
   if (parse_free != NULL)
@@ -5596,7 +5586,7 @@ find_minimal_translation (struct yaep_tree_node *root)
    ambigous (it works even we asked only one parse tree without
    alternatives). */
 static struct yaep_tree_node *
-make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
+make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
 {
   struct set *set, *check_set;
   struct set_core *set_core, *check_set_core;
@@ -5622,11 +5612,10 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
   struct parse_state_set parse_state_set;
 
 #ifndef NO_YAEP_DEBUG_PRINT
-  grammar->n_parse_term_nodes = grammar->n_parse_abstract_nodes
-    = grammar->n_parse_alt_nodes = 0;
+  g->n_parse_term_nodes = g->n_parse_abstract_nodes = g->n_parse_alt_nodes = 0;
 #endif
   set = pl[pl_curr];
-  assert (grammar->axiom != NULL);
+  assert (g->axiom != NULL);
   /* We have only one start situation: "$S : <start symb> $eof .".  */
   sit = (set->core->sits != NULL ? set->core->sits[0] : NULL);
   if (sit == NULL
@@ -5635,36 +5624,34 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 #else
       || set->dists[0] != 0
 #endif
-      || sit->rule->lhs != grammar->axiom || sit->pos != sit->rule->rhs_len)
+      || sit->rule->lhs != g->axiom || sit->pos != sit->rule->rhs_len)
     {
       /* It is possible only if error recovery is switched off.
          Because we always adds rule `axiom: error $eof'. */
-      assert (!grammar->error_recovery_p);
+      assert (!g->error_recovery_p);
       return NULL;
     }
-  saved_one_parse_p = grammar->one_parse_p;
-  if (grammar->cost_p)
+  saved_one_parse_p = g->one_parse_p;
+  if (g->cost_p)
     /* We need all parses to choose the minimal one */
-    grammar->one_parse_p = FALSE;
+    g->one_parse_p = FALSE;
   sit = set->core->sits[0];
-  parse_state_init (&parse_state_set);
-  if (!grammar->one_parse_p)
+  parse_state_init (&parse_state_set, g->one_parse_p, g->alloc);
+  if (!g->one_parse_p)
     {
       void *mem;
 
       /* We need this array to reuse terminal nodes only for
          generation of several parses. */
-      mem =
-	yaep_malloc (grammar->alloc,
-		     sizeof (struct yaep_tree_node *) * toks_len);
+      mem = yaep_malloc (g->alloc, sizeof (struct yaep_tree_node *) * toks_len);
       term_node_array = (struct yaep_tree_node **) mem;
       for (i = 0; i < toks_len; i++)
 	term_node_array[i] = NULL;
       /* The following is used to check necessity to create current
          state with different pl_ind. */
-      VLO_CREATE (orig_states, grammar->alloc, 0);
+      VLO_CREATE (orig_states, g->alloc, 0);
     }
-  VLO_CREATE (stack, grammar->alloc, 10000);
+  VLO_CREATE (stack, g->alloc, 10000);
   VLO_EXPAND (stack, sizeof (struct parse_state *));
   state = parse_state_alloc (&parse_state_set);
   ((struct parse_state **) VLO_BOUND (stack))[-1] = state;
@@ -5690,8 +5677,8 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
   while (VLO_LENGTH (stack) != 0)
     {
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
-      if ((grammar->debug_level > 2 && state->pos == state->rule->rhs_len)
-	  || grammar->debug_level > 3)
+      if ((g->debug_level > 2 && state->pos == state->rule->rhs_len)
+	  || g->debug_level > 3)
 	{
 	  fprintf (stderr, "Processing top %ld, set place = %d, sit = ",
 		   (long) VLO_LENGTH (stack) / sizeof (struct parse_state *) - 1,
@@ -5713,8 +5700,8 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 	{
 	  /* We've processed all rhs of the rule. */
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
-	  if ((grammar->debug_level > 2 && state->pos == state->rule->rhs_len)
-	      || grammar->debug_level > 3)
+	  if ((g->debug_level > 2 && state->pos == state->rule->rhs_len)
+	      || g->debug_level > 3)
 	    {
 	      fprintf (stderr, "Poping top %ld, set place = %d, sit = ",
 		       (long) VLO_LENGTH (stack) / sizeof (struct parse_state *) - 1,
@@ -5731,7 +5718,7 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 	    {
 	      /* We do produce nothing but we should.  So write empty
 	         node. */
-	      place_translation (parent_anode->val.anode.children +
+	      place_translation (g, parent_anode->val.anode.children +
 				 parent_disp, empty_node);
 	      empty_node->val.nil.used = 1;
 	    }
@@ -5764,29 +5751,29 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 	    {
 	      /* We should generate and use the translation of the
 	         terminal.  Add reference to the current node. */
-	      if (symb == grammar->term_error)
+	      if (symb == g->term_error)
 		{
 		  node = error_node;
 		  error_node->val.error.used = 1;
 		}
-	      else if (!grammar->one_parse_p
+	      else if (!g->one_parse_p
 		       && (node = term_node_array[pl_ind]) != NULL)
 		;
 	      else
 		{
 #ifndef NO_YAEP_DEBUG_PRINT
-		  grammar->n_parse_term_nodes++;
+		  g->n_parse_term_nodes++;
 #endif
 		  node = ((struct yaep_tree_node *)
 			  (*parse_alloc) (sizeof (struct yaep_tree_node)));
 		  node->type = YAEP_TERM;
 		  node->val.term.code = symb->u.term.code;
 		  node->val.term.attr = toks[pl_ind].attr;
-		  if (!grammar->one_parse_p)
+		  if (!g->one_parse_p)
 		    term_node_array[pl_ind] = node;
 		}
 	      place_translation
-		(anode != NULL ? anode->val.anode.children + disp
+		(g, anode != NULL ? anode->val.anode.children + disp
 		 : parent_anode->val.anode.children + parent_disp, node);
 	    }
 	  if (pos != 0)
@@ -5796,11 +5783,11 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
       /* Nonterminal before dot: */
       set = pl[pl_ind];
       set_core = set->core;
-      core_symb_vect = core_symb_vect_find (csv, set_core, symb);
+      core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr, set_core, symb);
       assert (core_symb_vect->reduces.len != 0);
       n_candidates = 0;
       orig_state = state;
-      if (!grammar->one_parse_p)
+      if (!g->one_parse_p)
 	VLO_NULLIFY (orig_states);
       for (i = 0; i < core_symb_vect->reduces.len; i++)
 	{
@@ -5821,17 +5808,17 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 	  else
 	    sit_orig = pl_ind;
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
-	  if (grammar->debug_level > 3)
+	  if (g->debug_level > 3)
 	    {
 	      fprintf (stderr, "    Trying set place = %d, sit = ", pl_ind);
-	      sit_print (stderr, sit, grammar->debug_level > 5);
+	      sit_print (stderr, sit, g, g->debug_level > 5);
 	      fprintf (stderr, ", %d\n", sit_orig);
 	    }
 #endif
 	  check_set = pl[sit_orig];
 	  check_set_core = check_set->core;
 	  check_core_symb_vect
-            = core_symb_vect_find (csv, check_set_core, symb);
+            = core_symb_vect_find (csv, g->symbs_ptr, check_set_core, symb);
 	  assert (check_core_symb_vect != NULL);
 	  found = FALSE;
 	  for (j = 0; j < check_core_symb_vect->transitions.len; j++)
@@ -5873,7 +5860,7 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 	  if (n_candidates != 0)
 	    {
 	      *ambiguous_p = TRUE;
-	      if (grammar->one_parse_p)
+	      if (g->one_parse_p)
 		break;
 	    }
 	  sit_rule = sit->rule;
@@ -5888,7 +5875,7 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 	      /* We need translation of the rule. */
 	      if (n_candidates != 0)
 		{
-		  assert (!grammar->one_parse_p);
+		  assert (!g->one_parse_p);
 		  if (n_candidates == 1)
 		    {
 		      VLO_EXPAND (orig_states, sizeof (struct parse_state *));
@@ -5919,13 +5906,13 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 		      state->pl_ind = sit_orig;
 		      if (anode != NULL)
 			state->anode
-			  = copy_anode (parent_anode->val.anode.children
+			  = copy_anode (g, parent_anode->val.anode.children
 					+ parent_disp, anode, rule, disp);
 		      VLO_EXPAND (orig_states, sizeof (struct parse_state *));
 		      ((struct parse_state **) VLO_BOUND (orig_states))[-1]
 			= state;
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
-		      if (grammar->debug_level > 3)
+		      if (g->debug_level > 3)
 			{
 			  fprintf (stderr,
 				   "  Adding top %ld, set place = %d, modified sit = ",
@@ -5949,14 +5936,14 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 		  state->orig = sit_orig;
 		  state->pl_ind = pl_ind;
 		  table_state = NULL;
-		  if (!grammar->one_parse_p)
+		  if (!g->one_parse_p)
 		    table_state = parse_state_insert (&parse_state_set,
                                                       state, &new_p);
 		  if (table_state == NULL || new_p)
 		    {
 		      /* We need new abtract node. */
 #ifndef NO_YAEP_DEBUG_PRINT
-		      grammar->n_parse_abstract_nodes++;
+		      g->n_parse_abstract_nodes++;
 #endif
 		      node
 			= ((struct yaep_tree_node *)
@@ -5995,13 +5982,13 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 			  state->parent_disp = disp;
 			}
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
-		      if (grammar->debug_level > 3)
+		      if (g->debug_level > 3)
 			{
 			  fprintf (stderr,
 				   "  Adding top %ld, set place = %d, sit = ",
 				   (long) VLO_LENGTH (stack) /
 				   sizeof (struct parse_state *) - 1, pl_ind);
-			  sit_print (stderr, sit, grammar->debug_level > 5);
+			  sit_print (stderr, sit, g, g->debug_level > 5);
 			  fprintf (stderr, ", %d\n", sit_orig);
 			}
 #endif
@@ -6009,23 +5996,23 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 		  else
 		    {
 		      /* We allready have the translation. */
-		      assert (!grammar->one_parse_p);
+		      assert (!g->one_parse_p);
 		      parse_state_free (state, &parse_state_set);
 		      state = ((struct parse_state **) VLO_BOUND (stack))[-1];
 		      node = table_state->anode;
 		      assert (node != NULL);
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
-		      if (grammar->debug_level > 3)
+		      if (g->debug_level > 3)
 			{
 			  fprintf (stderr,
 				   "  Found prev. translation: set place = %d, sit = ",
 				   pl_ind);
-			  sit_print (stderr, sit, grammar->debug_level > 5);
+			  sit_print (stderr, sit, g, g->debug_level > 5);
 			  fprintf (stderr, ", %d\n", sit_orig);
 			}
 #endif
 		    }
-		  place_translation (anode == NULL
+		  place_translation (g, anode == NULL
 				     ? parent_anode->val.anode.children
 				     + parent_disp
 				     : anode->val.anode.children + disp,
@@ -6049,13 +6036,13 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 		  state->parent_disp = anode == NULL ? parent_disp : disp;
 		  state->anode = NULL;
 #if !defined (NDEBUG) && !defined (NO_YAEP_DEBUG_PRINT)
-		  if (grammar->debug_level > 3)
+		  if (g->debug_level > 3)
 		    {
 		      fprintf (stderr,
 			       "  Adding top %ld, set place = %d, sit = ",
 			       (long) VLO_LENGTH (stack) /
 			       sizeof (struct parse_state *) - 1, pl_ind);
-		      sit_print (stderr, sit, grammar->debug_level > 5);
+		      sit_print (stderr, sit, g, g->debug_level > 5);
 		      fprintf (stderr, ", %d\n", sit_orig);
 		    }
 #endif
@@ -6064,7 +6051,7 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 		{
 		  /* Empty rule should produce something not abtract
 		     node.  So place empty node. */
-		  place_translation (anode == NULL
+		  place_translation (g, anode == NULL
 				     ? parent_anode->val.anode.children
 				     + parent_disp
 				     : anode->val.anode.children + disp,
@@ -6076,30 +6063,30 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 	}			/* For all reduces of the nonterminal. */
       /* We should have a parse. */
       assert (n_candidates != 0
-	      && (!grammar->one_parse_p || n_candidates == 1));
+	      && (!g->one_parse_p || n_candidates == 1));
     }				/* For all parser states. */
   VLO_DELETE (stack);
-  if (!grammar->one_parse_p)
+  if (!g->one_parse_p)
     {
       VLO_DELETE (orig_states);
-      yaep_free (grammar->alloc, term_node_array);
+      yaep_free (g->alloc, term_node_array);
     }
-  parse_state_fin (&parse_state_set);
-  grammar->one_parse_p = saved_one_parse_p;
-  if (grammar->cost_p && *ambiguous_p)
+  parse_state_fin (&parse_state_set, g->one_parse_p);
+  g->one_parse_p = saved_one_parse_p;
+  if (g->cost_p && *ambiguous_p)
     /* We can not build minimal tree during building parsing list
        because we have not the translation yet.  We can not make it
        during parsing because the abstract nodes are created before
        their children. */
-    result = find_minimal_translation (result);
+    result = find_minimal_translation (result, g->one_parse_p, g->alloc);
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 1)
+  if (g->debug_level > 1)
     {
       fprintf (stderr, "Translation:\n");
-      print_parse (stderr, result);
+      print_parse (stderr, result, g->symbs_ptr, g->debug_level, g->alloc);
       fprintf (stderr, "\n");
     }
-  else if (grammar->debug_level < 0)
+  else if (g->debug_level < 0)
     {
       fprintf (stderr, "digraph CFG {\n");
       fprintf (stderr, "  node [shape=ellipse, fontsize=200];\n");
@@ -6107,7 +6094,7 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
       fprintf (stderr, "  ordering=out;\n");
       fprintf (stderr, "  page = \"8.5, 11\"; // inches\n");
       fprintf (stderr, "  size = \"7.5, 10\"; // inches\n\n");
-      print_parse (stderr, result);
+      print_parse (stderr, result, g->symbs_ptr, g->debug_level, g->alloc);
       fprintf (stderr, "}\n");
     }
 #endif
@@ -6127,7 +6114,7 @@ make_parse (struct core_symb_vect_set *csv, int *ambiguous_p)
 
   assert (result != NULL
 #ifndef NO_YAEP_DEBUG_PRINT
-	  && (!grammar->one_parse_p || grammar->n_parse_alt_nodes == 0)
+	  && (!g->one_parse_p || g->n_parse_alt_nodes == 0)
 #endif
           );
   return result;
@@ -6199,8 +6186,7 @@ yaep_parse (struct grammar *g,
       free = parse_free_default;
     }
 
-  grammar = g;
-  assert (grammar != NULL);
+  assert(g != NULL);
   read_token = read;
   syntax_error = error;
   parse_alloc = alloc;
@@ -6211,24 +6197,24 @@ yaep_parse (struct grammar *g,
   tok_init_p = parse_init_p = FALSE;
   if ((code = setjmp (g->error_longjump_buff)) != 0)
     {
-      pl_fin ();
+      pl_fin (g->alloc);
       if (parse_init_p)
 	yaep_parse_fin (&csv);
       if (tok_init_p)
 	tok_fin ();
       return code;
     }
-  if (grammar->undefined_p)
-    yaep_error (YAEP_UNDEFINED_OR_BAD_GRAMMAR, "undefined or bad grammar");
+  if (g->undefined_p)
+    yaep_error (g, YAEP_UNDEFINED_OR_BAD_GRAMMAR, "undefined or bad grammar");
 #ifndef NO_YAEP_DEBUG_PRINT
-  grammar->n_goto_successes = 0;
+  g->n_goto_successes = 0;
 #endif
-  tok_init ();
+  tok_init (g->alloc);
   tok_init_p = TRUE;
-  read_toks ();
-  yaep_parse_init (&csv, toks_len);
+  read_toks (g);
+  yaep_parse_init (g, &csv, toks_len);
   parse_init_p = TRUE;
-  pl_create ();
+  pl_create (g->alloc);
 #ifndef __cplusplus
   tab_collisions = get_all_collisions ();
   tab_searches = get_all_searches ();
@@ -6236,8 +6222,8 @@ yaep_parse (struct grammar *g,
   tab_collisions = hash_table::get_all_collisions ();
   tab_searches = hash_table::get_all_searches ();
 #endif
-  build_pl (&csv);
-  *root = make_parse (&csv, ambiguous_p);
+  build_pl (g, &csv);
+  *root = make_parse (g, &csv, ambiguous_p);
 #ifndef __cplusplus
   tab_collisions = get_all_collisions () - tab_collisions;
   tab_searches = get_all_searches () - tab_searches;
@@ -6247,19 +6233,19 @@ yaep_parse (struct grammar *g,
 #endif
 
 #ifndef NO_YAEP_DEBUG_PRINT
-  if (grammar->debug_level > 0)
+  if (g->debug_level > 0)
     {
       fprintf (stderr, "%sGrammar: #terms = %d, #nonterms = %d, ",
 	       *ambiguous_p ? "AMBIGUOUS " : "",
-	       grammar->symbs_ptr->n_terms, grammar->symbs_ptr->n_nonterms);
+	       g->symbs_ptr->n_terms, g->symbs_ptr->n_nonterms);
       fprintf (stderr, "#rules = %d, rules size = %d\n",
-	       grammar->rules_ptr->n_rules,
-	       grammar->rules_ptr->n_rhs_lens + grammar->rules_ptr->n_rules);
+	       g->rules_ptr->n_rules,
+	       g->rules_ptr->n_rhs_lens + g->rules_ptr->n_rules);
       fprintf (stderr, "Input: #tokens = %d, #unique situations = %d\n",
 	       toks_len, n_all_sits);
       fprintf (stderr, "       #terminal sets = %d, their size = %d\n",
-	       grammar->term_sets_ptr->n_term_sets,
-               grammar->term_sets_ptr->n_term_sets_size);
+	       g->term_sets_ptr->n_term_sets,
+               g->term_sets_ptr->n_term_sets_size);
       fprintf (stderr,
 	       "       #unique set cores = %d, #their start situations = %d\n",
 	       n_set_cores, n_set_core_start_sits);
@@ -6274,7 +6260,7 @@ yaep_parse (struct grammar *g,
 	       n_sets, n_sets_start_sits);
       fprintf (stderr,
 	       "       #unique triples (set, term, lookahead) = %d, goto successes=%d\n",
-	       n_set_term_lookaheads, grammar->n_goto_successes);
+	       n_set_term_lookaheads, g->n_goto_successes);
       fprintf (stderr,
 	       "       #pairs(set core, symb) = %d, their trans+reduce vects length = %d\n",
 	       csv.n_core_symb_pairs, csv.n_core_symb_vect_len);
@@ -6323,14 +6309,13 @@ yaep_free_grammar (struct grammar *g)
   if (g != NULL)
     {
       allocator = g->alloc;
-      pl_fin ();
-      rule_fin (g->rules_ptr);
-      term_set_fin (g->term_sets_ptr);
-      symb_fin (g->symbs_ptr);
+      pl_fin (allocator);
+      rule_fin (g->rules_ptr, allocator);
+      term_set_fin (g->term_sets_ptr, allocator);
+      symb_fin (g->symbs_ptr, allocator);
       yaep_free (allocator, g);
       yaep_alloc_del (allocator);
     }
-  grammar = NULL;
 }
 
 static void
