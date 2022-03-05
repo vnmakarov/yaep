@@ -165,7 +165,7 @@ opt_sem :
 terms : terms IDENT number
         {
 	  struct sterm term;
-	  
+
 	  term.repr = (char *) $2;
 	  term.code = $3;
           term.num = VLO_LENGTH (data->sterms) / sizeof (term);
@@ -214,7 +214,7 @@ seq : seq IDENT
     | seq CHAR
        {
 	  struct sterm term;
-	  
+
 	  term.repr = (char *) $2;
 	  term.code = term.repr [1];
           term.num = VLO_LENGTH (data->sterms) / sizeof (term);
@@ -254,13 +254,13 @@ numbers :
         | numbers NUMBER
           {
 	    int symb_num = $2;
-	    
+
 	    OS_TOP_ADD_MEMORY (data->strans, &symb_num, sizeof (int));
           }
         | numbers '-'
           {
 	    int symb_num = YAEP_NIL_TRANSLATION_NUMBER;
-	    
+
 	    OS_TOP_ADD_MEMORY (data->strans, &symb_num, sizeof (int));
           }
         ;
