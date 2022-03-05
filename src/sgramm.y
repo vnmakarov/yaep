@@ -123,6 +123,8 @@ struct parser_data
   /* The following is number of syntax terminal and syntax rules being
      read. */
   int nsterm, nsrule;
+  /* grammar is a back pointer to the grammar. */
+  struct grammar *grammar;
 };
 
 /* Forward declarations. */
@@ -429,6 +431,7 @@ set_sgrammar (struct grammar *g, const char *grammar, struct parser_data *data)
       free_sgrammar (data);
       return code;
     }
+  data->grammar = g;
   OS_CREATE (data->stoks, g->alloc, 0);
   VLO_CREATE (data->sterms, g->alloc, 0);
   VLO_CREATE (data->srules, g->alloc, 0);
