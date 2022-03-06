@@ -201,17 +201,6 @@ struct grammar
   void *userptr;
 };
 
-/* The following is set up the parser amnd used globally. */
-static int (*read_token) (void **attr);
-static void (*syntax_error) (int err_tok_num,
-			     void *err_tok_attr,
-			     int start_ignored_tok_num,
-			     void *start_ignored_tok_attr,
-			     int start_recovered_tok_num,
-			     void *start_recovered_tok_attr);
-static void *(*parse_alloc) (int nmemb);
-static void (*parse_free) (void *mem);
-
 /* Forward decrlarations: */
 static void yaep_error (struct grammar *g, int code, const char *format, ...);
 
@@ -3674,7 +3663,7 @@ yaep_parse_fin (struct core_symb_vect_set *csv)
 
 /* The following function reads all input tokens. */
 static void
-read_toks (struct grammar *g)
+read_toks (struct grammar *g, int (*read_token) (void **))
 {
   int code;
   struct _yaep_reentrant_hack attr;
@@ -4730,7 +4719,8 @@ check_cached_transition_set (struct set *set, int place)
 /* The following function is major function forming parsing list in
    Earley's algorithm. */
 static void
-build_pl (struct grammar *g, struct core_symb_vect_set *csv)
+build_pl (struct grammar *g, struct core_symb_vect_set *csv,
+        void (*syntax_error) (int, void *, int, void *, int, void *))
 {
   int i;
   struct symb *term;
@@ -5319,7 +5309,7 @@ print_parse (FILE * f, struct yaep_tree_node *root,
 INLINE
 #endif
 static void
-place_translation (struct grammar *g,
+place_translation (struct grammar *g, void *(*parse_alloc) (int),
         struct yaep_tree_node **place, struct yaep_tree_node *node)
 {
   struct yaep_tree_node *alt, *next_alt;
@@ -5358,7 +5348,7 @@ place_translation (struct grammar *g,
 }
 
 static struct yaep_tree_node *
-copy_anode (struct grammar *g,
+copy_anode (struct grammar *g, void *(*parse_alloc) (int),
         struct yaep_tree_node **place, struct yaep_tree_node *anode,
         struct rule *rule, int disp)
 {
@@ -5376,7 +5366,7 @@ copy_anode (struct grammar *g,
   for (i = 0; i <= rule->trans_len; i++)
     node->val.anode.children[i] = anode->val.anode.children[i];
   node->val.anode.children[disp] = NULL;
-  place_translation (g, place, node);
+  place_translation (g, parse_alloc, place, node);
   return node;
 }
 
@@ -5401,7 +5391,7 @@ reserv_mem_eq (void *unused, hash_table_entry_t m1, hash_table_entry_t m2)
    (alt node may not refer for another alternative). */
 static struct yaep_tree_node *
 prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node,
-        int one_parse_p, int *cost)
+        int one_parse_p, void (*parse_free) (void *), int *cost)
 {
   struct yaep_tree_node *child, *alt, *next_alt, *result;
   int i, min_cost;
@@ -5432,7 +5422,7 @@ prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node,
 	  for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
 	    {
 	      node->val.anode.children[i] = prune_to_minimal
-                (tnodes_vlo, child, one_parse_p, cost);
+                (tnodes_vlo, child, one_parse_p, parse_free, cost);
 	      node->val.anode.cost += *cost;
 	    }
 	  *cost = node->val.anode.cost;
@@ -5450,7 +5440,7 @@ prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node,
 #endif
 	  next_alt = alt->val.alt.next;
 	  alt->val.alt.node = prune_to_minimal
-            (tnodes_vlo, alt->val.alt.node, one_parse_p, cost);
+            (tnodes_vlo, alt->val.alt.node, one_parse_p, parse_free, cost);
 	  if (alt == node || min_cost > *cost)
 	    {
 	      min_cost = *cost;
@@ -5475,8 +5465,8 @@ prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node,
 /* The following function traverses the translation collecting
    reference to memory which may not be freed. */
 static void
-traverse_pruned_translation
-  (hash_table_t reserv_mem_tab, struct yaep_tree_node *node)
+traverse_pruned_translation (hash_table_t reserv_mem_tab,
+        struct yaep_tree_node *node, void (*parse_free) (void *))
 {
   struct yaep_tree_node *child, *alt;
   hash_table_entry_t *entry;
@@ -5501,12 +5491,13 @@ traverse_pruned_translation
 					      TRUE)) == NULL)
 	*entry = (hash_table_entry_t) node->val.anode.name;
       for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
-	traverse_pruned_translation (reserv_mem_tab, child);
+	traverse_pruned_translation (reserv_mem_tab, child, parse_free);
       assert (node->val.anode.cost < 0);
       node->val.anode.cost = -node->val.anode.cost - 1;
       break;
     case YAEP_ALT:
-      traverse_pruned_translation (reserv_mem_tab, node->val.alt.node);
+      traverse_pruned_translation (reserv_mem_tab, node->val.alt.node,
+              parse_free);
       if ((node = node->val.alt.next) != NULL)
 	goto next;
       break;
@@ -5519,7 +5510,7 @@ traverse_pruned_translation
 /* The function finds and returns a minimal cost parse(s). */
 static struct yaep_tree_node *
 find_minimal_translation (struct yaep_tree_node *root, int one_parse_p,
-        struct YaepAllocator *alloc)
+        struct YaepAllocator *alloc, void (*parse_free) (void *))
 {
   struct yaep_tree_node **node_ptr;
   int cost;
@@ -5550,11 +5541,11 @@ find_minimal_translation (struct yaep_tree_node *root, int one_parse_p,
       VLO_CREATE (tnodes_vlo, alloc, toks_len * 4 * sizeof (void *));
     }
 #ifndef __cplusplus
-  root = prune_to_minimal (&tnodes_vlo, root, one_parse_p, &cost);
+  root = prune_to_minimal (&tnodes_vlo, root, one_parse_p, parse_free, &cost);
 #else
-  root = prune_to_minimal (tnodes_vlo, root, one_parse_p, &cost);
+  root = prune_to_minimal (tnodes_vlo, root, one_parse_p, parse_free, &cost);
 #endif
-  traverse_pruned_translation (reserv_mem_tab, root);
+  traverse_pruned_translation (reserv_mem_tab, root, parse_free);
   if (parse_free != NULL)
     {
       for (node_ptr = (struct yaep_tree_node **) VLO_BEGIN (tnodes_vlo);
@@ -5586,7 +5577,9 @@ find_minimal_translation (struct yaep_tree_node *root, int one_parse_p,
    ambigous (it works even we asked only one parse tree without
    alternatives). */
 static struct yaep_tree_node *
-make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
+make_parse (struct grammar *g, struct core_symb_vect_set *csv,
+        void *(*parse_alloc) (int), void (*parse_free) (void *),
+        int *ambiguous_p)
 {
   struct set *set, *check_set;
   struct set_core *set_core, *check_set_core;
@@ -5718,8 +5711,9 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
 	    {
 	      /* We do produce nothing but we should.  So write empty
 	         node. */
-	      place_translation (g, parent_anode->val.anode.children +
-				 parent_disp, empty_node);
+	      place_translation (g, parse_alloc,
+                      parent_anode->val.anode.children + parent_disp,
+                      empty_node);
 	      empty_node->val.nil.used = 1;
 	    }
 	  else if (anode != NULL)
@@ -5772,8 +5766,8 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
 		  if (!g->one_parse_p)
 		    term_node_array[pl_ind] = node;
 		}
-	      place_translation
-		(g, anode != NULL ? anode->val.anode.children + disp
+	      place_translation (g, parse_alloc,
+                      anode != NULL ? anode->val.anode.children + disp
 		 : parent_anode->val.anode.children + parent_disp, node);
 	    }
 	  if (pos != 0)
@@ -5906,7 +5900,8 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
 		      state->pl_ind = sit_orig;
 		      if (anode != NULL)
 			state->anode
-			  = copy_anode (g, parent_anode->val.anode.children
+			  = copy_anode (g, parse_alloc,
+                                  parent_anode->val.anode.children
 					+ parent_disp, anode, rule, disp);
 		      VLO_EXPAND (orig_states, sizeof (struct parse_state *));
 		      ((struct parse_state **) VLO_BOUND (orig_states))[-1]
@@ -6012,7 +6007,7 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
 			}
 #endif
 		    }
-		  place_translation (g, anode == NULL
+		  place_translation (g, parse_alloc, anode == NULL
 				     ? parent_anode->val.anode.children
 				     + parent_disp
 				     : anode->val.anode.children + disp,
@@ -6051,7 +6046,7 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
 		{
 		  /* Empty rule should produce something not abtract
 		     node.  So place empty node. */
-		  place_translation (g, anode == NULL
+		  place_translation (g, parse_alloc, anode == NULL
 				     ? parent_anode->val.anode.children
 				     + parent_disp
 				     : anode->val.anode.children + disp,
@@ -6078,7 +6073,8 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv, int *ambiguous_p)
        because we have not the translation yet.  We can not make it
        during parsing because the abstract nodes are created before
        their children. */
-    result = find_minimal_translation (result, g->one_parse_p, g->alloc);
+    result = find_minimal_translation (result, g->one_parse_p, g->alloc,
+            parse_free);
 #ifndef NO_YAEP_DEBUG_PRINT
   if (g->debug_level > 1)
     {
@@ -6187,10 +6183,6 @@ yaep_parse (struct grammar *g,
     }
 
   assert(g != NULL);
-  read_token = read;
-  syntax_error = error;
-  parse_alloc = alloc;
-  parse_free = free;
   *root = NULL;
   *ambiguous_p = FALSE;
   pl_init ();
@@ -6211,7 +6203,7 @@ yaep_parse (struct grammar *g,
 #endif
   tok_init (g->alloc);
   tok_init_p = TRUE;
-  read_toks (g);
+  read_toks (g, read);
   yaep_parse_init (g, &csv, toks_len);
   parse_init_p = TRUE;
   pl_create (g->alloc);
@@ -6222,8 +6214,8 @@ yaep_parse (struct grammar *g,
   tab_collisions = hash_table::get_all_collisions ();
   tab_searches = hash_table::get_all_searches ();
 #endif
-  build_pl (g, &csv);
-  *root = make_parse (g, &csv, ambiguous_p);
+  build_pl (g, &csv, error);
+  *root = make_parse (g, &csv, alloc, free, ambiguous_p);
 #ifndef __cplusplus
   tab_collisions = get_all_collisions () - tab_collisions;
   tab_searches = get_all_searches () - tab_searches;
