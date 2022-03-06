@@ -195,6 +195,11 @@ struct grammar
   struct rules *rules_ptr;
   /* The following terminal sets used for this grammar. */
   struct term_sets *term_sets_ptr;
+
+  /* Earley's parser list. */
+  int pl_curr;
+  struct set **pl;
+
   /* Allocator. */
   YaepAllocator *alloc;
   /* User pointer */
@@ -2170,34 +2175,21 @@ set_fin (void)
 
 /* This page is abstract data `parser list'. */
 
-/* The following two variables represents Earley's parser list.  The
-   values of pl_curr and array *pl can be read and modified
-   externally. */
-static struct set **pl;
-static int pl_curr;
-
-/* Initialize work with the parser list. */
-static void
-pl_init (void)
-{
-  pl = NULL;
-}
-
 /* The following function creates Earley's parser list. */
-static void
-pl_create (struct YaepAllocator *alloc)
+static struct set **
+pl_create (int *pl_curr, struct YaepAllocator *alloc)
 {
   void *mem;
 
   /* Because of error recovery we may have sets 2 times more than tokens. */
   mem = yaep_malloc (alloc, sizeof (struct set *) * (toks_len + 1) * 2);
-  pl = (struct set **) mem;
-  pl_curr = -1;
+  *pl_curr = -1;
+  return (struct set **) mem;
 }
 
 /* Finalize work with the parser list. */
 static void
-pl_fin (struct YaepAllocator *alloc)
+pl_fin (struct set **pl, struct YaepAllocator *alloc)
 {
   if (pl != NULL)
     yaep_free (alloc, pl);
@@ -3060,6 +3052,8 @@ yaep_create_grammar (void)
   g->symbs_ptr = symb_init (allocator);
   g->term_sets_ptr = term_set_init (g->symbs_ptr, allocator);
   g->rules_ptr = rule_init (allocator);
+  g->pl_curr = 0;
+  g->pl = NULL;
   g->userptr = NULL;
   return g;
 }
@@ -3927,7 +3921,7 @@ build_start_set (struct grammar *g, struct core_symb_vect_set *csv)
   if (!set_insert ())
     assert (FALSE);
   expand_new_start_set (g, csv);
-  pl[0] = new_set;
+  g->pl[0] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
   if (g->debug_level > 2)
     {
@@ -3979,7 +3973,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 #ifndef ABSOLUTE_DISTANCES
       dist = 0;
 #else
-      dist = pl_curr;
+      dist = g->pl_curr;
 #endif
       if (sit_ind >= set_core->n_all_dists)
 #ifdef TRANSITIVE_TRANSITION
@@ -4012,11 +4006,11 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 	     make reduce and add new situations. */
 	  new_dist = new_dists[i];
 #ifndef ABSOLUTE_DISTANCES
-	  place = pl_curr + 1 - new_dist;
+	  place = g->pl_curr + 1 - new_dist;
 #else
 	  place = new_dist;
 #endif
-	  prev_set = pl[place];
+	  prev_set = g->pl[place];
 	  prev_set_core = prev_set->core;
 	  prev_core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
                   prev_set_core, new_sit->rule->lhs);
@@ -4173,15 +4167,15 @@ save_original_sets (struct recovery_state_sets *recovery, struct grammar *g)
 {
   int length, curr_pl;
 
-  assert (pl_curr >= 0
+  assert (g->pl_curr >= 0
       && recovery->original_last_pl_el <= recovery->start_pl_curr);
   length = VLO_LENGTH (recovery->original_pl_tail_stack)
             / sizeof (struct set *);
   for (curr_pl = recovery->start_pl_curr - length;
-       curr_pl >= pl_curr;
+       curr_pl >= g->pl_curr;
        curr_pl--)
     {
-      VLO_ADD_MEMORY (recovery->original_pl_tail_stack, &pl[curr_pl],
+      VLO_ADD_MEMORY (recovery->original_pl_tail_stack, &g->pl[curr_pl],
 		      sizeof (struct set *));
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 2)
@@ -4189,14 +4183,14 @@ save_original_sets (struct recovery_state_sets *recovery, struct grammar *g)
 	  fprintf (stderr, "++++Save original set=%d\n", curr_pl);
 	  if (g->debug_level > 3)
 	    {
-	      set_print (stderr, pl[curr_pl], g, curr_pl,
+	      set_print (stderr, g->pl[curr_pl], g, curr_pl,
 			 g->debug_level > 4, g->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
 	}
 #endif
     }
-  recovery->original_last_pl_el = pl_curr - 1;
+  recovery->original_last_pl_el = g->pl_curr - 1;
 }
 
 /* If it is necessary, the following function restores original pl
@@ -4215,7 +4209,7 @@ restore_original_sets (struct recovery_state_sets *recovery,
   for (;;)
     {
       recovery->original_last_pl_el++;
-      pl[recovery->original_last_pl_el]
+      g->pl[recovery->original_last_pl_el]
 	= ((struct set **) VLO_BEGIN (recovery->original_pl_tail_stack))
 	[recovery->start_pl_curr - recovery->original_last_pl_el];
 #ifndef NO_YAEP_DEBUG_PRINT
@@ -4225,7 +4219,7 @@ restore_original_sets (struct recovery_state_sets *recovery,
 		   recovery->original_last_pl_el);
 	  if (g->debug_level > 3)
 	    {
-	      set_print (stderr, pl[recovery->original_last_pl_el], g,
+	      set_print (stderr, g->pl[recovery->original_last_pl_el], g,
                          recovery->original_last_pl_el,
 			 g->debug_level > 4, g->debug_level > 5);
 	      fprintf (stderr, "\n");
@@ -4248,7 +4242,8 @@ INLINE
 #endif
 static int
 find_error_pl_set (struct core_symb_vect_set *csv, struct symbs *symbs,
-        struct symb *term_error, int start_pl_set, int *cost)
+        struct symb *term_error, struct set **pl, int start_pl_set,
+        int *cost)
 {
   int curr_pl;
 
@@ -4286,17 +4281,17 @@ new_recovery_state (struct recovery_state_sets *recovery, struct grammar *g,
     }
 #endif
   state.last_original_pl_el = last_original_pl_el;
-  state.pl_tail_length = pl_curr - last_original_pl_el;
+  state.pl_tail_length = g->pl_curr - last_original_pl_el;
   assert (state.pl_tail_length >= 0);
-  for (i = last_original_pl_el + 1; i <= pl_curr; i++)
+  for (i = last_original_pl_el + 1; i <= g->pl_curr; i++)
     {
-      OS_TOP_ADD_MEMORY (recovery->recovery_state_tail_sets, &pl[i],
-                         sizeof (pl[i]));
+      OS_TOP_ADD_MEMORY (recovery->recovery_state_tail_sets, &g->pl[i],
+                         sizeof (g->pl[i]));
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 3)
 	{
 	  fprintf (stderr, "++++++Saving set=%d\n", i);
-	  set_print (stderr, pl[i], g, i,
+	  set_print (stderr, g->pl[i], g, i,
                   g->debug_level > 4, g->debug_level > 5);
 	  fprintf (stderr, "\n");
 	}
@@ -4345,25 +4340,25 @@ set_recovery_state (struct recovery_state_sets *recovery, struct grammar *g,
 
   tok_curr = state->start_tok;
   restore_original_sets (recovery, g, state->last_original_pl_el);
-  pl_curr = state->last_original_pl_el;
+  g->pl_curr = state->last_original_pl_el;
 #ifndef NO_YAEP_DEBUG_PRINT
   if (g->debug_level > 2)
     {
       fprintf (stderr, "++++Set recovery state: set=%d, tok=%d, ",
-	       pl_curr, tok_curr);
+	       g->pl_curr, tok_curr);
       symb_print (stderr, toks[tok_curr].symb, TRUE);
       fprintf (stderr, "\n");
     }
 #endif
   for (i = 0; i < state->pl_tail_length; i++)
     {
-      pl[++pl_curr] = state->pl_tail[i];
+      g->pl[++g->pl_curr] = state->pl_tail[i];
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 3)
 	{
-	  fprintf (stderr, "++++++Add saved set=%d\n", pl_curr);
-	  set_print (stderr, pl[pl_curr], g, pl_curr, g->debug_level > 4,
-		     g->debug_level > 5);
+	  fprintf (stderr, "++++++Add saved set=%d\n", g->pl_curr);
+	  set_print (stderr, g->pl[g->pl_curr], g, g->pl_curr,
+                  g->debug_level > 4, g->debug_level > 5);
 	  fprintf (stderr, "\n");
 	}
 #endif
@@ -4416,12 +4411,12 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
   OS_CREATE (recovery->recovery_state_tail_sets, g->alloc, 0);
   VLO_NULLIFY (recovery->original_pl_tail_stack);
   VLO_NULLIFY (recovery->recovery_state_stack);
-  recovery->start_pl_curr = pl_curr;
+  recovery->start_pl_curr = g->pl_curr;
   recovery->start_tok_curr = tok_curr;
   /* Initialize error recovery state stack. */
-  pl_curr = recovery->back_pl_frontier
-    = find_error_pl_set (csv, g->symbs_ptr, g->term_error,
-            pl_curr, &backward_move_cost);
+  g->pl_curr = recovery->back_pl_frontier
+    = find_error_pl_set (csv, g->symbs_ptr, g->term_error, g->pl,
+            g->pl_curr, &backward_move_cost);
   back_to_frontier_move_cost = backward_move_cost;
   save_original_sets (recovery, g);
   push_recovery_state (recovery, g,
@@ -4435,19 +4430,19 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
       /* Advance back frontier. */
       if (recovery->back_pl_frontier > 0)
 	{
-	  int saved_pl_curr = pl_curr, saved_tok_curr = tok_curr;
+	  int saved_pl_curr = g->pl_curr, saved_tok_curr = tok_curr;
 
 	  /* Advance back frontier. */
-	  pl_curr = find_error_pl_set (csv, g->symbs_ptr, g->term_error,
-                  recovery->back_pl_frontier - 1, &backward_move_cost);
+	  g->pl_curr = find_error_pl_set (csv, g->symbs_ptr, g->term_error,
+                  g->pl, recovery->back_pl_frontier - 1, &backward_move_cost);
 #ifndef NO_YAEP_DEBUG_PRINT
 	  if (g->debug_level > 2)
 	    fprintf (stderr, "++++Advance back frontier: old=%d, new=%d\n",
-		     recovery->back_pl_frontier, pl_curr);
+		     recovery->back_pl_frontier, g->pl_curr);
 #endif
 	  if (best_cost >= back_to_frontier_move_cost + backward_move_cost)
 	    {
-	      recovery->back_pl_frontier = pl_curr;
+	      recovery->back_pl_frontier = g->pl_curr;
 	      tok_curr = recovery->start_tok_curr;
 	      save_original_sets (recovery, g);
 	      back_to_frontier_move_cost += backward_move_cost;
@@ -4456,7 +4451,7 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
 	      set_original_set_bound (recovery, state.last_original_pl_el);
 	      tok_curr = saved_tok_curr;
 	    }
-	  pl_curr = saved_pl_curr;
+	  g->pl_curr = saved_pl_curr;
 	}
       /* Advance head frontier. */
       if (best_cost >= cost + 1)
@@ -4479,11 +4474,11 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
 	    }
 	  tok_curr--;
 	}
-      set = pl[pl_curr];
+      set = g->pl[g->pl_curr];
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 2)
 	{
-	  fprintf (stderr, "++++Trying set=%d, tok=%d, ", pl_curr, tok_curr);
+	  fprintf (stderr, "++++Trying set=%d, tok=%d, ", g->pl_curr, tok_curr);
 	  symb_print (stderr, toks[tok_curr].symb, TRUE);
 	  fprintf (stderr, "\n");
 	}
@@ -4494,17 +4489,17 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
       assert (core_symb_vect != NULL);
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 2)
-	fprintf (stderr, "++++Making error shift in set=%d\n", pl_curr);
+	fprintf (stderr, "++++Making error shift in set=%d\n", g->pl_curr);
 #endif
       build_new_set (g, csv, set, core_symb_vect, -1);
-      pl[++pl_curr] = new_set;
+      g->pl[++g->pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 2)
 	{
-	  fprintf (stderr, "++Trying new set=%d\n", pl_curr);
+	  fprintf (stderr, "++Trying new set=%d\n", g->pl_curr);
 	  if (g->debug_level > 3)
 	    {
-	      set_print (stderr, new_set, g, pl_curr, g->debug_level > 4,
+	      set_print (stderr, new_set, g, g->pl_curr, g->debug_level > 4,
 			 g->debug_level > 5);
 	      fprintf (stderr, "\n");
 	    }
@@ -4562,13 +4557,13 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
       lookahead_term_num = (tok_curr + 1 < toks_len
 			    ? toks[tok_curr + 1].symb->u.term.term_num : -1);
       build_new_set (g, csv, new_set, core_symb_vect, lookahead_term_num);
-      pl[++pl_curr] = new_set;
+      g->pl[++g->pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 3)
 	{
-	  fprintf (stderr, "++++++++Building new set=%d\n", pl_curr);
+	  fprintf (stderr, "++++++++Building new set=%d\n", g->pl_curr);
 	  if (g->debug_level > 3)
-	    set_print (stderr, new_set, g, pl_curr, g->debug_level > 4,
+	    set_print (stderr, new_set, g, g->pl_curr, g->debug_level > 4,
 		       g->debug_level > 5);
 	}
 #endif
@@ -4616,7 +4611,7 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
 				? toks[tok_curr + 1].symb->u.term.term_num
 				: -1);
 	  build_new_set (g, csv, new_set, core_symb_vect, lookahead_term_num);
-	  pl[++pl_curr] = new_set;
+	  g->pl[++g->pl_curr] = new_set;
 	}
       if (n_matched_toks >= g->recovery_token_matches
 	  || tok_curr >= toks_len)
@@ -4663,9 +4658,9 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
     {
       fprintf (stderr, "\n++Error recovery end: curr token %d=", tok_curr);
       symb_print (stderr, toks[tok_curr].symb, TRUE);
-      fprintf (stderr, ", Current set=%d:\n", pl_curr);
+      fprintf (stderr, ", Current set=%d:\n", g->pl_curr);
       if (g->debug_level > 3)
-	set_print (stderr, pl[pl_curr], g, pl_curr, g->debug_level > 4,
+	set_print (stderr, g->pl[g->pl_curr], g, g->pl_curr, g->debug_level > 4,
 		   g->debug_level > 5);
     }
 #endif
@@ -4699,7 +4694,8 @@ INLINE
    the next set.  The criterium is that all origin sets of start
    situations are the same as from PLACE.  */
 static int
-check_cached_transition_set (struct set *set, int place)
+check_cached_transition_set (int pl_curr, struct set **pl,
+        struct set *set, int place)
 {
   int i, dist;
   int *dists = set->dists;
@@ -4736,7 +4732,7 @@ build_pl (struct grammar *g, struct core_symb_vect_set *csv,
   error_recovery_init (&recovery, g->alloc);
   build_start_set (g, csv);
   lookahead_term_num = -1;
-  for (tok_curr = pl_curr = 0; tok_curr < toks_len; tok_curr++)
+  for (tok_curr = g->pl_curr = 0; tok_curr < toks_len; tok_curr++)
     {
       term = toks[tok_curr].symb;
       if (g->lookahead_level != 0)
@@ -4749,10 +4745,10 @@ build_pl (struct grammar *g, struct core_symb_vect_set *csv,
 	{
 	  fprintf (stderr, "\nReading %d=", tok_curr);
 	  symb_print (stderr, term, TRUE);
-	  fprintf (stderr, ", Current set=%d\n", pl_curr);
+	  fprintf (stderr, ", Current set=%d\n", g->pl_curr);
 	}
 #endif
-      set = pl[pl_curr];
+      set = g->pl[g->pl_curr];
       new_set = NULL;
 #ifdef USE_SET_HASH_TABLE
       OS_TOP_EXPAND (set_term_lookahead_os,
@@ -4778,7 +4774,7 @@ build_pl (struct grammar *g, struct core_symb_vect_set *csv,
 		 ((struct set_term_lookahead *) *entry)->result[i]) == NULL)
 	      break;
 	    else if (check_cached_transition_set
-		     (tab_set,
+		     (g->pl_curr, g->pl, tab_set,
 		      ((struct set_term_lookahead *) *entry)->place[i]))
 	      {
 		new_set = tab_set;
@@ -4828,20 +4824,20 @@ build_pl (struct grammar *g, struct core_symb_vect_set *csv,
 	  /* Save (set, term, lookahead) -> new_set in the table.  */
 	  i = ((struct set_term_lookahead *) *entry)->curr;
 	  ((struct set_term_lookahead *) *entry)->result[i] = new_set;
-	  ((struct set_term_lookahead *) *entry)->place[i] = pl_curr;
+	  ((struct set_term_lookahead *) *entry)->place[i] = g->pl_curr;
 	  ((struct set_term_lookahead *) *entry)->lookahead =
 	    lookahead_term_num;
 	  ((struct set_term_lookahead *) *entry)->curr =
 	    (i + 1) % MAX_CACHED_GOTO_RESULTS;
 #endif
 	}
-      pl[++pl_curr] = new_set;
+      g->pl[++g->pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 2)
 	{
-	  fprintf (stderr, "New set=%d\n", pl_curr);
+	  fprintf (stderr, "New set=%d\n", g->pl_curr);
 	  if (g->debug_level > 3)
-	    set_print (stderr, new_set, g, pl_curr, g->debug_level > 4,
+	    set_print (stderr, new_set, g, g->pl_curr, g->debug_level > 4,
 		       g->debug_level > 5);
 	}
 #endif
@@ -5607,13 +5603,13 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv,
 #ifndef NO_YAEP_DEBUG_PRINT
   g->n_parse_term_nodes = g->n_parse_abstract_nodes = g->n_parse_alt_nodes = 0;
 #endif
-  set = pl[pl_curr];
+  set = g->pl[g->pl_curr];
   assert (g->axiom != NULL);
   /* We have only one start situation: "$S : <start symb> $eof .".  */
   sit = (set->core->sits != NULL ? set->core->sits[0] : NULL);
   if (sit == NULL
 #ifndef ABSOLUTE_DISTANCES
-      || set->dists[0] != pl_curr
+      || set->dists[0] != g->pl_curr
 #else
       || set->dists[0] != 0
 #endif
@@ -5651,7 +5647,7 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv,
   rule = state->rule = sit->rule;
   state->pos = sit->pos;
   state->orig = 0;
-  state->pl_ind = pl_curr;
+  state->pl_ind = g->pl_curr;
   result = NULL;
   root_state.anode = &root_anode;
   root_anode.val.anode.children = &result;
@@ -5775,7 +5771,7 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv,
 	  continue;
 	}
       /* Nonterminal before dot: */
-      set = pl[pl_ind];
+      set = g->pl[pl_ind];
       set_core = set->core;
       core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr, set_core, symb);
       assert (core_symb_vect->reduces.len != 0);
@@ -5809,7 +5805,7 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv,
 	      fprintf (stderr, ", %d\n", sit_orig);
 	    }
 #endif
-	  check_set = pl[sit_orig];
+	  check_set = g->pl[sit_orig];
 	  check_set_core = check_set->core;
 	  check_core_symb_vect
             = core_symb_vect_find (csv, g->symbs_ptr, check_set_core, symb);
@@ -6185,11 +6181,11 @@ yaep_parse (struct grammar *g,
   assert(g != NULL);
   *root = NULL;
   *ambiguous_p = FALSE;
-  pl_init ();
   tok_init_p = parse_init_p = FALSE;
   if ((code = setjmp (g->error_longjump_buff)) != 0)
     {
-      pl_fin (g->alloc);
+      pl_fin (g->pl, g->alloc);
+      g->pl = NULL;
       if (parse_init_p)
 	yaep_parse_fin (&csv);
       if (tok_init_p)
@@ -6206,7 +6202,7 @@ yaep_parse (struct grammar *g,
   read_toks (g, read);
   yaep_parse_init (g, &csv, toks_len);
   parse_init_p = TRUE;
-  pl_create (g->alloc);
+  g->pl = pl_create (&g->pl_curr, g->alloc);
 #ifndef __cplusplus
   tab_collisions = get_all_collisions ();
   tab_searches = get_all_searches ();
@@ -6301,7 +6297,7 @@ yaep_free_grammar (struct grammar *g)
   if (g != NULL)
     {
       allocator = g->alloc;
-      pl_fin (allocator);
+      pl_fin (g->pl, allocator);
       rule_fin (g->rules_ptr, allocator);
       term_set_fin (g->term_sets_ptr, allocator);
       symb_fin (g->symbs_ptr, allocator);
