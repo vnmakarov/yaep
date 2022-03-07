@@ -92,18 +92,10 @@ struct parser_data
 {
   /* The following vlos contain all syntax terminal and syntax rule
      structures. */
-#ifndef __cplusplus
-  vlo_t sterms, srules;
-#else
   vlo_t *sterms, *srules;
-#endif
   /* The following contain all right hand sides and translations arrays.
      See members rhs, trans in structure `rule'. */
-#ifndef __cplusplus
-  os_t srhs, strans;
-#else
   os_t *srhs, *strans;
-#endif
   /* The following is cost of the last translation which contains an
      abstract node. */
   int anode_cost;
@@ -115,11 +107,7 @@ struct parser_data
   /* The following is current line number of the grammar description. */
   int ln;
   /* The following contains all representation of the syntax tokens. */
-#ifndef __cplusplus
-  os_t stoks;
-#else
   os_t *stoks;
-#endif
   /* The following is number of syntax terminal and syntax rules being
      read. */
   int nsterm, nsrule;

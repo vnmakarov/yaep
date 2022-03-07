@@ -78,6 +78,7 @@ void
 _OS_delete_function (os_t * os)
 {
   struct _os_segment *current_segment, *previous_segment;
+  YaepAllocator *alloc = os->os_alloc;
 
   assert (os->os_top_object_start != NULL);
   os->os_top_object_start = NULL;
@@ -85,8 +86,9 @@ _OS_delete_function (os_t * os)
        current_segment = previous_segment)
     {
       previous_segment = current_segment->os_previous_segment;
-      yaep_free (os->os_alloc, current_segment);
+      yaep_free (alloc, current_segment);
     }
+  yaep_free(alloc, os);
 }
 
 /* The following function implements macro `OS_EMPTY' (freeing memory
@@ -127,7 +129,7 @@ _OS_add_string_function (os_t * os, const char *str)
   if (str == NULL)
     return;
   if (os->os_top_object_free != os->os_top_object_start)
-    OS_TOP_SHORTEN (*os, 1);
+    OS_TOP_SHORTEN (os, 1);
   string_length = strlen (str) + 1;
   if (os->os_top_object_free + string_length > os->os_boundary)
     _OS_expand_memory (os, string_length);
@@ -151,7 +153,7 @@ _OS_expand_memory (os_t * os, size_t additional_length)
   char *new_os_top_object_start;
 
   assert (os->os_top_object_start != NULL);
-  os_top_object_length = OS_TOP_LENGTH (*os);
+  os_top_object_length = OS_TOP_LENGTH (os);
   segment_length = os_top_object_length + additional_length;
   segment_length += segment_length / 2 + 1;
   if (segment_length < OS_DEFAULT_SEGMENT_LENGTH)

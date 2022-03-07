@@ -41,7 +41,7 @@
 #include "ansic.h"
 #include "yaep.h"
 
-static os_t lexs;
+static os_t *lexs;
 static struct lex *list;
 static struct lex *curr = NULL;
 

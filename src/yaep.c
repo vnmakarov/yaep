@@ -225,25 +225,14 @@ void yaep_free_grammar (struct grammar *g);
 static int
 expand_int_vlo (vlo_t * vlo, int n_els)
 {
-#ifndef __cplusplus
-  int i, prev_n_els = VLO_LENGTH (*vlo) / sizeof (int);
+  int i, prev_n_els = VLO_LENGTH (vlo) / sizeof (int);
 
   if (prev_n_els >= n_els)
     return FALSE;
-  VLO_EXPAND (*vlo, (n_els - prev_n_els) * sizeof (int));
+  VLO_EXPAND (vlo, (n_els - prev_n_els) * sizeof (int));
   for (i = prev_n_els; i < n_els; i++)
-    ((int *) VLO_BEGIN (*vlo))[i] = 0;
+    ((int *) VLO_BEGIN (vlo))[i] = 0;
   return TRUE;
-#else
-  int i, prev_n_els = vlo->length () / sizeof (int);
-
-  if (prev_n_els >= n_els)
-    return FALSE;
-  vlo->expand ((n_els - prev_n_els) * sizeof (int));
-  for (i = prev_n_els; i < n_els; i++)
-    ((int *) vlo->begin ())[i] = 0;
-  return TRUE;
-#endif
 }
 
 
@@ -318,24 +307,14 @@ struct symbs
   int n_terms, n_nonterms;
 
   /* All symbols are placed in the following object. */
-#ifndef __cplusplus
-  os_t symbs_os;
-#else
   os_t *symbs_os;
-#endif
 
   /* All references to the symbols, terminals, nonterminals are stored
      in the following vlos.  The indexes in the arrays are the same as
      corresponding symbol, terminal, and nonterminal numbers. */
-#ifndef __cplusplus
-  vlo_t symbs_vlo;
-  vlo_t terms_vlo;
-  vlo_t nonterms_vlo;
-#else
   vlo_t *symbs_vlo;
   vlo_t *terms_vlo;
   vlo_t *nonterms_vlo;
-#endif
 
   /* The following are tables to find terminal by its code and symbol by
      its representation. */
@@ -675,11 +654,7 @@ struct tab_term_set
 struct term_sets
 {
   /* All terminal sets are stored in the following os. */
-#ifndef __cplusplus
-  os_t term_set_os;
-#else
   os_t *term_set_os;
-#endif
 
   /* The following variables can be read externally.  Their values are
      number of terminal sets and their overall size. */
@@ -691,11 +666,7 @@ struct term_sets
 
   /* References to all structure tab_term_set are stored in the
      following vlo. */
-#ifndef __cplusplus
-  vlo_t tab_term_set_vlo;
-#else
   vlo_t *tab_term_set_vlo;
-#endif
 };
 
 /* Hash of table terminal set. */
@@ -1007,11 +978,7 @@ struct rules
      externally. */
   struct rule *curr_rule;
   /* All rules are placed in the following object. */
-#ifndef __cplusplus
-  os_t rules_os;
-#else
   os_t *rules_os;
-#endif
 };
 
 /* Initialize work with rules and returns pointer to rules storage. */
@@ -1211,11 +1178,7 @@ static int toks_len;
 static int tok_curr;
 
 /* The following array contains all input tokens. */
-#ifndef __cplusplus
-static vlo_t toks_vlo;
-#else
 static vlo_t *toks_vlo;
-#endif
 
 /* Initialize work with tokens. */
 static void
@@ -1293,18 +1256,10 @@ static struct sit ***sit_table;
 /* The following vlo is indexed by situation context number and gives
    array which is indexed by situation number
    (sit->rule->rule_start_offset + sit->pos). */
-#ifndef __cplusplus
-static vlo_t sit_table_vlo;
-#else
 static vlo_t *sit_table_vlo;
-#endif
 
 /* All situations are placed in the following object. */
-#ifndef __cplusplus
-static os_t sits_os;
-#else
 static os_t *sits_os;
-#endif
 
 /* Initialize work with situations. */
 static void
@@ -1575,48 +1530,24 @@ static int n_sets, n_sets_start_sits;
 static int n_set_term_lookaheads;
 
 /* The set cores of formed sets are placed in the following os. */
-#ifndef __cplusplus
-static os_t set_cores_os;
-#else
 static os_t *set_cores_os;
-#endif
 
 /* The situations of formed sets are placed in the following os. */
-#ifndef __cplusplus
-static os_t set_sits_os;
-#else
 static os_t *set_sits_os;
-#endif
 
 /* The indexes of the parent start situations whose distances are used
    to get distances of some nonstart situations are placed in the
    following os. */
-#ifndef __cplusplus
-static os_t set_parent_indexes_os;
-#else
 static os_t *set_parent_indexes_os;
-#endif
 
 /* The distances of formed sets are placed in the following os. */
-#ifndef __cplusplus
-static os_t set_dists_os;
-#else
 static os_t *set_dists_os;
-#endif
 
 /* The sets themself are placed in the following os. */
-#ifndef __cplusplus
-static os_t sets_os;
-#else
 static os_t *sets_os;
-#endif
 
 /* Container for triples (set, term, lookahead.  */
-#ifndef __cplusplus
-static os_t set_term_lookahead_os;
-#else
 static os_t *set_term_lookahead_os;
-#endif
 
 /* The following 3 tables contain references for sets which refers
    for set cores or distances or both which are in the tables. */
@@ -1727,13 +1658,9 @@ set_term_lookahead_eq (void *unused,
 
 /* This page contains code for table of pairs (sit, dist).  */
 
-#ifndef __cplusplus
 /* Vector implementing map: sit number -> vlo of the distance check
    indexed by the distance.  */
-static vlo_t sit_dist_vec_vlo;
-#else
 static vlo_t *sit_dist_vec_vlo;
-#endif
 
 /* The value used to check the validity of elements of check_dist
    structures.  */
@@ -1743,7 +1670,7 @@ static int curr_sit_dist_vec_check;
 static void
 sit_dist_set_init (struct YaepAllocator *alloc)
 {
-  VLO_CREATE (sit_dist_vec_vlo, alloc, 8192);
+  VLO_CREATE (sit_dist_vec_vlo, alloc, 2048);
   curr_sit_dist_vec_check = 0;
 }
 
@@ -1764,59 +1691,35 @@ sit_dist_insert (struct sit *sit, int dist, struct YaepAllocator *alloc)
 
   sit_number = sit->sit_number;
   /* Expand the set to accommodate possibly a new situation.  */
-  len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t);
+  len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t *);
   if (len <= sit_number)
     {
-      VLO_EXPAND (sit_dist_vec_vlo, (sit_number + 1 - len) * sizeof (vlo_t));
+      VLO_EXPAND (sit_dist_vec_vlo, (sit_number + 1 - len) * sizeof (vlo_t *));
       for (i = len; i <= sit_number; i++)
-#ifndef __cplusplus
-	VLO_CREATE (((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[i], alloc, 64);
-#else
-	((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i] =
-	  new vlo (alloc, 64);
-#endif
+	VLO_CREATE (((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i], alloc, 64);
     }
-#ifndef __cplusplus
-  check_dist_vlo = &((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[sit_number];
-  len = VLO_LENGTH (*check_dist_vlo) / sizeof (int);
-  if (len <= dist)
-    {
-      VLO_EXPAND (*check_dist_vlo, (dist + 1 - len) * sizeof (int));
-      for (i = len; i <= dist; i++)
-	((int *) VLO_BEGIN (*check_dist_vlo))[i] = 0;
-    }
-  if (((int *) VLO_BEGIN (*check_dist_vlo))[dist] == curr_sit_dist_vec_check)
-    return FALSE;
-  ((int *) VLO_BEGIN (*check_dist_vlo))[dist] = curr_sit_dist_vec_check;
-  return TRUE;
-#else
   check_dist_vlo = ((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[sit_number];
-  len = check_dist_vlo->length () / sizeof (int);
+  len = VLO_LENGTH (check_dist_vlo) / sizeof (int);
   if (len <= dist)
     {
-      check_dist_vlo->expand ((dist + 1 - len) * sizeof (int));
+      VLO_EXPAND (check_dist_vlo, (dist + 1 - len) * sizeof (int));
       for (i = len; i <= dist; i++)
-	((int *) check_dist_vlo->begin ())[i] = 0;
+	((int *) VLO_BEGIN (check_dist_vlo))[i] = 0;
     }
-  if (((int *) check_dist_vlo->begin ())[dist] == curr_sit_dist_vec_check)
+  if (((int *) VLO_BEGIN (check_dist_vlo))[dist] == curr_sit_dist_vec_check)
     return FALSE;
-  ((int *) check_dist_vlo->begin ())[dist] = curr_sit_dist_vec_check;
+  ((int *) VLO_BEGIN (check_dist_vlo))[dist] = curr_sit_dist_vec_check;
   return TRUE;
-#endif
 }
 
 /* Finish the set of pairs (sit, dist).  */
 static void
 sit_dist_set_fin (void)
 {
-  int i, len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t);
+  int i, len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t *);
 
   for (i = 0; i < len; i++)
-#ifndef __cplusplus
-    VLO_DELETE (((vlo_t *) VLO_BEGIN (sit_dist_vec_vlo))[i]);
-#else
-    delete ((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i];
-#endif
+    VLO_DELETE (((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i]);
   VLO_DELETE (sit_dist_vec_vlo);
 }
 
@@ -1831,15 +1734,11 @@ static int curr_sit_check;
    vectors:  */
 /*  The value is used to mark already processed symbols.  */
 static int core_symbol_check;
-#ifndef __cplusplus
 /* The first is used to check already processed symbols.  The second
    contains symbols to be processed.  The third is a queue used during
    building transitive transitions.  */
-static vlo_t core_symbol_check_vlo, core_symbols_vlo, core_symbol_queue_vlo;
-#else
 static vlo_t *core_symbol_check_vlo, *core_symbols_vlo,
   *core_symbol_queue_vlo;
-#endif
 
 #endif
 
@@ -2202,11 +2101,7 @@ pl_fin (struct set **pl, struct YaepAllocator *alloc)
    only to implement abstract data `core_symb_vect'. */
 
 /* All vlos being formed are placed in the following object. */
-#ifndef __cplusplus
-static vlo_t vlo_array;
-#else
 static vlo_t *vlo_array;
-#endif
 
 /* The following is current number of elements in vlo_array. */
 static int vlo_array_len;
@@ -2218,11 +2113,7 @@ INLINE
 static void
 vlo_array_init (struct YaepAllocator *alloc)
 {
-#ifndef __cplusplus
-  VLO_CREATE (vlo_array, alloc, 4096);
-#else
-  vlo_array = new vlo (alloc, 4096);
-#endif
+  VLO_CREATE (vlo_array, alloc, 1024);
   vlo_array_len = 0;
 }
 
@@ -2234,35 +2125,18 @@ INLINE
 static int
 vlo_array_expand (struct YaepAllocator *alloc)
 {
-#ifndef __cplusplus
   vlo_t *vlo_ptr;
 
-  if ((unsigned) vlo_array_len >= VLO_LENGTH (vlo_array) / sizeof (vlo_t))
+  if ((unsigned) vlo_array_len >= VLO_LENGTH (vlo_array) / sizeof (vlo_t *))
     {
-      VLO_EXPAND (vlo_array, sizeof (vlo_t));
-      vlo_ptr = &((vlo_t *) VLO_BEGIN (vlo_array))[vlo_array_len];
-      VLO_CREATE (*vlo_ptr, alloc, 64);
+      VLO_EXPAND (vlo_array, sizeof (vlo_t *));
+      VLO_CREATE (((vlo_t **) VLO_BEGIN (vlo_array))[vlo_array_len], alloc, 64);
     }
   else
     {
-      vlo_ptr = &((vlo_t *) VLO_BEGIN (vlo_array))[vlo_array_len];
-      VLO_NULLIFY (*vlo_ptr);
+      vlo_ptr = ((vlo_t **) VLO_BEGIN (vlo_array))[vlo_array_len];
+      VLO_NULLIFY (vlo_ptr);
     }
-#else
-  vlo_t **vlo_ptr;
-
-  if ((unsigned) vlo_array_len >= vlo_array->length () / sizeof (vlo_t *))
-    {
-      vlo_array->expand (sizeof (vlo_t *));
-      vlo_ptr = &((vlo_t **) vlo_array->begin ())[vlo_array_len];
-      *vlo_ptr = new vlo (alloc, 64);
-    }
-  else
-    {
-      vlo_ptr = &((vlo_t **) vlo_array->begin ())[vlo_array_len];
-      (*vlo_ptr)->nullify ();
-    }
-#endif
   return vlo_array_len++;
 }
 
@@ -2284,11 +2158,7 @@ static vlo_t *
 vlo_array_el (int index)
 {
   assert (index >= 0 && vlo_array_len > index);
-#ifndef __cplusplus
-  return &((vlo_t *) VLO_BEGIN (vlo_array))[index];
-#else
-  return ((vlo_t **) vlo_array->begin ())[index];
-#endif
+  return ((vlo_t **) VLO_BEGIN (vlo_array))[index];
 }
 
 /* Finalize work with array of vlos. */
@@ -2298,21 +2168,12 @@ INLINE
 static void
 vlo_array_fin (void)
 {
-#ifndef __cplusplus
-  vlo_t *vlo_ptr;
+  vlo_t **vlo_ptr;
 
-  for (vlo_ptr = VLO_BEGIN (vlo_array);
+  for (vlo_ptr = (vlo_t **) VLO_BEGIN (vlo_array);
        (char *) vlo_ptr < (char *) VLO_BOUND (vlo_array); vlo_ptr++)
     VLO_DELETE (*vlo_ptr);
   VLO_DELETE (vlo_array);
-#else
-  vlo_t **vlo_ptr;
-
-  for (vlo_ptr = (vlo_t **) vlo_array->begin ();
-       (char *) vlo_ptr < (char *) vlo_array->bound (); vlo_ptr++)
-    delete *vlo_ptr;
-  delete vlo_array;
-#endif
 }
 
 
@@ -2381,28 +2242,16 @@ struct core_symb_vect_set {
 
   /* All triples (set core, symbol, vect) are placed in the following
      object. */
-#ifndef __cplusplus
-  os_t core_symb_vect_os;
-#else
   os_t *core_symb_vect_os;
-#endif
 
   /* Pointers to triples (set core, symbol, vect) being formed are
      placed in the following object. */
-#ifndef __cplusplus
-  vlo_t new_core_symb_vect_vlo;
-#else
   vlo_t *new_core_symb_vect_vlo;
-#endif
 
   /* All elements of vectors in the table (see
      (transitive_)transition_els_tab and reduce_els_tab) are placed in
      the following os. */
-#ifndef __cplusplus
-  os_t vect_els_os;
-#else
   os_t *vect_els_os;
-#endif
 
 #ifdef USE_CORE_SYMB_HASH_TABLE
   hash_table_t core_symb_to_vect_tab; /* key is set_core and symb. */
@@ -2411,22 +2260,14 @@ struct core_symb_vect_set {
      symbol)->core_symb_vect implemented as two dimensional array. */
   /* The following object contains pointers to the table rows for each
      set core. */
-#ifndef __cplusplus
-  vlo_t core_symb_table_vlo;
-#else
   vlo_t *core_symb_table_vlo;
-#endif
 
   /* The following is always start of the previous object. */
   struct core_symb_vect ***core_symb_table;
 
   /* The following contains rows of the table.  The element in the rows
      are indexed by symbol number. */
-#ifndef __cplusplus
-  os_t core_symb_tab_rows;
-#else
   os_t *core_symb_tab_rows;
-#endif
 #endif
 
   /* The following tables contains references for core_symb_vect which
@@ -2545,15 +2386,9 @@ static void
 core_symb_vect_init (struct YaepAllocator *alloc,
         struct core_symb_vect_set *csv)
 {
-#ifndef __cplusplus
   OS_CREATE (csv->core_symb_vect_os, alloc, 0);
   VLO_CREATE (csv->new_core_symb_vect_vlo, alloc, 0);
   OS_CREATE (csv->vect_els_os, alloc, 0);
-#else
-  csv->core_symb_vect_os = new os (alloc, 0);
-  csv->new_core_symb_vect_vlo = new vlo (alloc, 0);
-  csv->vect_els_os = new os (alloc, 0);
-#endif
   vlo_array_init (alloc);
 #ifdef USE_CORE_SYMB_HASH_TABLE
 #ifndef __cplusplus
@@ -2566,17 +2401,10 @@ core_symb_vect_init (struct YaepAllocator *alloc,
 		    core_symb_vect_eq);
 #endif
 #else
-#ifndef __cplusplus
   VLO_CREATE (csv->core_symb_table_vlo, alloc, 4096);
   csv->core_symb_table
     = (struct core_symb_vect ***) VLO_BEGIN (csv->core_symb_table_vlo);
   OS_CREATE (csv->core_symb_tab_rows, alloc, 8192);
-#else
-  csv->core_symb_table_vlo = new vlo (alloc, 4096);
-  csv->core_symb_table
-    = (struct core_symb_vect ***) csv->core_symb_table_vlo->begin ();
-  csv->core_symb_tab_rows = new os (alloc, 8192);
-#endif
 #endif
 
 #ifndef __cplusplus
@@ -2654,57 +2482,31 @@ core_symb_vect_addr_get (struct core_symb_vect_set *csv, struct symbs *symbs,
   struct core_symb_vect ***core_symb_vect_ptr;
 
   core_symb_vect_ptr = csv->core_symb_table + set_core->num;
-#ifndef __cplusplus
   if ((char *) core_symb_vect_ptr
       >= (char *) VLO_BOUND (csv->core_symb_table_vlo))
-#else
-  if ((char *) core_symb_vect_ptr
-      >= (char *) csv->core_symb_table_vlo->bound ())
-#endif
     {
       struct core_symb_vect ***ptr, ***bound;
       int diff, i;
 
-#ifndef __cplusplus
       diff = ((char *) core_symb_vect_ptr
 	      - (char *) VLO_BOUND (csv->core_symb_table_vlo));
-#else
-      diff = ((char *) core_symb_vect_ptr
-	      - (char *) csv->core_symb_table_vlo->bound ());
-#endif
       diff += sizeof (struct core_symb_vect **);
       if (diff == sizeof (struct core_symb_vect **))
 	diff *= 10;
-#ifndef __cplusplus
       VLO_EXPAND (csv->core_symb_table_vlo, diff);
       csv->core_symb_table
 	= (struct core_symb_vect ***) VLO_BEGIN (csv->core_symb_table_vlo);
       core_symb_vect_ptr = csv->core_symb_table + set_core->num;
       bound = (struct core_symb_vect ***) VLO_BOUND (csv->core_symb_table_vlo);
-#else
-      csv->core_symb_table_vlo->expand (diff);
-      csv->core_symb_table
-	= (struct core_symb_vect ***) csv->core_symb_table_vlo->begin ();
-      core_symb_vect_ptr = csv->core_symb_table + set_core->num;
-      bound = (struct core_symb_vect ***) csv->core_symb_table_vlo->bound ();
-#endif
       ptr = bound - diff / sizeof (struct core_symb_vect **);
       while (ptr < bound)
 	{
-#ifndef __cplusplus
 	  OS_TOP_EXPAND (csv->core_symb_tab_rows,
 			 (symbs->n_terms + symbs->n_nonterms)
 			 * sizeof (struct core_symb_vect *));
-	  *ptr = OS_TOP_BEGIN (csv->core_symb_tab_rows);
+	  *ptr = (struct core_symb_vect **) OS_TOP_BEGIN (
+                  csv->core_symb_tab_rows);
 	  OS_TOP_FINISH (csv->core_symb_tab_rows);
-#else
-	  csv->core_symb_tab_rows->top_expand
-	    ((symbs->n_terms + symbs->n_nonterms)
-	     * sizeof (struct core_symb_vect *));
-	  *ptr
-            = (struct core_symb_vect **) csv->core_symb_tab_rows->top_begin ();
-	  csv->core_symb_tab_rows->top_finish ();
-#endif
 	  for (i = 0; i < symbs->n_terms + symbs->n_nonterms; i++)
 	    (*ptr)[i] = NULL;
 	  ptr++;
@@ -2746,13 +2548,8 @@ core_symb_vect_new (struct core_symb_vect_set *csv, struct symbs *symbs,
   vlo_t *vlo_ptr;
 
   /* Create table element. */
-#ifndef __cplusplus
   OS_TOP_EXPAND (csv->core_symb_vect_os, sizeof (struct core_symb_vect));
   triple = ((struct core_symb_vect *) OS_TOP_BEGIN (csv->core_symb_vect_os));
-#else
-  csv->core_symb_vect_os->top_expand (sizeof (struct core_symb_vect));
-  triple = ((struct core_symb_vect *) csv->core_symb_vect_os->top_begin ());
-#endif
   triple->set_core = set_core;
   triple->symb = symb;
 #ifndef __cplusplus
@@ -2772,35 +2569,21 @@ core_symb_vect_new (struct core_symb_vect_set *csv, struct symbs *symbs,
   triple->transitions.intern = vlo_array_expand (alloc);
   vlo_ptr = vlo_array_el (triple->transitions.intern);
   triple->transitions.len = 0;
-#ifndef __cplusplus
-  triple->transitions.els = (int *) VLO_BEGIN (*vlo_ptr);
-#else
-  triple->transitions.els = (int *) vlo_ptr->begin ();
-#endif
+  triple->transitions.els = (int *) VLO_BEGIN (vlo_ptr);
 
 #ifdef TRANSITIVE_TRANSITION
   triple->transitive_transitions.intern = vlo_array_expand (alloc);
   vlo_ptr = vlo_array_el (triple->transitive_transitions.intern);
   triple->transitive_transitions.len = 0;
-#ifndef __cplusplus
-  triple->transitive_transitions.els = (int *) VLO_BEGIN (*vlo_ptr);
-#else
-  triple->transitive_transitions.els = (int *) vlo_ptr->begin ();
-#endif
+  triple->transitive_transitions.els = (int *) VLO_BEGIN (vlo_ptr);
 #endif
 
   triple->reduces.intern = vlo_array_expand (alloc);
   vlo_ptr = vlo_array_el (triple->reduces.intern);
   triple->reduces.len = 0;
-#ifndef __cplusplus
-  triple->reduces.els = (int *) VLO_BEGIN (*vlo_ptr);
+  triple->reduces.els = (int *) VLO_BEGIN (vlo_ptr);
   VLO_ADD_MEMORY (csv->new_core_symb_vect_vlo, &triple,
 		  sizeof (struct core_symb_vect *));
-#else
-  triple->reduces.els = (int *) vlo_ptr->begin ();
-  csv->new_core_symb_vect_vlo->add_memory (&triple,
-				      sizeof (struct core_symb_vect *));
-#endif
   csv->n_core_symb_pairs++;
   return triple;
 }
@@ -2813,13 +2596,8 @@ vect_new_add_el (struct core_symb_vect_set *csv, struct vect *vec, int el)
 
   vec->len++;
   vlo_ptr = vlo_array_el (vec->intern);
-#ifndef __cplusplus
-  VLO_ADD_MEMORY (*vlo_ptr, &el, sizeof (int));
-  vec->els = (int *) VLO_BEGIN (*vlo_ptr);
-#else
-  vlo_ptr->add_memory (&el, sizeof (int));
-  vec->els = (int *) vlo_ptr->begin ();
-#endif
+  VLO_ADD_MEMORY (vlo_ptr, &el, sizeof (int));
+  vec->els = (int *) VLO_BEGIN (vlo_ptr);
   csv->n_core_symb_vect_len++;
 }
 
@@ -2887,15 +2665,9 @@ process_core_symb_vect_el (struct core_symb_vect_set *csv,
       else
 	{
 	  *entry = (hash_table_entry_t) core_symb_vect;
-#ifndef __cplusplus
 	  OS_TOP_ADD_MEMORY (csv->vect_els_os, vec->els, vec->len * sizeof (int));
-	  vec->els = OS_TOP_BEGIN (csv->vect_els_os);
+	  vec->els = (int *) OS_TOP_BEGIN (csv->vect_els_os);
 	  OS_TOP_FINISH (csv->vect_els_os);
-#else
-	  csv->vect_els_os->top_add_memory (vec->els, vec->len * sizeof (int));
-	  vec->els = (int *) csv->vect_els_os->top_begin ();
-	  csv->vect_els_os->top_finish ();
-#endif
 	  (*n_vects)++;
 	  *n_vect_len += vec->len;
 	}
@@ -2909,16 +2681,10 @@ core_symb_vect_new_all_stop (struct core_symb_vect_set *csv)
 {
   struct core_symb_vect **triple_ptr;
 
-#ifndef __cplusplus
-  for (triple_ptr = VLO_BEGIN (csv->new_core_symb_vect_vlo);
+  for (triple_ptr = (struct core_symb_vect **) VLO_BEGIN (
+          csv->new_core_symb_vect_vlo);
        (char *) triple_ptr < (char *) VLO_BOUND (csv->new_core_symb_vect_vlo);
        triple_ptr++)
-#else
-  for (triple_ptr
-       = (struct core_symb_vect **) csv->new_core_symb_vect_vlo->begin ();
-       (char *) triple_ptr < (char *) csv->new_core_symb_vect_vlo->bound ();
-       triple_ptr++)
-#endif
     {
       process_core_symb_vect_el (csv, *triple_ptr, &(*triple_ptr)->transitions,
 				 &csv->transition_els_tab,
@@ -2936,11 +2702,7 @@ core_symb_vect_new_all_stop (struct core_symb_vect_set *csv)
 				 &csv->n_reduce_vect_len);
     }
   vlo_array_nullify ();
-#ifndef __cplusplus
   VLO_NULLIFY (csv->new_core_symb_vect_vlo);
-#else
-  csv->new_core_symb_vect_vlo->nullify ();
-#endif
 }
 
 /* Finalize work with all triples (set core, symbol, vector). */
@@ -2967,24 +2729,13 @@ core_symb_vect_fin (struct core_symb_vect_set *csv)
   delete csv->core_symb_to_vect_tab;
 #endif
 #else
-#ifndef __cplusplus
   OS_DELETE (csv->core_symb_tab_rows);
   VLO_DELETE (csv->core_symb_table_vlo);
-#else
-  delete csv->core_symb_tab_rows;
-  delete csv->core_symb_table_vlo;
-#endif
 #endif
   vlo_array_fin ();
-#ifndef __cplusplus
   OS_DELETE (csv->vect_els_os);
   VLO_DELETE (csv->new_core_symb_vect_vlo);
   OS_DELETE (csv->core_symb_vect_os);
-#else
-  delete csv->vect_els_os;
-  delete csv->new_core_symb_vect_vlo;
-  delete csv->core_symb_vect_os;
-#endif
 }
 
 
@@ -3726,7 +3477,7 @@ form_transitive_transition_vectors (struct grammar *g,
   struct core_symb_vect *core_symb_vect, *symb_core_symb_vect;
 
   core_symbol_check++;
-  expand_int_vlo (&core_symbol_check_vlo,
+  expand_int_vlo (core_symbol_check_vlo,
                   g->symbs_ptr->n_terms + g->symbs_ptr->n_nonterms);
   VLO_NULLIFY (core_symbols_vlo);
   collect_core_symbols (g);
@@ -4105,11 +3856,7 @@ struct recovery_state
 struct recovery_state_sets
 {
   /* All tail sets of error recovery are saved in the following os. */
-#ifndef __cplusplus
-  os_t recovery_state_tail_sets;
-#else
   os_t *recovery_state_tail_sets;
-#endif
 
   /* The following variable values is pl_curr and tok_curr at error
      recovery start (when the original syntax error has been fixed). */
@@ -4124,11 +3871,7 @@ struct recovery_state_sets
      This object only grows.  The last object sets may be used to
      restore original pl in order to try another error recovery state
      (alternative). */
-#ifndef __cplusplus
-  vlo_t original_pl_tail_stack;
-#else
   vlo_t *original_pl_tail_stack;
-#endif
 
   /* The following variable value is last pl element which is original
      set (set before the error_recovery start). */
@@ -4137,11 +3880,7 @@ struct recovery_state_sets
   /* The following vlo is error recovery states stack.  The stack
      contains error recovery state which should be investigated to find
      the best error recovery. */
-#ifndef __cplusplus
-  vlo_t recovery_state_stack;
-#else
   vlo_t *recovery_state_stack;
-#endif
 };
 
 /* The following function may be called if you know that pl has
@@ -4875,11 +4614,7 @@ struct parse_state
 struct parse_state_set
 {
   /* The following os contains all allocated parser states. */
-#ifndef __cplusplus
-  os_t parse_state_os;
-#else
   os_t *parse_state_os;
-#endif
 
   /* The following variable refers to head of chain of already allocated
      and then freed parser states. */
@@ -5075,17 +4810,10 @@ visit_node (struct yaep_tree_node *node, hash_table_t trans_visit_nodes_tab,
       /* If it is the new node, we did not visit it yet. */
       trans_visit_node.num = -1 - *n_trans_visit_nodes;
       ++*n_trans_visit_nodes;
-#ifndef __cplusplus
-      OS_TOP_ADD_MEMORY (*trans_visit_nodes_os,
-			 &trans_visit_node, sizeof (trans_visit_node));
-      *entry = (hash_table_entry_t) OS_TOP_BEGIN (*trans_visit_nodes_os);
-      OS_TOP_FINISH (*trans_visit_nodes_os);
-#else
       OS_TOP_ADD_MEMORY (trans_visit_nodes_os,
 			 &trans_visit_node, sizeof (trans_visit_node));
       *entry = (hash_table_entry_t) OS_TOP_BEGIN (trans_visit_nodes_os);
       OS_TOP_FINISH (trans_visit_nodes_os);
-#endif
     }
   return (struct trans_visit_node *) *entry;
 }
@@ -5262,11 +4990,7 @@ print_parse (FILE * f, struct yaep_tree_node *root,
 
   /* All translation visit nodes are placed in the following stack.  All
      the nodes are in the table. */
-#ifndef __cplusplus
-  os_t trans_visit_nodes_os;
-#else
   os_t *trans_visit_nodes_os;
-#endif
 
   /* The following value is number of translation visit nodes. */
   int n_trans_visit_nodes;
@@ -5282,13 +5006,8 @@ print_parse (FILE * f, struct yaep_tree_node *root,
 #endif
   n_trans_visit_nodes = 0;
   OS_CREATE (trans_visit_nodes_os, alloc, 0);
-#ifndef __cplusplus
-  print_node (f, root, symbs, trans_visit_nodes_tab, &trans_visit_nodes_os,
-              &n_trans_visit_nodes, debug_level);
-#else
   print_node (f, root, symbs, trans_visit_nodes_tab, trans_visit_nodes_os,
               &n_trans_visit_nodes, debug_level);
-#endif
   OS_DELETE (trans_visit_nodes_os);
 #ifndef __cplusplus
   delete_hash_table (trans_visit_nodes_tab);
@@ -5399,22 +5118,14 @@ prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node,
     case YAEP_ERROR:
     case YAEP_TERM:
       if (parse_free != NULL)
-#ifndef __cplusplus
-	VLO_ADD_MEMORY (*tnodes_vlo, &node, sizeof (node));
-#else
 	VLO_ADD_MEMORY (tnodes_vlo, &node, sizeof (node));
-#endif
       *cost = 0;
       return node;
     case YAEP_ANODE:
       if (node->val.anode.cost >= 0)
 	{
 	  if (parse_free != NULL)
-#ifndef __cplusplus
-	    VLO_ADD_MEMORY (*tnodes_vlo, &node, sizeof (node));
-#else
 	    VLO_ADD_MEMORY (tnodes_vlo, &node, sizeof (node));
-#endif
 	  for (i = 0; (child = node->val.anode.children[i]) != NULL; i++)
 	    {
 	      node->val.anode.children[i] = prune_to_minimal
@@ -5429,11 +5140,7 @@ prune_to_minimal (vlo_t *tnodes_vlo, struct yaep_tree_node *node,
       for (alt = node; alt != NULL; alt = next_alt)
 	{
 	  if (parse_free != NULL)
-#ifndef __cplusplus
-	    VLO_ADD_MEMORY (*tnodes_vlo, &alt, sizeof (alt));
-#else
 	    VLO_ADD_MEMORY (tnodes_vlo, &alt, sizeof (alt));
-#endif
 	  next_alt = alt->val.alt.next;
 	  alt->val.alt.node = prune_to_minimal
             (tnodes_vlo, alt->val.alt.node, one_parse_p, parse_free, cost);
@@ -5517,11 +5224,7 @@ find_minimal_translation (struct yaep_tree_node *root, int one_parse_p,
 
   /* The following vlo will contain references to memory which should be
      freed.  The same reference can be represented more on time. */
-#ifndef __cplusplus
-  vlo_t tnodes_vlo;
-#else
   vlo_t *tnodes_vlo;
-#endif
 
   if (parse_free != NULL)
     {
@@ -5536,11 +5239,7 @@ find_minimal_translation (struct yaep_tree_node *root, int one_parse_p,
 #endif
       VLO_CREATE (tnodes_vlo, alloc, toks_len * 4 * sizeof (void *));
     }
-#ifndef __cplusplus
-  root = prune_to_minimal (&tnodes_vlo, root, one_parse_p, parse_free, &cost);
-#else
   root = prune_to_minimal (tnodes_vlo, root, one_parse_p, parse_free, &cost);
-#endif
   traverse_pruned_translation (reserv_mem_tab, root, parse_free);
   if (parse_free != NULL)
     {
@@ -5593,11 +5292,7 @@ make_parse (struct grammar *g, struct core_symb_vect_set *csv,
   int parent_disp;
   int saved_one_parse_p;
   struct yaep_tree_node **term_node_array;
-#ifndef __cplusplus
-  vlo_t stack, orig_states;
-#else
   vlo_t *stack, *orig_states;
-#endif
   struct parse_state_set parse_state_set;
 
 #ifndef NO_YAEP_DEBUG_PRINT

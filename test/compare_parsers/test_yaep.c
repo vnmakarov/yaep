@@ -164,7 +164,7 @@ static void store_lexs( YaepAllocator * alloc ) {
 }
 
 /* All parse_alloc memory is contained here. */
-static os_t mem_os;
+static os_t *mem_os;
 
 static void *
 test_parse_alloc (int size)

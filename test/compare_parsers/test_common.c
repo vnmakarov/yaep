@@ -34,7 +34,7 @@ struct lex {
   struct lex *next;
 };
 
-static os_t lexs;
+static os_t *lexs;
 static struct lex *list;
 static struct lex *curr = NULL;
 
