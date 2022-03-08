@@ -1247,31 +1247,29 @@ struct sit
   term_set_el_t *lookahead;
 };
 
-/* The following contains current number of unique situations.  It can
-   be read externally. */
-static int n_all_sits;
-
-/* The following two dimensional array (the first dimension is context
-   number, the second one is situation number) contains references to
-   all possible situations. */
-static struct sit ***sit_table;
-
-/* The following vlo is indexed by situation context number and gives
-   array which is indexed by situation number
-   (sit->rule->rule_start_offset + sit->pos). */
-static vlo_t *sit_table_vlo;
-
-/* All situations are placed in the following object. */
-static os_t *sits_os;
+struct sits {
+  /* The following two-dimensional array (the first dimension is context
+     number, the second one is situation number) contains references to
+     all possible situations. */
+  struct sit ***sit_table;
+  /* The following vlo is indexed by situation context number and gives
+     array which is indexed by situation number
+     (sit->rule->rule_start_offset + sit->pos). */
+  vlo_t *sit_table_vlo;
+  /* All situations are placed in the following object. */
+  os_t *sits_os;
+  /* Current number of unique situations.*/
+  int n_all_sits;
+};
 
 /* Initialize work with situations. */
 static void
-sit_init (struct YaepAllocator *alloc)
+sit_init (struct sits *sits, struct YaepAllocator *alloc)
 {
-  n_all_sits = 0;
-  OS_CREATE (sits_os, alloc, 0);
-  VLO_CREATE (sit_table_vlo, alloc, 4096);
-  sit_table = (struct sit ***) VLO_BEGIN (sit_table_vlo);
+  VLO_CREATE (sits->sit_table_vlo, alloc, 4096);
+  OS_CREATE (sits->sits_os, alloc, 0);
+  sits->sit_table = (struct sit ***) VLO_BEGIN (sits->sit_table_vlo);
+  sits->n_all_sits = 0;
 }
 
 /* The following function sets up lookahead of situation SIT.  The
@@ -1323,37 +1321,39 @@ sit_set_lookahead (struct sit *sit, struct grammar *g)
 INLINE
 #endif
 static struct sit *
-sit_create (struct grammar *g, struct rule *rule, int pos, int context)
+sit_create (struct sits *sits, struct grammar *g, struct rule *rule,
+        int pos, int context)
 {
   struct sit *sit;
   struct sit ***context_sit_table_ptr;
 
   assert (context >= 0);
-  context_sit_table_ptr = sit_table + context;
-  if ((char *) context_sit_table_ptr >= (char *) VLO_BOUND (sit_table_vlo))
+  context_sit_table_ptr = sits->sit_table + context;
+  if ((char *) context_sit_table_ptr >=
+        (char *) VLO_BOUND (sits->sit_table_vlo))
     {
       struct sit ***bound, ***ptr;
       int i, diff;
 
       assert ((g->lookahead_level <= 1 && context == 0)
 	      || (g->lookahead_level > 1 && context >= 0));
-      diff
-	= (char *) context_sit_table_ptr - (char *) VLO_BOUND (sit_table_vlo);
+      diff = (char *) context_sit_table_ptr -
+        (char *) VLO_BOUND (sits->sit_table_vlo);
       diff += sizeof (struct sit **);
       if (g->lookahead_level > 1 && diff == sizeof (struct sit **))
 	diff *= 10;
-      VLO_EXPAND (sit_table_vlo, diff);
-      sit_table = (struct sit ***) VLO_BEGIN (sit_table_vlo);
-      bound = (struct sit ***) VLO_BOUND (sit_table_vlo);
-      context_sit_table_ptr = sit_table + context;
+      VLO_EXPAND (sits->sit_table_vlo, diff);
+      sits->sit_table = (struct sit ***) VLO_BEGIN (sits->sit_table_vlo);
+      bound = (struct sit ***) VLO_BOUND (sits->sit_table_vlo);
+      context_sit_table_ptr = sits->sit_table + context;
       ptr = bound - diff / sizeof (struct sit **);
       while (ptr < bound)
 	{
-	  OS_TOP_EXPAND (sits_os,
+	  OS_TOP_EXPAND (sits->sits_os,
                   (g->rules_ptr->n_rhs_lens + g->rules_ptr->n_rules)
 			 * sizeof (struct sit *));
-	  *ptr = (struct sit **) OS_TOP_BEGIN (sits_os);
-	  OS_TOP_FINISH (sits_os);
+	  *ptr = (struct sit **) OS_TOP_BEGIN (sits->sits_os);
+	  OS_TOP_FINISH (sits->sits_os);
 	  for (i = 0; i < g->rules_ptr->n_rhs_lens + g->rules_ptr->n_rules; i++)
 	           (*ptr)[i] = NULL;
 	  ptr++;
@@ -1361,13 +1361,13 @@ sit_create (struct grammar *g, struct rule *rule, int pos, int context)
     }
   if ((sit = (*context_sit_table_ptr)[rule->rule_start_offset + pos]) != NULL)
     return sit;
-  OS_TOP_EXPAND (sits_os, sizeof (struct sit));
-  sit = (struct sit *) OS_TOP_BEGIN (sits_os);
-  OS_TOP_FINISH (sits_os);
-  n_all_sits++;
+  OS_TOP_EXPAND (sits->sits_os, sizeof (struct sit));
+  sit = (struct sit *) OS_TOP_BEGIN (sits->sits_os);
+  OS_TOP_FINISH (sits->sits_os);
+  sits->n_all_sits++;
   sit->rule = rule;
   sit->pos = pos;
-  sit->sit_number = n_all_sits;
+  sit->sit_number = sits->n_all_sits;
   sit->context = context;
   sit->empty_tail_p = sit_set_lookahead (sit, g);
 #ifdef TRANSITIVE_TRANSITION
@@ -1413,10 +1413,10 @@ sits_hash (int n_sits, struct sit **sits)
 
 /* Finalize work with situations. */
 static void
-sit_fin (void)
+sit_fin (struct sits *sits)
 {
-  VLO_DELETE (sit_table_vlo);
-  OS_DELETE (sits_os);
+  VLO_DELETE (sits->sit_table_vlo);
+  OS_DELETE (sits->sits_os);
 }
 
 
@@ -3379,11 +3379,12 @@ yaep_set_recovery_match (struct grammar *g, int n_toks)
 /* The function initializes all internal data for parser for N_TOKS
    tokens. */
 static void
-yaep_parse_init (struct grammar *g, struct core_symb_vect_set *csv, int n_toks)
+yaep_parse_init (struct grammar *g, struct core_symb_vect_set *csv,
+        struct sits *sits, int n_toks)
 {
   struct rule *rule;
 
-  sit_init (g->alloc);
+  sit_init (sits, g->alloc);
   set_init (g->alloc, n_toks);
   core_symb_vect_init (g->alloc, csv);
 #ifdef USE_CORE_SYMB_HASH_TABLE
@@ -3402,11 +3403,11 @@ yaep_parse_init (struct grammar *g, struct core_symb_vect_set *csv, int n_toks)
 /* The function should be called the last (it frees all allocated
    data for parser). */
 static void
-yaep_parse_fin (struct core_symb_vect_set *csv)
+yaep_parse_fin (struct core_symb_vect_set *csv, struct sits *sits)
 {
   core_symb_vect_fin (csv);
   set_fin ();
-  sit_fin ();
+  sit_fin (sits);
 }
 
 /* The following function reads all input tokens. */
@@ -3431,7 +3432,8 @@ read_toks (struct toks *toks, struct grammar *g, int (*read_token) (void **))
 INLINE
 #endif
 static void
-add_derived_nonstart_sits (struct grammar *g, struct sit *sit, int parent)
+add_derived_nonstart_sits (struct grammar *g, struct sits *sits,
+        struct sit *sit, int parent)
 {
   struct symb *symb;
   struct rule *rule = sit->rule;
@@ -3439,7 +3441,8 @@ add_derived_nonstart_sits (struct grammar *g, struct sit *sit, int parent)
   int i;
 
   for (i = sit->pos; (symb = rule->rhs[i]) != NULL && symb->empty_p; i++)
-    set_add_new_nonstart_sit (sit_create (g, rule, i + 1, context), parent);
+    set_add_new_nonstart_sit (
+            sit_create (sits, g, rule, i + 1, context), parent);
 }
 
 #ifdef TRANSITIVE_TRANSITION
@@ -3472,7 +3475,7 @@ collect_core_symbols (struct grammar *g)
    Transition vectors should be already created.  */
 static void
 form_transitive_transition_vectors (struct grammar *g,
-        struct core_symb_vect_set *csv)
+        struct core_symb_vect_set *csv, struct sits *sits)
 {
   int i, j, k, sit_ind;
   struct symb *symb, *new_symb;
@@ -3516,7 +3519,7 @@ form_transitive_transition_vectors (struct grammar *g,
 		   stop.  */
 		continue;
 	      sit = new_sits[sit_ind];
-	      sit = sit_create (g, sit->rule, sit->pos + 1, sit->context);
+	      sit = sit_create (sits, g, sit->rule, sit->pos + 1, sit->context);
 	      if (sit->empty_tail_p)
 		{
 		  new_symb = sit->rule->lhs;
@@ -3547,7 +3550,8 @@ form_transitive_transition_vectors (struct grammar *g,
 INLINE
 #endif
 static void
-expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
+expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv,
+        struct sits *sits)
 {
   struct sit *sit;
   struct symb *symb;
@@ -3557,7 +3561,7 @@ expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 
   /* Add non start situations with nonzero distances. */
   for (i = 0; i < new_n_start_sits; i++)
-    add_derived_nonstart_sits (g, new_sits[i], i);
+    add_derived_nonstart_sits (g, sits, new_sits[i], i);
   /* Add non start situations and form transitions vectors. */
   for (i = 0; i < new_core->n_sits; i++)
     {
@@ -3575,12 +3579,12 @@ expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 	      if (!symb->term_p)
 		for (rule = symb->u.nonterm.rules;
 		     rule != NULL; rule = rule->lhs_next)
-		  set_new_add_initial_sit (sit_create (g, rule, 0, 0));
+		  set_new_add_initial_sit (sit_create (sits, g, rule, 0, 0));
 	    }
 	  core_symb_vect_new_add_transition_el (csv, core_symb_vect, i);
 	  if (symb->empty_p && i >= new_core->n_all_dists)
 	    set_new_add_initial_sit (
-                    sit_create (g, sit->rule, sit->pos + 1, 0));
+                    sit_create (sits, g, sit->rule, sit->pos + 1, 0));
 	}
     }
   /* Now forming reduce vectors. */
@@ -3599,7 +3603,7 @@ expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 	}
     }
 #ifdef TRANSITIVE_TRANSITION
-  form_transitive_transition_vectors (g, csv);
+  form_transitive_transition_vectors (g, csv, sits);
 #endif
   if (g->lookahead_level > 1)
     {
@@ -3623,7 +3627,7 @@ expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 		{
 		  sit_ind = core_symb_vect->transitions.els[j];
 		  sit = new_sits[sit_ind];
-		  shifted_sit = sit_create (g, sit->rule, sit->pos + 1,
+		  shifted_sit = sit_create (sits, g, sit->rule, sit->pos + 1,
 					    sit->context);
 		  term_set_or (g->symbs_ptr,
                           context_set, shifted_sit->lookahead);
@@ -3633,7 +3637,7 @@ expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 		context_set = term_set_create (g->symbs_ptr, g->term_sets_ptr);
 	      else
 		context = -context - 1;
-	      sit = sit_create (g, new_sit->rule, new_sit->pos, context);
+	      sit = sit_create (sits, g, new_sit->rule, new_sit->pos, context);
 	      if (sit != new_sit)
 		{
 		  new_sits[i] = sit;
@@ -3649,7 +3653,8 @@ expand_new_start_set (struct grammar *g, struct core_symb_vect_set *csv)
 
 /* The following function forms the 1st set. */
 static void
-build_start_set (struct grammar *g, struct core_symb_vect_set *csv)
+build_start_set (struct grammar *g, struct core_symb_vect_set *csv,
+        struct sits *sits)
 {
   struct rule *rule;
   struct sit *sit;
@@ -3669,12 +3674,12 @@ build_start_set (struct grammar *g, struct core_symb_vect_set *csv)
     }
   for (rule = g->axiom->u.nonterm.rules; rule != NULL; rule = rule->lhs_next)
     {
-      sit = sit_create (g, rule, 0, context);
+      sit = sit_create (sits, g, rule, 0, context);
       set_new_add_start_sit (sit, 0);
     }
   if (!set_insert ())
     assert (FALSE);
-  expand_new_start_set (g, csv);
+  expand_new_start_set (g, csv, sits);
   g->pl[0] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
   if (g->debug_level > 2)
@@ -3692,6 +3697,7 @@ build_start_set (struct grammar *g, struct core_symb_vect_set *csv)
    the number is negative, we ignore lookahead at all. */
 static void
 build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
+               struct sits *sits,
                struct set *set, struct core_symb_vect *core_symb_vect,
 	       int lookahead_term_num)
 {
@@ -3717,7 +3723,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
     {
       sit_ind = transitions->els[i];
       sit = set_core->sits[sit_ind];
-      new_sit = sit_create (g, sit->rule, sit->pos + 1, sit->context);
+      new_sit = sit_create (sits, g, sit->rule, sit->pos + 1, sit->context);
       if (local_lookahead_level != 0
 	  && !term_set_test (g->symbs_ptr,
                   new_sit->lookahead, lookahead_term_num)
@@ -3786,7 +3792,8 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 	    {
 	      sit_ind = *curr_el++;
 	      sit = prev_sits[sit_ind];
-	      new_sit = sit_create (g, sit->rule, sit->pos + 1, sit->context);
+	      new_sit = sit_create (sits, g, sit->rule, sit->pos + 1,
+                      sit->context);
 	      if (local_lookahead_level != 0
 		  && !term_set_test (g->symbs_ptr,
                           new_sit->lookahead, lookahead_term_num)
@@ -3820,7 +3827,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
     }
   if (set_insert ())
     {
-      expand_new_start_set (g, csv);
+      expand_new_start_set (g, csv, sits);
       new_core->term = core_symb_vect->symb;
     }
 }
@@ -4140,7 +4147,7 @@ pop_recovery_state (struct recovery_state_sets *recovery, struct toks *toks,
    on which the error occurred. */
 static void
 error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
-                struct toks *toks,
+                struct toks *toks, struct sits *sits,
                 struct recovery_state_sets *recovery, int *start, int *stop)
 {
   struct set *set;
@@ -4238,7 +4245,7 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
       if (g->debug_level > 2)
 	fprintf (stderr, "++++Making error shift in set=%d\n", g->pl_curr);
 #endif
-      build_new_set (g, csv, set, core_symb_vect, -1);
+      build_new_set (g, csv, sits, set, core_symb_vect, -1);
       g->pl[++g->pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 2)
@@ -4303,7 +4310,7 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
       /* Shift the found token. */
       lookahead_term_num = (toks->tok_curr + 1 < toks->toks_len ?
               toks->toks[toks->tok_curr + 1].symb->u.term.term_num : -1);
-      build_new_set (g, csv, new_set, core_symb_vect, lookahead_term_num);
+      build_new_set (g, csv, sits, new_set, core_symb_vect, lookahead_term_num);
       g->pl[++g->pl_curr] = new_set;
 #ifndef NO_YAEP_DEBUG_PRINT
       if (g->debug_level > 3)
@@ -4356,7 +4363,8 @@ error_recovery (struct grammar *g, struct core_symb_vect_set *csv,
 	    break;
 	  lookahead_term_num = (toks->tok_curr + 1 < toks->toks_len ?
                   toks->toks[toks->tok_curr + 1].symb->u.term.term_num : -1);
-	  build_new_set (g, csv, new_set, core_symb_vect, lookahead_term_num);
+	  build_new_set (g, csv, sits, new_set, core_symb_vect,
+                  lookahead_term_num);
 	  g->pl[++g->pl_curr] = new_set;
 	}
       if (n_matched_toks >= g->recovery_token_matches
@@ -4463,6 +4471,7 @@ check_cached_transition_set (int pl_curr, struct set **pl,
    Earley's algorithm. */
 static void
 build_pl (struct grammar *g, struct core_symb_vect_set *csv, struct toks *toks,
+        struct sits *sits,
         void (*syntax_error) (int, void *, int, void *, int, void *))
 {
   int i;
@@ -4477,7 +4486,7 @@ build_pl (struct grammar *g, struct core_symb_vect_set *csv, struct toks *toks,
   struct recovery_state_sets recovery;
 
   error_recovery_init (&recovery, g->alloc);
-  build_start_set (g, csv);
+  build_start_set (g, csv, sits);
   lookahead_term_num = -1;
   for (
           toks->tok_curr = g->pl_curr = 0;
@@ -4556,7 +4565,7 @@ build_pl (struct grammar *g, struct core_symb_vect_set *csv, struct toks *toks,
 	      saved_tok_curr = toks->tok_curr;
 	      if (g->error_recovery_p)
 		{
-		  error_recovery (g, csv, toks, &recovery, &start, &stop);
+		  error_recovery (g, csv, toks, sits, &recovery, &start, &stop);
 		  syntax_error (saved_tok_curr, toks->toks[saved_tok_curr].attr,
 				start, toks->toks[start].attr, stop,
 				toks->toks[stop].attr);
@@ -4569,7 +4578,7 @@ build_pl (struct grammar *g, struct core_symb_vect_set *csv, struct toks *toks,
 		  break;
 		}
 	    }
-	  build_new_set (g, csv, set, core_symb_vect, lookahead_term_num);
+	  build_new_set (g, csv, sits, set, core_symb_vect, lookahead_term_num);
 #ifdef USE_SET_HASH_TABLE
 	  /* Save (set, term, lookahead) -> new_set in the table.  */
 	  i = ((struct set_term_lookahead *) *entry)->curr;
@@ -5876,6 +5885,7 @@ yaep_parse (struct grammar *g,
   int tab_collisions, tab_searches;
   struct core_symb_vect_set csv;
   struct toks toks;
+  struct sits sits;
 
   /* Set up parse allocation */
   if (alloc == NULL)
@@ -5899,7 +5909,7 @@ yaep_parse (struct grammar *g,
       pl_fin (g->pl, g->alloc);
       g->pl = NULL;
       if (parse_init_p)
-	yaep_parse_fin (&csv);
+	yaep_parse_fin (&csv, &sits);
       if (tok_init_p)
 	tok_fin (&toks);
       return code;
@@ -5912,7 +5922,7 @@ yaep_parse (struct grammar *g,
   tok_init (&toks, g->alloc);
   tok_init_p = TRUE;
   read_toks (&toks, g, read);
-  yaep_parse_init (g, &csv, toks.toks_len);
+  yaep_parse_init (g, &csv, &sits, toks.toks_len);
   parse_init_p = TRUE;
   g->pl = pl_create (&g->pl_curr, &toks, g->alloc);
 #ifndef __cplusplus
@@ -5922,7 +5932,7 @@ yaep_parse (struct grammar *g,
   tab_collisions = hash_table::get_all_collisions ();
   tab_searches = hash_table::get_all_searches ();
 #endif
-  build_pl (g, &csv, &toks, error);
+  build_pl (g, &csv, &toks, &sits, error);
   *root = make_parse (g, &csv, &toks, alloc, free, ambiguous_p);
 #ifndef __cplusplus
   tab_collisions = get_all_collisions () - tab_collisions;
@@ -5942,7 +5952,7 @@ yaep_parse (struct grammar *g,
 	       g->rules_ptr->n_rules,
 	       g->rules_ptr->n_rhs_lens + g->rules_ptr->n_rules);
       fprintf (stderr, "Input: #tokens = %d, #unique situations = %d\n",
-	       toks.toks_len, n_all_sits);
+	       toks.toks_len, sits.n_all_sits);
       fprintf (stderr, "       #terminal sets = %d, their size = %d\n",
 	       g->term_sets_ptr->n_term_sets,
                g->term_sets_ptr->n_term_sets_size);
@@ -5992,7 +6002,7 @@ yaep_parse (struct grammar *g,
 	       tab_collisions, tab_searches);
     }
 #endif
-  yaep_parse_fin (&csv);
+  yaep_parse_fin (&csv, &sits);
   tok_fin (&toks);
   return 0;
 }
