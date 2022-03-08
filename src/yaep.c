@@ -1681,7 +1681,7 @@ sit_dist_set_init (struct YaepAllocator *alloc)
 
 /* Make the set empty.  */
 static void
-empty_sit_dist_set (void)
+sit_dist_set_empty (void)
 {
   curr_sit_dist_vec_check++;
 }
@@ -3732,7 +3732,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 #else
   transitions = &core_symb_vect->transitions;
 #endif
-  empty_sit_dist_set ();
+  sit_dist_set_empty ();
   for (i = 0; i < transitions->len; i++)
     {
       sit_ind = transitions->els[i];
