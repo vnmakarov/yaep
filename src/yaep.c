@@ -1560,6 +1560,13 @@ struct sets {
   hash_table_t set_tab; 	/* key is (core, distances). */
   /* Table for triples (set, term, lookahead).  */
   hash_table_t set_term_lookahead_tab;	/* key is (core, distances, lookahead). */
+
+  /* Vector implementing map: sit number -> vlo of the distance check
+     indexed by the distance.  */
+  vlo_t *sit_dist_vec_vlo;
+  /* The value used to check the validity of elements of check_dist
+     structures.  */
+  int curr_sit_dist_vec_check;
 };
 
 /* Hash of set core. */
@@ -1663,47 +1670,42 @@ set_term_lookahead_eq (void *unused,
 
 /* This page contains code for table of pairs (sit, dist).  */
 
-/* Vector implementing map: sit number -> vlo of the distance check
-   indexed by the distance.  */
-static vlo_t *sit_dist_vec_vlo;
-
-/* The value used to check the validity of elements of check_dist
-   structures.  */
-static int curr_sit_dist_vec_check;
-
 /* Initiate the set of pairs (sit, dist).  */
 static void
-sit_dist_set_init (struct YaepAllocator *alloc)
+sit_dist_set_init (struct sets *sets, struct YaepAllocator *alloc)
 {
-  VLO_CREATE (sit_dist_vec_vlo, alloc, 2048);
-  curr_sit_dist_vec_check = 0;
+  VLO_CREATE (sets->sit_dist_vec_vlo, alloc, 2048);
+  sets->curr_sit_dist_vec_check = 0;
 }
 
 /* Make the set empty.  */
 static void
-sit_dist_set_empty (void)
+sit_dist_set_empty (struct sets *sets)
 {
-  curr_sit_dist_vec_check++;
+  sets->curr_sit_dist_vec_check++;
 }
 
 /* Insert pair (SIT, DIST) into the set.  If such pair exists return
    FALSE, otherwise return TRUE.  */
 static int
-sit_dist_insert (struct sit *sit, int dist, struct YaepAllocator *alloc)
+sit_dist_insert (struct sets *sets, struct sit *sit, int dist,
+        struct YaepAllocator *alloc)
 {
   int i, len, sit_number;
   vlo_t *check_dist_vlo;
 
   sit_number = sit->sit_number;
   /* Expand the set to accommodate possibly a new situation.  */
-  len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t *);
+  len = VLO_LENGTH (sets->sit_dist_vec_vlo) / sizeof (vlo_t *);
   if (len <= sit_number)
     {
-      VLO_EXPAND (sit_dist_vec_vlo, (sit_number + 1 - len) * sizeof (vlo_t *));
+      VLO_EXPAND (sets->sit_dist_vec_vlo,
+              (sit_number + 1 - len) * sizeof (vlo_t *));
       for (i = len; i <= sit_number; i++)
-	VLO_CREATE (((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i], alloc, 64);
+	VLO_CREATE (((vlo_t **) VLO_BEGIN (sets->sit_dist_vec_vlo))[i],
+                alloc, 64);
     }
-  check_dist_vlo = ((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[sit_number];
+  check_dist_vlo = ((vlo_t **) VLO_BEGIN (sets->sit_dist_vec_vlo))[sit_number];
   len = VLO_LENGTH (check_dist_vlo) / sizeof (int);
   if (len <= dist)
     {
@@ -1711,21 +1713,22 @@ sit_dist_insert (struct sit *sit, int dist, struct YaepAllocator *alloc)
       for (i = len; i <= dist; i++)
 	((int *) VLO_BEGIN (check_dist_vlo))[i] = 0;
     }
-  if (((int *) VLO_BEGIN (check_dist_vlo))[dist] == curr_sit_dist_vec_check)
+  if (((int *) VLO_BEGIN (check_dist_vlo))[dist] ==
+        sets->curr_sit_dist_vec_check)
     return FALSE;
-  ((int *) VLO_BEGIN (check_dist_vlo))[dist] = curr_sit_dist_vec_check;
+  ((int *) VLO_BEGIN (check_dist_vlo))[dist] = sets->curr_sit_dist_vec_check;
   return TRUE;
 }
 
 /* Finish the set of pairs (sit, dist).  */
 static void
-sit_dist_set_fin (void)
+sit_dist_set_fin (struct sets *sets)
 {
-  int i, len = VLO_LENGTH (sit_dist_vec_vlo) / sizeof (vlo_t *);
+  int i, len = VLO_LENGTH (sets->sit_dist_vec_vlo) / sizeof (vlo_t *);
 
   for (i = 0; i < len; i++)
-    VLO_DELETE (((vlo_t **) VLO_BEGIN (sit_dist_vec_vlo))[i]);
-  VLO_DELETE (sit_dist_vec_vlo);
+    VLO_DELETE (((vlo_t **) VLO_BEGIN (sets->sit_dist_vec_vlo))[i]);
+  VLO_DELETE (sets->sit_dist_vec_vlo);
 }
 
 
@@ -1779,7 +1782,7 @@ set_init (struct sets *sets, struct YaepAllocator *alloc, int n_toks)
   sets->n_set_dists = sets->n_set_dists_len = sets->n_parent_indexes = 0;
   sets->n_sets = sets->n_sets_start_sits = 0;
   sets->n_set_term_lookaheads = 0;
-  sit_dist_set_init (alloc);
+  sit_dist_set_init (sets, alloc);
 #ifdef TRANSITIVE_TRANSITION
   curr_sit_check = 0;
   VLO_CREATE (core_symbol_check_vlo, alloc, 0);
@@ -2072,7 +2075,7 @@ set_fin (struct sets *sets)
   VLO_DELETE (core_symbols_vlo);
   VLO_DELETE (core_symbol_check_vlo);
 #endif
-  sit_dist_set_fin ();
+  sit_dist_set_fin (sets);
   delete_hash_table (sets->set_term_lookahead_tab);
   delete_hash_table (sets->set_tab);
   delete_hash_table (sets->set_dists_tab);
@@ -3732,7 +3735,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 #else
   transitions = &core_symb_vect->transitions;
 #endif
-  sit_dist_set_empty ();
+  sit_dist_set_empty (sets);
   for (i = 0; i < transitions->len; i++)
     {
       sit_ind = transitions->els[i];
@@ -3762,7 +3765,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 #ifndef ABSOLUTE_DISTANCES
       dist++;
 #endif
-      if (sit_dist_insert (new_sit, dist, g->alloc))
+      if (sit_dist_insert (sets, new_sit, dist, g->alloc))
 	set_new_add_start_sit (sets, new_sit, dist);
     }
   for (i = 0; i < sets->new_n_start_sits; i++)
@@ -3833,7 +3836,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 #ifndef ABSOLUTE_DISTANCES
 	      dist += new_dist;
 #endif
-	      if (sit_dist_insert (new_sit, dist, g->alloc))
+	      if (sit_dist_insert (sets, new_sit, dist, g->alloc))
 		set_new_add_start_sit (sets, new_sit, dist);
 	    }
 	  while (curr_el < bound);
