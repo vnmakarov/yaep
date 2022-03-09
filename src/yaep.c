@@ -2115,21 +2115,23 @@ pl_fin (struct set **pl, struct YaepAllocator *alloc)
 /* This page contains code for work with array of vlos.  It is used
    only to implement abstract data `core_symb_vect'. */
 
-/* All vlos being formed are placed in the following object. */
-static vlo_t *vlo_array;
+struct vlos {
+  /* All vlos being formed are placed in the following object. */
+  vlo_t *vlo_array;
 
-/* The following is current number of elements in vlo_array. */
-static int vlo_array_len;
+  /* The following is current number of elements in vlo_array. */
+  int vlo_array_len;
+};
 
 /* Initialize work with array of vlos. */
 #if MAKE_INLINE
 INLINE
 #endif
 static void
-vlo_array_init (struct YaepAllocator *alloc)
+vlo_array_init (struct vlos *vlos, struct YaepAllocator *alloc)
 {
-  VLO_CREATE (vlo_array, alloc, 1024);
-  vlo_array_len = 0;
+  VLO_CREATE (vlos->vlo_array, alloc, 1024);
+  vlos->vlo_array_len = 0;
 }
 
 /* The function forms new empty vlo at the end of the array of
@@ -2138,21 +2140,23 @@ vlo_array_init (struct YaepAllocator *alloc)
 INLINE
 #endif
 static int
-vlo_array_expand (struct YaepAllocator *alloc)
+vlo_array_expand (struct vlos *vlos, struct YaepAllocator *alloc)
 {
   vlo_t *vlo_ptr;
 
-  if ((unsigned) vlo_array_len >= VLO_LENGTH (vlo_array) / sizeof (vlo_t *))
+  if ((unsigned) vlos->vlo_array_len >=
+        VLO_LENGTH (vlos->vlo_array) / sizeof (vlo_t *))
     {
-      VLO_EXPAND (vlo_array, sizeof (vlo_t *));
-      VLO_CREATE (((vlo_t **) VLO_BEGIN (vlo_array))[vlo_array_len], alloc, 64);
+      VLO_EXPAND (vlos->vlo_array, sizeof (vlo_t *));
+      VLO_CREATE (((vlo_t **) VLO_BEGIN (
+              vlos->vlo_array))[vlos->vlo_array_len], alloc, 64);
     }
   else
     {
-      vlo_ptr = ((vlo_t **) VLO_BEGIN (vlo_array))[vlo_array_len];
+      vlo_ptr = ((vlo_t **) VLO_BEGIN (vlos->vlo_array))[vlos->vlo_array_len];
       VLO_NULLIFY (vlo_ptr);
     }
-  return vlo_array_len++;
+  return vlos->vlo_array_len++;
 }
 
 /* The function purges the array of vlos. */
@@ -2160,9 +2164,9 @@ vlo_array_expand (struct YaepAllocator *alloc)
 INLINE
 #endif
 static void
-vlo_array_nullify (void)
+vlo_array_nullify (struct vlos *vlos)
 {
-  vlo_array_len = 0;
+  vlos->vlo_array_len = 0;
 }
 
 /* The following function returns pointer to vlo with INDEX. */
@@ -2170,10 +2174,10 @@ vlo_array_nullify (void)
 INLINE
 #endif
 static vlo_t *
-vlo_array_el (int index)
+vlo_array_el (struct vlos *vlos, int index)
 {
-  assert (index >= 0 && vlo_array_len > index);
-  return ((vlo_t **) VLO_BEGIN (vlo_array))[index];
+  assert (index >= 0 && vlos->vlo_array_len > index);
+  return ((vlo_t **) VLO_BEGIN (vlos->vlo_array))[index];
 }
 
 /* Finalize work with array of vlos. */
@@ -2181,14 +2185,14 @@ vlo_array_el (int index)
 INLINE
 #endif
 static void
-vlo_array_fin (void)
+vlo_array_fin (struct vlos *vlos)
 {
   vlo_t **vlo_ptr;
 
-  for (vlo_ptr = (vlo_t **) VLO_BEGIN (vlo_array);
-       (char *) vlo_ptr < (char *) VLO_BOUND (vlo_array); vlo_ptr++)
+  for (vlo_ptr = (vlo_t **) VLO_BEGIN (vlos->vlo_array);
+       (char *) vlo_ptr < (char *) VLO_BOUND (vlos->vlo_array); vlo_ptr++)
     VLO_DELETE (*vlo_ptr);
-  VLO_DELETE (vlo_array);
+  VLO_DELETE (vlos->vlo_array);
 }
 
 
@@ -2294,6 +2298,9 @@ struct core_symb_vect_set {
   hash_table_t transitive_transition_els_tab; /* key is elements. */
 #endif
   hash_table_t reduce_els_tab; /* key is elements. */
+
+  /* VL object arrays. */
+  struct vlos vlos;
 };
 
 #ifdef USE_CORE_SYMB_HASH_TABLE
@@ -2404,7 +2411,7 @@ core_symb_vect_init (struct YaepAllocator *alloc,
   OS_CREATE (csv->core_symb_vect_os, alloc, 0);
   VLO_CREATE (csv->new_core_symb_vect_vlo, alloc, 0);
   OS_CREATE (csv->vect_els_os, alloc, 0);
-  vlo_array_init (alloc);
+  vlo_array_init (&csv->vlos, alloc);
 #ifdef USE_CORE_SYMB_HASH_TABLE
 #ifndef __cplusplus
   csv->core_symb_to_vect_tab =
@@ -2581,20 +2588,20 @@ core_symb_vect_new (struct core_symb_vect_set *csv, struct symbs *symbs,
   assert (*addr == NULL);
   *addr = triple;
 
-  triple->transitions.intern = vlo_array_expand (alloc);
-  vlo_ptr = vlo_array_el (triple->transitions.intern);
+  triple->transitions.intern = vlo_array_expand (&csv->vlos, alloc);
+  vlo_ptr = vlo_array_el (&csv->vlos, triple->transitions.intern);
   triple->transitions.len = 0;
   triple->transitions.els = (int *) VLO_BEGIN (vlo_ptr);
 
 #ifdef TRANSITIVE_TRANSITION
-  triple->transitive_transitions.intern = vlo_array_expand (alloc);
-  vlo_ptr = vlo_array_el (triple->transitive_transitions.intern);
+  triple->transitive_transitions.intern = vlo_array_expand (&csv->vlos, alloc);
+  vlo_ptr = vlo_array_el (&csv->vlos, triple->transitive_transitions.intern);
   triple->transitive_transitions.len = 0;
   triple->transitive_transitions.els = (int *) VLO_BEGIN (vlo_ptr);
 #endif
 
-  triple->reduces.intern = vlo_array_expand (alloc);
-  vlo_ptr = vlo_array_el (triple->reduces.intern);
+  triple->reduces.intern = vlo_array_expand (&csv->vlos, alloc);
+  vlo_ptr = vlo_array_el (&csv->vlos, triple->reduces.intern);
   triple->reduces.len = 0;
   triple->reduces.els = (int *) VLO_BEGIN (vlo_ptr);
   VLO_ADD_MEMORY (csv->new_core_symb_vect_vlo, &triple,
@@ -2610,7 +2617,7 @@ vect_new_add_el (struct core_symb_vect_set *csv, struct vect *vec, int el)
   vlo_t *vlo_ptr;
 
   vec->len++;
-  vlo_ptr = vlo_array_el (vec->intern);
+  vlo_ptr = vlo_array_el (&csv->vlos, vec->intern);
   VLO_ADD_MEMORY (vlo_ptr, &el, sizeof (int));
   vec->els = (int *) VLO_BEGIN (vlo_ptr);
   csv->n_core_symb_vect_len++;
@@ -2716,7 +2723,7 @@ core_symb_vect_new_all_stop (struct core_symb_vect_set *csv)
 				 &csv->reduce_els_tab, &csv->n_reduce_vects,
 				 &csv->n_reduce_vect_len);
     }
-  vlo_array_nullify ();
+  vlo_array_nullify (&csv->vlos);
   VLO_NULLIFY (csv->new_core_symb_vect_vlo);
 }
 
@@ -2747,7 +2754,7 @@ core_symb_vect_fin (struct core_symb_vect_set *csv)
   OS_DELETE (csv->core_symb_tab_rows);
   VLO_DELETE (csv->core_symb_table_vlo);
 #endif
-  vlo_array_fin ();
+  vlo_array_fin (&csv->vlos);
   OS_DELETE (csv->vect_els_os);
   VLO_DELETE (csv->new_core_symb_vect_vlo);
   OS_DELETE (csv->core_symb_vect_os);
