@@ -2473,8 +2473,8 @@ core_symb_vect_hash (hash_table_entry_t t)
   struct core_symb_vect *core_symb_vect = (struct core_symb_vect *) t;
 
   return ((jauquet_prime_mod32 * hash_shift
-	   + (unsigned) core_symb_vect->set_core) * hash_shift
-	  + (unsigned) core_symb_vect->symb);
+          + (unsigned) (size_t) core_symb_vect->set_core) * hash_shift
+          + (unsigned) (size_t) core_symb_vect->symb);
 }
 
 /* Equality of core_symb_vects. */
