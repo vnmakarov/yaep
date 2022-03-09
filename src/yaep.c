@@ -1567,6 +1567,21 @@ struct sets {
   /* The value used to check the validity of elements of check_dist
      structures.  */
   int curr_sit_dist_vec_check;
+
+#ifdef TRANSITIVE_TRANSITION
+  /* The following variables are used for *using* transitive transition
+     vectors to exclude multiple situation processing.  */
+  int curr_sit_check;
+
+  /* The following variables are used for *building* transitive transition
+     vectors:  */
+  /*  The value is used to mark already processed symbols.  */
+  int core_symbol_check;
+  /* The first is used to check already processed symbols.  The second
+     contains symbols to be processed.  The third is a queue used during
+     building transitive transitions.  */
+  vlo_t *core_symbol_check_vlo, *core_symbols_vlo, *core_symbol_queue_vlo;
+#endif
 };
 
 /* Hash of set core. */
@@ -1732,24 +1747,6 @@ sit_dist_set_fin (struct sets *sets)
 }
 
 
-
-#ifdef TRANSITIVE_TRANSITION
-/* The following varaibles are used for *using* transitive transition
-   vectors to exclude multiple situation processing.  */
-static int curr_sit_check;
-
-/* The following varaibles are used for *building* transitive transition
-   vectors:  */
-/*  The value is used to mark already processed symbols.  */
-static int core_symbol_check;
-/* The first is used to check already processed symbols.  The second
-   contains symbols to be processed.  The third is a queue used during
-   building transitive transitions.  */
-static vlo_t *core_symbol_check_vlo, *core_symbols_vlo,
-  *core_symbol_queue_vlo;
-
-#endif
-
 /* Initialize work with sets for parsing input with N_TOKS tokens. */
 static void
 set_init (struct sets *sets, struct YaepAllocator *alloc, int n_toks)
@@ -1784,11 +1781,11 @@ set_init (struct sets *sets, struct YaepAllocator *alloc, int n_toks)
   sets->n_set_term_lookaheads = 0;
   sit_dist_set_init (sets, alloc);
 #ifdef TRANSITIVE_TRANSITION
-  curr_sit_check = 0;
-  VLO_CREATE (core_symbol_check_vlo, alloc, 0);
-  VLO_CREATE (core_symbols_vlo, alloc, 0);
-  VLO_CREATE (core_symbol_queue_vlo, alloc, 0);
-  core_symbol_check = 0;
+  sets->curr_sit_check = 0;
+  VLO_CREATE (sets->core_symbol_check_vlo, alloc, 0);
+  VLO_CREATE (sets->core_symbols_vlo, alloc, 0);
+  VLO_CREATE (sets->core_symbol_queue_vlo, alloc, 0);
+  sets->core_symbol_check = 0;
 #endif
 }
 
@@ -2071,9 +2068,9 @@ static void
 set_fin (struct sets *sets)
 {
 #ifdef TRANSITIVE_TRANSITION
-  VLO_DELETE (core_symbol_queue_vlo);
-  VLO_DELETE (core_symbols_vlo);
-  VLO_DELETE (core_symbol_check_vlo);
+  VLO_DELETE (sets->core_symbol_queue_vlo);
+  VLO_DELETE (sets->core_symbols_vlo);
+  VLO_DELETE (sets->core_symbol_check_vlo);
 #endif
   sit_dist_set_fin (sets);
   delete_hash_table (sets->set_term_lookahead_tab);
@@ -3468,7 +3465,7 @@ static void
 collect_core_symbols (struct grammar *g, struct sets *sets)
 {
   int i;
-  int *core_symbol_check_vec = (int *) VLO_BEGIN (core_symbol_check_vlo);
+  int *core_symbol_check_vec = (int *) VLO_BEGIN (sets->core_symbol_check_vlo);
   struct symb *symb;
   struct sit *sit;
 
@@ -3479,11 +3476,11 @@ collect_core_symbols (struct grammar *g, struct sets *sets)
 	continue;
       /* There is a symbol after dot in the situation. */
       symb = sit->rule->rhs[sit->pos];
-      if (core_symbol_check_vec[symb->num] == core_symbol_check
+      if (core_symbol_check_vec[symb->num] == sets->core_symbol_check
 	  || symb == g->term_error)
 	continue;
-      core_symbol_check_vec[symb->num] = core_symbol_check;
-      VLO_ADD_MEMORY (core_symbols_vlo, &symb, sizeof (symb));
+      core_symbol_check_vec[symb->num] = sets->core_symbol_check;
+      VLO_ADD_MEMORY (sets->core_symbols_vlo, &symb, sizeof (symb));
     }
 }
 
@@ -3498,28 +3495,33 @@ form_transitive_transition_vectors (struct grammar *g,
   struct sit *sit;
   struct core_symb_vect *core_symb_vect, *symb_core_symb_vect;
 
-  core_symbol_check++;
-  expand_int_vlo (core_symbol_check_vlo,
+  sets->core_symbol_check++;
+  expand_int_vlo (sets->core_symbol_check_vlo,
                   g->symbs_ptr->n_terms + g->symbs_ptr->n_nonterms);
-  VLO_NULLIFY (core_symbols_vlo);
+  VLO_NULLIFY (sets->core_symbols_vlo);
   collect_core_symbols (g, sets);
-  for (i = 0; i < VLO_LENGTH (core_symbols_vlo) / sizeof (struct symb *); i++)
+  for (
+          i = 0;
+          i < VLO_LENGTH (sets->core_symbols_vlo) / sizeof (struct symb *);
+          i++
+  )
     {
-      symb = ((struct symb **) VLO_BEGIN (core_symbols_vlo))[i];
+      symb = ((struct symb **) VLO_BEGIN (sets->core_symbols_vlo))[i];
       core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr, sets->new_core,
               symb);
       if (core_symb_vect == NULL)
 	core_symb_vect = core_symb_vect_new (csv, g->symbs_ptr, sets->new_core,
                 symb, g->alloc);
-      core_symbol_check++;
-      VLO_NULLIFY (core_symbol_queue_vlo);
+      sets->core_symbol_check++;
+      VLO_NULLIFY (sets->core_symbol_queue_vlo);
       /* Put the symbol into the queue.  */
-      VLO_ADD_MEMORY (core_symbol_queue_vlo, &symb, sizeof (symb));
+      VLO_ADD_MEMORY (sets->core_symbol_queue_vlo, &symb, sizeof (symb));
       for (j = 0;
-	   j < VLO_LENGTH (core_symbol_queue_vlo) / sizeof (struct symb *);
+	   j < VLO_LENGTH (sets->core_symbol_queue_vlo) /
+                sizeof (struct symb *);
 	   j++)
 	{
-	  symb = ((struct symb **) VLO_BEGIN (core_symbol_queue_vlo))[j];
+	  symb = ((struct symb **) VLO_BEGIN (sets->core_symbol_queue_vlo))[j];
 	  symb_core_symb_vect = core_symb_vect_find (csv, g->symbs_ptr,
                   sets->new_core, symb);
 	  if (symb_core_symb_vect == NULL)
@@ -3539,16 +3541,16 @@ form_transitive_transition_vectors (struct grammar *g,
 	      if (sit->empty_tail_p)
 		{
 		  new_symb = sit->rule->lhs;
-		  if (((int *) VLO_BEGIN (core_symbol_check_vlo))[new_symb->
-								  num] !=
-		      core_symbol_check)
+		  if (((int *) VLO_BEGIN (
+                          sets->core_symbol_check_vlo))[new_symb->num] !=
+		      sets->core_symbol_check)
 		    {
 		      /* Put the LHS symbol into queue.  */
-		      VLO_ADD_MEMORY (core_symbol_queue_vlo,
+		      VLO_ADD_MEMORY (sets->core_symbol_queue_vlo,
 				      &new_symb, sizeof (new_symb));
-		      ((int *) VLO_BEGIN (core_symbol_check_vlo))[new_symb->
-								  num] =
-			core_symbol_check;
+		      ((int *) VLO_BEGIN (
+                              sets->core_symbol_check_vlo))[new_symb->num] =
+			sets->core_symbol_check;
 		    }
 		}
 	    }
@@ -3730,7 +3732,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
   set_core = set->core;
   set_new_start (sets);
 #ifdef TRANSITIVE_TRANSITION
-  curr_sit_check++;
+  sets->curr_sit_check++;
   transitions = &core_symb_vect->transitive_transitions;
 #else
   transitions = &core_symb_vect->transitions;
@@ -3754,7 +3756,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 #endif
       if (sit_ind >= set_core->n_all_dists)
 #ifdef TRANSITIVE_TRANSITION
-	new_sit->sit_check = curr_sit_check;
+	new_sit->sit_check = sets->curr_sit_check;
 #else
 	;
 #endif
@@ -3773,7 +3775,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
       new_sit = sets->new_sits[i];
       if (new_sit->empty_tail_p
 #ifdef TRANSITIVE_TRANSITION
-	  && new_sit->sit_check != curr_sit_check
+	  && new_sit->sit_check != sets->curr_sit_check
 #endif
 	)
 	{
@@ -3824,7 +3826,7 @@ build_new_set (struct grammar *g, struct core_symb_vect_set *csv,
 #endif
 	      if (sit_ind >= prev_set_core->n_all_dists)
 #ifdef TRANSITIVE_TRANSITION
-		new_sit->sit_check = curr_sit_check;
+		new_sit->sit_check = sets->curr_sit_check;
 #else
 		;
 #endif
