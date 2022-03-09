@@ -3654,7 +3654,7 @@ yaep_parse_init (struct grammar *g, struct core_symb_vect_set *csv, int n_toks)
     int i;
     struct symb *symb;
 
-    for (i = 0; (symb = symb_get (grammar->symbs_ptr, i)) != NULL; i++)
+    for (i = 0; (symb = symb_get (g->symbs_ptr, i)) != NULL; i++)
       symb->cached_core_symb_vect = NULL;
   }
 #endif
