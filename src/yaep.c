@@ -2477,7 +2477,7 @@ struct core_symb_vect_set {
 #ifdef USE_CORE_SYMB_HASH_TABLE
 /* Hash of core_symb_vect. */
 static unsigned
-core_symb_vect_hash (hash_table_entry_t t)
+core_symb_vect_hash (void *unused, hash_table_entry_t t)
 {
   struct core_symb_vect *core_symb_vect = (struct core_symb_vect *) t;
 
@@ -2488,7 +2488,7 @@ core_symb_vect_hash (hash_table_entry_t t)
 
 /* Equality of core_symb_vects. */
 static int
-core_symb_vect_eq (hash_table_entry_t t1, hash_table_entry_t t2)
+core_symb_vect_eq (void *unused, hash_table_entry_t t1, hash_table_entry_t t2)
 {
   struct core_symb_vect *core_symb_vect1 = (struct core_symb_vect *) t1;
   struct core_symb_vect *core_symb_vect2 = (struct core_symb_vect *) t2;
