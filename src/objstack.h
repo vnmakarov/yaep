@@ -151,21 +151,23 @@ typedef struct
 
 #define OS_CREATE( os, allocator, initial_segment_length ) \
   do { \
-    os_t * _temp_os = &( os ); \
+    YaepAllocator * temp_alloc = (allocator); \
+    os_t *_temp_os = yaep_malloc(temp_alloc, sizeof(*_temp_os)); \
     _temp_os->os_alloc = allocator; \
     _OS_create_function( _temp_os, initial_segment_length ); \
+    (os) = _temp_os; \
   } while( 0 )
 
 /* This macro is used for freeing memory allocated for OS.  Any work
    (except for creation) with given OS is not possible after
    evaluation of this macros.  The macro has not side effects. */
 
-#define OS_DELETE(os) _OS_delete_function (& (os))
+#define OS_DELETE(os) _OS_delete_function (os)
 
 /* This macro is used for freeing memory allocated for OS except for
    the first segment.  The macro has not side effects. */
 
-#define OS_EMPTY(os) _OS_empty_function (& (os))
+#define OS_EMPTY(os) _OS_empty_function (os)
 
 /* This macro makes that length of variable length object on the top
    of OS will be equal to zero.  The macro has not side effects. */
@@ -173,7 +175,7 @@ typedef struct
 #define OS_TOP_NULLIFY(os)\
   do\
   {\
-    os_t *_temp_os = &(os);\
+    os_t *_temp_os = (os); \
     assert (_temp_os->os_top_object_start != NULL);\
     _temp_os->os_top_object_free = _temp_os->os_top_object_start;\
   }\
@@ -188,7 +190,7 @@ typedef struct
 #define OS_TOP_FINISH(os)\
   do\
   {\
-    os_t *_temp_os = &(os);\
+    os_t *_temp_os = (os); \
     assert (_temp_os->os_top_object_start != NULL);\
     _temp_os->os_top_object_start\
       = _OS_ALIGNED_ADDRESS (_temp_os->os_top_object_free);\
@@ -201,11 +203,11 @@ typedef struct
 
 #ifndef NDEBUG
 #define OS_TOP_LENGTH(os)\
-  ((os).os_top_object_start != NULL\
-   ? (os).os_top_object_free - (os).os_top_object_start\
+  ((os)->os_top_object_start != NULL \
+   ? (os)->os_top_object_free - (os)->os_top_object_start \
    : (abort (), 0))
 #else
-#define OS_TOP_LENGTH(os)  ((os).os_top_object_free - (os).os_top_object_start)
+#define OS_TOP_LENGTH(os) ((os)->os_top_object_free - (os)->os_top_object_start)
 #endif
 
 /* This macro returns pointer to the first byte of variable length
@@ -214,10 +216,10 @@ typedef struct
 
 #ifndef NDEBUG
 #define OS_TOP_BEGIN(os)\
-  ((os).os_top_object_start != NULL ? (void *) (os).os_top_object_start\
+  ((os)->os_top_object_start != NULL ? (void *) (os)->os_top_object_start \
                                     : (abort (), (void *) 0))
 #else
-#define OS_TOP_BEGIN(os) ((void *) (os).os_top_object_start)
+#define OS_TOP_BEGIN(os) ((void *) (os)->os_top_object_start)
 #endif
 
 /* This macro returns pointer (of type `void *') to the last byte of
@@ -227,10 +229,10 @@ typedef struct
 
 #ifndef NDEBUG
 #define OS_TOP_END(os)\
-  ((os).os_top_object_start != NULL ? (void *) ((os).os_top_object_free - 1)\
+  ((os)->os_top_object_start != NULL ? (void *) ((os)->os_top_object_free - 1) \
                                     : (abort (), (void *) 0))
 #else
-#define OS_TOP_END(os) ((void *) ((os).os_top_object_free - 1))
+#define OS_TOP_END(os) ((void *) ((os)->os_top_object_free - 1))
 #endif
 
 /* This macro returns pointer (of type `void *') to the next byte of
@@ -240,10 +242,10 @@ typedef struct
 
 #ifndef NDEBUG
 #define OS_TOP_BOUND(os)\
-  ((os).os_top_object_start != NULL ? (void *) (os).os_top_object_free\
+  ((os)->os_top_object_start != NULL ? (void *) (os)->os_top_object_free\
                                     : (abort (), (void *) 0))
 #else
-#define OS_TOP_BOUND(os) ((void *) (os).os_top_object_free)
+#define OS_TOP_BOUND(os) ((void *) (os)->os_top_object_free)
 #endif
 
 /* This macro removes N bytes from the end of variable length object
@@ -253,10 +255,10 @@ typedef struct
 #define OS_TOP_SHORTEN(os, n)\
   do\
   {\
-    os_t *_temp_os = &(os);\
+    os_t *_temp_os = (os); \
     size_t _temp_n = (n);\
     assert (_temp_os->os_top_object_start != NULL);\
-    if ((size_t) OS_TOP_LENGTH (*_temp_os) < _temp_n)\
+    if ((size_t) OS_TOP_LENGTH (_temp_os) < _temp_n) \
       _temp_os->os_top_object_free = _temp_os->os_top_object_start;\
     else\
       _temp_os->os_top_object_free -= _temp_n;\
@@ -271,7 +273,7 @@ typedef struct
 #define OS_TOP_EXPAND(os, length)\
   do\
   {\
-    os_t *_temp_os = &(os);\
+    os_t *_temp_os = (os); \
     size_t _temp_length = (length);\
     assert (_temp_os->os_top_object_start != NULL);\
     if (_temp_os->os_top_object_free + _temp_length > _temp_os->os_boundary)\
@@ -286,7 +288,7 @@ typedef struct
 #define OS_TOP_ADD_BYTE(os, b)\
   do\
   {\
-    os_t *_temp_os = &(os);\
+    os_t *_temp_os = (os); \
     assert (_temp_os->os_top_object_start != NULL);\
     if (_temp_os->os_top_object_free >= _temp_os->os_boundary)\
       _OS_expand_memory (_temp_os, 1);\
@@ -300,7 +302,7 @@ typedef struct
 #define OS_TOP_ADD_MEMORY(os, str, length)\
   do\
   {\
-    os_t *_temp_os = &(os);\
+    os_t *_temp_os = (os); \
     size_t _temp_length = (length);\
     assert (_temp_os->os_top_object_start != NULL);\
     if (_temp_os->os_top_object_free + _temp_length > _temp_os->os_boundary)\
@@ -316,7 +318,7 @@ typedef struct
    suggested to be C string end marker '\0'.  The macro has not side
    effects. */
 
-#define OS_TOP_ADD_STRING(os, str) _OS_add_string_function(&(os), (str))
+#define OS_TOP_ADD_STRING(os, str) _OS_add_string_function(os, str)
 
 /* The following functions are to be used only by the package macros.
    Remember that they are internal functions - all work with OS is

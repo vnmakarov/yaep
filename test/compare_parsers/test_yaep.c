@@ -97,7 +97,7 @@
 #define _BOOL         6006
 #define _COMPLEX      7006
 #define _IMAGINARY    8006
-		   
+
 #include "test_common.c"
 
 int
@@ -109,8 +109,6 @@ get_lex (void)
     curr = curr->next;
   if (curr == NULL)
     return 0;
-  line = curr->line;
-  column = curr->column;
   if (curr->code == IDENTIFIER)
     return IDENTIFIER;
   else
@@ -127,25 +125,29 @@ static void store_lexs( YaepAllocator * alloc ) {
 #ifdef DEBUG
   int nt = 0;
 #endif
+  yyscan_t scanner;
 
   OS_CREATE( lexs, alloc, 0 );
   list = NULL;
   prev = NULL;
-  while ((code = yylex ()) > 0) {
+  lex.column = 0;
+  lex.line = 1;
+  code = yylex_init_extra (&lex, &scanner);
+  assert (code == 0);
+  while ((code = yylex (scanner)) > 0) {
 #ifdef DEBUG
     nt++;
 #endif
     if (code == IDENTIFIER)
       {
-        OS_TOP_ADD_MEMORY (lexs, yytext, strlen (yytext) + 1);
+        OS_TOP_ADD_MEMORY
+          (lexs, yyget_text (scanner), strlen (yyget_text (scanner)) + 1);
         lex.id = OS_TOP_BEGIN (lexs);
         OS_TOP_FINISH (lexs);
       }
     else
       lex.id = NULL;
     lex.code = code;
-    lex.line = line;
-    lex.column = column;
     lex.next = NULL;
     OS_TOP_ADD_MEMORY (lexs, &lex, sizeof (lex));
     if (prev == NULL)
@@ -155,13 +157,14 @@ static void store_lexs( YaepAllocator * alloc ) {
     }
     OS_TOP_FINISH (lexs);
   }
+  yylex_destroy (scanner);
 #ifdef DEBUG
   fprintf (stderr, "%d tokens\n", nt);
 #endif
 }
 
 /* All parse_alloc memory is contained here. */
-static os_t mem_os;
+static os_t *mem_os;
 
 static void *
 test_parse_alloc (int size)

@@ -34,7 +34,7 @@ struct lex {
   struct lex *next;
 };
 
-static os_t lexs;
+static os_t *lexs;
 static struct lex *list;
 static struct lex *curr = NULL;
 
@@ -44,7 +44,7 @@ static int line = 1;
 static hash_table_t table;
 
 static unsigned
-hash (hash_table_entry_t el)
+hash (void *unused, hash_table_entry_t el)
 {
   const char *id = (char *) el;
   unsigned result, i;
@@ -55,13 +55,13 @@ hash (hash_table_entry_t el)
 }
 
 static int
-eq (hash_table_entry_t el1, hash_table_entry_t el2)
+eq (void *unused, hash_table_entry_t el1, hash_table_entry_t el2)
 {
   return strcmp ((char *) el1, (char *) el2) == 0;
 }
 
 static void initiate_typedefs( YaepAllocator * alloc ) {
-  table = create_hash_table( alloc, 50000, hash, eq );
+  table = create_hash_table(NULL, alloc, 50000, hash, eq);
 }
 
 /* Now we ignore level */

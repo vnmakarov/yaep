@@ -85,8 +85,15 @@ higher_prime_number (unsigned long number)
    given source length.  Created hash table is initiated as empty (all
    the hash table entries are EMPTY_ENTRY). */
 
-hash_table::hash_table (YaepAllocator * allocator, size_t size, unsigned int (*hash_function) (hash_table_entry_t el_ptr), int (*eq_function) (hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr)):alloc
-  (allocator)
+hash_table::hash_table (
+        void *userpointer,
+        YaepAllocator * allocator,
+        size_t size,
+        unsigned int (*hash_function) (void *userptr,
+                hash_table_entry_t el_ptr),
+        int (*eq_function) (void *userptr,
+                hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr)
+): userptr (userpointer), alloc (allocator)
 {
   hash_table_entry_t *
     entry_ptr;
@@ -140,7 +147,7 @@ hash_table::expand_hash_table (void)
   hash_table_entry_t *new_entry_ptr;
 
   new_htab =
-    new hash_table (alloc, number_of_elements * 2, hash_function,
+    new hash_table (userptr, alloc, number_of_elements * 2, hash_function,
 		    eq_function);
   for (entry_ptr = entries; entry_ptr < entries + _size; entry_ptr++)
     if (*entry_ptr != EMPTY_ENTRY && *entry_ptr != DELETED_ENTRY)
@@ -151,7 +158,8 @@ hash_table::expand_hash_table (void)
       }
   yaep_free (alloc, entries);
   *this = (*new_htab);
-  yaep_free (new_htab->alloc, new_htab);
+  new_htab->entries = nullptr;
+  delete new_htab;
 }
 
 /* The following variable is used for debugging. Its value is number
@@ -184,7 +192,7 @@ hash_table::find_entry (hash_table_entry_t element, int reserve)
 
   if (_size / 4 <= number_of_elements / 3)
     expand_hash_table ();
-  hash_value = (*hash_function) (element);
+  hash_value = (*hash_function) (userptr, element);
   secondary_hash_value = 1 + hash_value % (_size - 2);
   hash_value %= _size;
   searches++;
@@ -208,7 +216,7 @@ hash_table::find_entry (hash_table_entry_t element, int reserve)
 	}
       else if (*entry_ptr != DELETED_ENTRY)
 	{
-	  if ((*eq_function) (*entry_ptr, element))
+	  if ((*eq_function) (userptr, *entry_ptr, element))
 	    break;
 	}
       else if (first_deleted_entry_ptr == NULL)

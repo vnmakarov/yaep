@@ -26,7 +26,11 @@
 
 %{
 #define YYSTYPE string_t
+
+void yyerror (char *s);
 %}
+
+%pure-parser
 
 %token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
@@ -468,11 +472,28 @@ identifier
 
 #include <stdio.h>
 
-extern int column;
-extern int line;
-
-yyerror(s)
-char *s;
+void
+yyerror (char *s)
 {
-   fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
+  int line, column;
+
+  if (curr == NULL)
+    {
+      curr = list;
+    }
+  else
+    {
+      curr = curr->next;
+    }
+  if (curr == NULL)
+    {
+      line = -1;
+      column = -1;
+    }
+  else
+    {
+      line = curr->line;
+      column = curr->column;
+    }
+  fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
 }

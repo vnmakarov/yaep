@@ -33,6 +33,7 @@
 #define __YAEP__
 
 #include <limits.h>
+#include<stddef.h>
 
 /* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
@@ -148,12 +149,58 @@ struct yaep_tree_node
   } val;
 };
 
+/* The following structure is used to work around a limitation of
+   yaep_read_grammar() and yaep_parse(). The read_terminal() and read_rule()
+   functions passed to yaep_read_grammar(), as well as the read_token(),
+   syntax_error(), parse_alloc(), and parse_free() functions passed to
+   yaep_parse() cannot take a user-defined argument,
+   but this is required for reentrant operation.
+   The long-term solution would be to expand the API of yaep (FIXME).
+   When sticking to the old API, however, we hijack some pointer
+   parameters to slip through the grammar as additional information.
+   Unfortunately, it does not work for syntax_error(), parse_alloc(),
+   and parse_free(), because these functions do not have
+   pointer-for-return type parameters.
+   This structure is for internal use only.
+   Use the yaep_reentrant_hack_grammar() macro to retrieve the grammar. */
+struct _yaep_reentrant_hack
+{
+  union
+  {
+    int code;
+    int anode_cost;
+    void *attr;
+  } value;
+  struct grammar *grammar;
+};
+
+/* The following macro retrieves the grammar from a pointer-to-int argument.
+   It can only be applied to arguments to the code parameter of the
+   read_terminal() parameter, to the anode_cost parameter of the
+   read_rule() parameter of yaep_read_grammar(),
+   as well as to the attr paramnerer of the read_token() parameter of
+   yaep_parse(). */
+#define yaep_reentrant_hack_grammar(x) \
+  (((struct _yaep_reentrant_hack *) \
+    (((char *) (x)) - offsetof (struct _yaep_reentrant_hack, value))) \
+   ->grammar)
+
 #ifndef __cplusplus
 
 /* The following function creates undefined grammar.  The function
    returns NULL if there is no memory.  This function should be called
    the first. */
 extern struct grammar *yaep_create_grammar (void);
+
+/* The following function stores a user-defined pointer
+   in the given grammar. */
+extern void yaep_grammar_setuserptr (struct grammar *g, void *userptr);
+
+/* The following function retrieves a user-defined pointer
+   previously set with yaep_grammar_setuserptr() from
+   the given grammar.  If no user pointer has been set,
+   a null pointer is returned. */
+extern void *yaep_grammar_getuserptr (struct grammar *g);
 
 /* The function returns the last occurred error code for given
    grammar. */
@@ -353,6 +400,8 @@ public:
   int set_cost_flag (int flag);
   int set_error_recovery_flag (int flag);
   int set_recovery_match (int n_toks);
+  void setuserptr (void *userptr) noexcept;
+  void *getuserptr () const noexcept;
 
   /* See comments for function yaep_parse. */
   int parse (int (*read_token) (void **attr),

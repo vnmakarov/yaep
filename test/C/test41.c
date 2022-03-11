@@ -41,17 +41,14 @@
 #include "ansic.h"
 #include "yaep.h"
 
-static os_t lexs;
+static os_t *lexs;
 static struct lex *list;
 static struct lex *curr = NULL;
-
-int column = 0;
-int line = 1;
 
 static hash_table_t table;
 
 static unsigned
-hash (hash_table_entry_t el)
+hash (void *unused, hash_table_entry_t el)
 {
   const char *id = (char *) el;
   unsigned result, i;
@@ -62,13 +59,13 @@ hash (hash_table_entry_t el)
 }
 
 static int
-eq (hash_table_entry_t el1, hash_table_entry_t el2)
+eq (void *unused, hash_table_entry_t el1, hash_table_entry_t el2)
 {
   return strcmp ((char *) el1, (char *) el2) == 0;
 }
 
 static void initiate_typedefs( YaepAllocator * alloc ) {
-  table = create_hash_table( alloc, 50000, hash, eq );
+  table = create_hash_table(NULL, alloc, 50000, hash, eq);
 }
 
 /* Now we ignore level */
@@ -105,20 +102,19 @@ int find_typedef (const char *id, int level)
 }
 
 int
-get_lex (void)
+get_lex (void **attr)
 {
   if (curr == NULL)
     curr = list;
   else
     curr = curr->next;
   if (curr == NULL)
-    return 0;
-  line = curr->line;
-  column = curr->column;
-  if (curr->code == IDENTIFIER)
-    return IDENTIFIER;
-  else
-    return curr->code;
+    {
+      *attr = NULL;
+      return 0;
+    }
+  *attr = (void *) (ptrdiff_t) curr->line;
+  return curr->code;
 }
 
 #define yylex yylex1
@@ -131,25 +127,29 @@ static void store_lexs( YaepAllocator * alloc ) {
 #ifdef DEBUG
   int nt = 0;
 #endif
+  yyscan_t scanner;
 
   OS_CREATE( lexs, alloc, 0 );
   list = NULL;
   prev = NULL;
-  while ((code = yylex ()) > 0) {
+  lex.column = 0;
+  lex.line = 1;
+  code = yylex_init_extra (&lex, &scanner);
+  assert (code == 0);
+  while ((code = yylex (scanner)) > 0) {
 #ifdef DEBUG
     nt++;
 #endif
     if (code == IDENTIFIER)
       {
-        OS_TOP_ADD_MEMORY (lexs, yytext, strlen (yytext) + 1);
+        OS_TOP_ADD_MEMORY
+          (lexs, yyget_text (scanner), strlen (yyget_text (scanner)) + 1);
         lex.id = OS_TOP_BEGIN (lexs);
         OS_TOP_FINISH (lexs);
       }
     else
       lex.id = NULL;
     lex.code = code;
-    lex.line = line;
-    lex.column = column;
     lex.next = NULL;
     OS_TOP_ADD_MEMORY (lexs, &lex, sizeof (lex));
     if (prev == NULL)
@@ -159,6 +159,7 @@ static void store_lexs( YaepAllocator * alloc ) {
     }
     OS_TOP_FINISH (lexs);
   }
+  yylex_destroy (scanner);
 #ifdef DEBUG
   fprintf (stderr, "%d tokens\n", nt);
 #endif
@@ -170,8 +171,7 @@ test_read_token_from_lex (void **attr)
 {
   int code;
 
-  *attr = (void *) (ptrdiff_t) line;
-  code = get_lex ();
+  code = get_lex (attr);
   if (code <= 0)
     return -1;
   return code;

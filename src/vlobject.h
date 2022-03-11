@@ -104,15 +104,16 @@ typedef struct
 #define VLO_CREATE(vlo, allocator, initial_length)\
   do\
   {\
-    vlo_t *_temp_vlo = &(vlo);\
     size_t temp_initial_length = (initial_length);\
     YaepAllocator * _temp_alloc = ( allocator ); \
+    vlo_t *_temp_vlo = yaep_malloc(_temp_alloc, sizeof(*_temp_vlo));\
     temp_initial_length = (temp_initial_length != 0 ? temp_initial_length\
                                                     : VLO_DEFAULT_LENGTH);\
     _temp_vlo->vlo_start = yaep_malloc( _temp_alloc, temp_initial_length ); \
     _temp_vlo->vlo_boundary = _temp_vlo->vlo_start + temp_initial_length;\
     _temp_vlo->vlo_free = _temp_vlo->vlo_start;\
     _temp_vlo->vlo_alloc = _temp_alloc; \
+    (vlo) = _temp_vlo; \
   }\
   while (0)
 
@@ -125,17 +126,22 @@ typedef struct
 #define VLO_DELETE(vlo)\
   do\
   {\
-    vlo_t *_temp_vlo = &(vlo);\
+    vlo_t *_temp_vlo = (vlo);\
+    assert(_temp_vlo != NULL); \
+    YaepAllocator *_temp_alloc = _temp_vlo->vlo_alloc; \
     assert (_temp_vlo->vlo_start != NULL);\
-    yaep_free( _temp_vlo->vlo_alloc,_temp_vlo->vlo_start );\
-    _temp_vlo->vlo_start = NULL;\
+    yaep_free(_temp_alloc, _temp_vlo->vlo_start); \
+    yaep_free(_temp_alloc, _temp_vlo); \
   }\
   while (0)
 #else
 #define VLO_DELETE(vlo) \
   do { \
-    vlo_t * _temp_vlo = &( vlo ); \
-    yaep_free( _temp_vlo->vlo_alloc, _temp_vlo->vlo_start ); \
+    vlo_t *_temp_vlo = (vlo); \
+    YaepAllocator *_temp_alloc = _temp_vlo->vlo_alloc; \
+    yaep_free(_temp_alloc, _temp_vlo->vlo_start); \
+    yaep_free(_temp_alloc, _temp_vlo); \
+    (vlo) = NULL; \
   } while( 0 )
 #endif /* #ifndef NDEBUG */
 
@@ -146,28 +152,21 @@ typedef struct
 #define VLO_NULLIFY(vlo)\
   do\
   {\
-    vlo_t *_temp_vlo = &(vlo);\
+    vlo_t *_temp_vlo = (vlo);\
     assert (_temp_vlo->vlo_start != NULL);\
     _temp_vlo->vlo_free = _temp_vlo->vlo_start;\
   }\
   while (0)
 
-
-/* The following macro makes that length of memory allocated for VLO
-   becames equal to VLO length.  The macro has not side effects. */
-
-#define VLO_TAILOR(vlo) _VLO_tailor_function(&(vlo))
-
-
 /* This macro returns current length of VLO.  The macro has side
    effects! */
 
 #ifndef NDEBUG
-#define VLO_LENGTH(vlo) ((vlo).vlo_start != NULL\
-                         ? (vlo).vlo_free - (vlo).vlo_start\
+#define VLO_LENGTH(vlo) ((vlo)->vlo_start != NULL\
+                         ? (vlo)->vlo_free - (vlo)->vlo_start\
                          : (abort (), 0))
 #else
-#define VLO_LENGTH(vlo) ((vlo).vlo_free - (vlo).vlo_start)
+#define VLO_LENGTH(vlo) ((vlo)->vlo_free - (vlo)->vlo_start)
 #endif /* #ifndef NDEBUG */
 
 
@@ -176,11 +175,11 @@ typedef struct
    may change own place after any addition. */
 
 #ifndef NDEBUG
-#define VLO_BEGIN(vlo) ((vlo).vlo_start != NULL\
-                        ? (void *) (vlo).vlo_start\
+#define VLO_BEGIN(vlo) ((vlo)->vlo_start != NULL\
+                        ? (void *) (vlo)->vlo_start\
                         : (abort (), (void *) 0))
 #else
-#define VLO_BEGIN(vlo) ((void *) (vlo).vlo_start)
+#define VLO_BEGIN(vlo) ((void *) (vlo)->vlo_start)
 #endif /* #ifndef NDEBUG */
 
 /* This macro returns pointer (of type `void *') to the last byte of
@@ -188,11 +187,11 @@ typedef struct
    change own place after any addition. */
 
 #ifndef NDEBUG
-#define VLO_END(vlo) ((vlo).vlo_start != NULL\
-                      ? (void *) ((vlo).vlo_free - 1)\
+#define VLO_END(vlo) ((vlo)->vlo_start != NULL\
+                      ? (void *) ((vlo)->vlo_free - 1)\
                       : (abort (), (void *) 0))
 #else
-#define VLO_END(vlo) ((void *) ((vlo).vlo_free - 1))
+#define VLO_END(vlo) ((void *) ((vlo)->vlo_free - 1))
 #endif /* #ifndef NDEBUG */
 
 /* This macro returns pointer (of type `void *') to the next byte of
@@ -200,11 +199,11 @@ typedef struct
    that the VLO may change own place after any addition. */
 
 #ifndef NDEBUG
-#define VLO_BOUND(vlo) ((vlo).vlo_start != NULL\
-                        ? (void *) (vlo).vlo_free\
+#define VLO_BOUND(vlo) ((vlo)->vlo_start != NULL\
+                        ? (void *) (vlo)->vlo_free\
                         : (abort (), (void *) 0))
 #else
-#define VLO_BOUND(vlo) ((void *) (vlo).vlo_free)
+#define VLO_BOUND(vlo) ((void *) (vlo)->vlo_free)
 #endif /* #ifndef NDEBUG */
 
 /* This macro removes N bytes from the end of VLO.  VLO is nullified
@@ -213,10 +212,10 @@ typedef struct
 #define VLO_SHORTEN(vlo, n)\
   do\
   {\
-    vlo_t *_temp_vlo = &(vlo);\
+    vlo_t *_temp_vlo = (vlo);\
     size_t _temp_n = (n);\
     assert (_temp_vlo->vlo_start != NULL);\
-    if ((size_t) VLO_LENGTH (*_temp_vlo) < _temp_n)\
+    if ((size_t) VLO_LENGTH (_temp_vlo) < _temp_n)\
       _temp_vlo->vlo_free = _temp_vlo->vlo_start;\
     else\
       _temp_vlo->vlo_free -= _temp_n;\
@@ -231,7 +230,7 @@ typedef struct
 #define VLO_EXPAND(vlo, length)\
   do\
   {\
-    vlo_t *_temp_vlo = &(vlo);\
+    vlo_t *_temp_vlo = (vlo);\
     size_t _temp_length = (length);\
     assert (_temp_vlo->vlo_start != NULL);\
     if (_temp_vlo->vlo_free + _temp_length > _temp_vlo->vlo_boundary)\
@@ -247,7 +246,7 @@ typedef struct
 #define VLO_ADD_BYTE(vlo, b)\
   do\
   {\
-    vlo_t *_temp_vlo = &(vlo);\
+    vlo_t *_temp_vlo = (vlo);\
     assert (_temp_vlo->vlo_start != NULL);\
     if (_temp_vlo->vlo_free >= _temp_vlo->vlo_boundary)\
       _VLO_expand_memory (_temp_vlo, 1);\
@@ -262,7 +261,7 @@ typedef struct
 #define VLO_ADD_MEMORY(vlo, str, length)\
   do\
   {\
-    vlo_t *_temp_vlo = &(vlo);\
+    vlo_t *_temp_vlo = (vlo);\
     size_t _temp_length = (length);\
     assert (_temp_vlo->vlo_start != NULL);\
     if (_temp_vlo->vlo_free + _temp_length > _temp_vlo->vlo_boundary)\
@@ -272,21 +271,10 @@ typedef struct
   }\
   while (0)
 
-
-/* This macro adds C string (with end marker '\0') to the end of VLO.
-   Before the addition the macro delete last character of the VLO.
-   The last character is suggested to be C string end marker '\0'.
-   The macro has not side effects. */
-
-#define VLO_ADD_STRING(vlo, str) _VLO_add_string_function(&(vlo), (str))
-
-
 /* The following functions are to be used only by the package macros.
    Remember that they are internal functions - all work with VLO is
    executed through the macros. */
 
-extern void _VLO_tailor_function (vlo_t *vlo);
-extern void _VLO_add_string_function (vlo_t *vlo, const char *str);
 extern void _VLO_expand_memory (vlo_t *vlo, size_t additional_length);
 
 #else /* #ifndef __cplusplus */

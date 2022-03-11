@@ -45,7 +45,7 @@ static int level = 0;
 #undef yylex
 
 int
-get_lex (void)
+get_lex (YYSTYPE *lvalp)
 {
   if (curr == NULL)
     curr = list;
@@ -53,11 +53,9 @@ get_lex (void)
     curr = curr->next;
   if (curr == NULL)
     return 0;
-  line = curr->line;
-  column = curr->column;
   if (curr->code == IDENTIFIER)
     {
-      yylval = curr->id;
+      *lvalp = curr->id;
       if (!after_struct_flag && find_typedef (curr->id, level))
         return TYPE_NAME;
       else
@@ -73,22 +71,26 @@ get_lex (void)
 static void store_lexs( YaepAllocator * alloc ) {
   struct lex lex, *prev;
   int code;
+  yyscan_t scanner;
 
   OS_CREATE( lexs, alloc, 0 );
   list = NULL;
   prev = NULL;
-  while ((code = yylex ()) > 0) {
+  lex.column = 0;
+  lex.line = 1;
+  code = yylex_init_extra (&lex, &scanner);
+  assert (code == 0);
+  while ((code = yylex (scanner)) > 0) {
     if (code == IDENTIFIER)
       {
-        OS_TOP_ADD_MEMORY (lexs, yytext, strlen (yytext) + 1);
+        OS_TOP_ADD_MEMORY
+          (lexs, yyget_text (scanner), strlen (yyget_text (scanner)) + 1);
         lex.id = OS_TOP_BEGIN (lexs);
         OS_TOP_FINISH (lexs);
       }
     else
       lex.id = NULL;
     lex.code = code;
-    lex.line = line;
-    lex.column = column;
     lex.next = NULL;
     OS_TOP_ADD_MEMORY (lexs, &lex, sizeof (lex));
     if (prev == NULL)
@@ -98,6 +100,7 @@ static void store_lexs( YaepAllocator * alloc ) {
     }
     OS_TOP_FINISH (lexs);
   }
+  yylex_destroy (scanner);
 }
 
 main()

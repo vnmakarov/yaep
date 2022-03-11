@@ -47,7 +47,8 @@
 #define OS_TOP_SHORTEN(os, size) (os)->top_shorten (size)
 #define OS_TOP_NULLIFY(os) (os)->top_nullify ()
 
-#define create_hash_table( allocator, size, hash, eq ) new hash_table( allocator, size, hash, eq )
+#define create_hash_table(userptr, allocator, size, hash, eq) \
+        new hash_table(userptr, allocator, size, hash, eq)
 #define empty_hash_table(tab) (tab)->empty ()
 #define delete_hash_table(tab) delete tab
 #define find_hash_table_entry(tab, el, res_p) (tab)->find_entry(el, res_p)
@@ -135,6 +136,18 @@ yaep::set_recovery_match (int n_toks)
   return yaep_set_recovery_match (this->grammar, n_toks);
 }
 
+void
+yaep::setuserptr (void *userptr) noexcept
+{
+  yaep_grammar_setuserptr (this->grammar, userptr);
+}
+
+void *
+yaep::getuserptr () const noexcept
+{
+  return yaep_grammar_getuserptr (this->grammar);
+}
+
 int
 yaep::parse (int (*read_token) (void **attr),
 	     void (*syntax_error) (int err_tok_num,
@@ -169,22 +182,17 @@ use_functions (int argc, char **argv)
   yaep *e;
   struct yaep_tree_node *root;
   int ambiguous_p;
+  struct test_data data;
 
-  YaepAllocator *alloc = yaep_alloc_new (NULL, NULL, NULL, NULL);
-  if (alloc == NULL)
-    {
-      exit (1);
-    }
-  nterm = nrule = 0;
-  OS_CREATE (mem_os, alloc, 0);
+  data.nterm = data.nrule = data.ntok = 0;
   fprintf (stderr, "Use functions\n");
   e = new yaep ();
   if (e == NULL)
     {
       fprintf (stderr, "yaep::yaep: No memory\n");
-      OS_DELETE (mem_os);
       exit (1);
     }
+  e->setuserptr (&data);
   e->set_one_parse_flag (FALSE);
   if (argc > 1)
     e->set_lookahead_level (atoi (argv[1]));
@@ -199,16 +207,12 @@ use_functions (int argc, char **argv)
   if (e->read_grammar (TRUE, read_terminal, read_rule) != 0)
     {
       fprintf (stderr, "%s\n", e->error_message ());
-      OS_DELETE (mem_os);
       exit (1);
     }
-  ntok = 0;
-  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
-		&root, &ambiguous_p))
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+        test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep parse: %s\n", e->error_message ());
   delete e;
-  OS_DELETE (mem_os);
-  yaep_alloc_del (alloc);
 }
 
 static void
@@ -217,21 +221,16 @@ use_description (int argc, char **argv)
   yaep *e;
   struct yaep_tree_node *root;
   int ambiguous_p;
+  struct test_data data;
 
-  YaepAllocator *alloc = yaep_alloc_new (NULL, NULL, NULL, NULL);
-  if (alloc == NULL)
-    {
-      exit (1);
-    }
   fprintf (stderr, "Use description\n");
-  OS_CREATE (mem_os, alloc, 0);
   e = new yaep ();
   if (e == NULL)
     {
       fprintf (stderr, "yaep::yaep: No memory\n");
-      OS_DELETE (mem_os);
       exit (1);
     }
+  e->setuserptr (&data);
   e->set_one_parse_flag (FALSE);
   if (argc > 1)
     e->set_lookahead_level (atoi (argv[1]));
@@ -246,15 +245,13 @@ use_description (int argc, char **argv)
   if (e->parse_grammar (TRUE, description) != 0)
     {
       fprintf (stderr, "%s\n", e->error_message ());
-      OS_DELETE (mem_os);
       exit (1);
     }
-  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc, NULL,
-		&root, &ambiguous_p))
+  data.ntok = 0;
+  if (e->parse (test_read_token, test_syntax_error, test_parse_alloc,
+        test_parse_free, &root, &ambiguous_p))
     fprintf (stderr, "yaep::parse: %s\n", e->error_message ());
   delete e;
-  OS_DELETE (mem_os);
-  yaep_alloc_del (alloc);
 }
 
 #endif /* #ifdef YAEP_TEST */

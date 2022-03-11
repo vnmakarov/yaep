@@ -27,7 +27,7 @@
 /* FILE NAME:   hashtab.h
 
    TITLE:       Include file of package for work with variable length
-                hash tables 
+                hash tables
 
    DESCRIPTION: This header file contains type definitions and ANSI C
        prototype definitions of the package functions and definition of
@@ -70,16 +70,20 @@ typedef struct
      of collisions fixed for time of work with the hash table. */
   int collisions;
   /* Pointer to function for evaluation of hash value (any unsigned value).
-     This function has one parameter of type hash_table_entry_t. */
-  unsigned (*hash_function) (hash_table_entry_t el_ptr);
+     This function has one parameter of type hash_table_entry_t
+     in addition to the user pointer passed at hash table creation. */
+  unsigned (*hash_function) (void *userptr, hash_table_entry_t el_ptr);
   /* Pointer to function for test on equality of hash table elements (two
-     parameter of type hash_table_entry_t. */
-  int (*eq_function) (hash_table_entry_t el1_ptr,
+     parameter of type hash_table_entry_t in addition to the user pointer
+     passed at hash table creation). */
+  int (*eq_function) (void *userptr, hash_table_entry_t el1_ptr,
                       hash_table_entry_t el2_ptr);
   /* Table itself */
   hash_table_entry_t *entries;
   /* Allocator */
   YaepAllocator * alloc;
+  /* User pointer, passed verbatim to hash_function and _eq_function */
+  void *userptr;
 } *hash_table_t;
 
 
@@ -96,7 +100,12 @@ extern int all_collisions;
 /* The prototypes of the package functions. */
 
 extern hash_table_t create_hash_table(
-  YaepAllocator * allocator, size_t size, unsigned int ( *hash_function )( hash_table_entry_t el_ptr ), int ( *eq_function )( hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr )
+  void *userptr,
+  YaepAllocator *allocator,
+  size_t size,
+  unsigned int (*hash_function) (void *userptr, hash_table_entry_t el_ptr),
+  int (*eq_function) (void *userptr,
+          hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr)
 );
 
 extern void empty_hash_table (hash_table_t htab);
@@ -170,16 +179,20 @@ class hash_table
      of collisions fixed for time of work with the hash table. */
   int collisions;
   /* Pointer to function for evaluation of hash value (any unsigned value).
-     This function has one parameter of type hash_table_entry_t. */
-  unsigned (*hash_function) (hash_table_entry_t el_ptr);
+     This function has one parameter of type hash_table_entry_t
+     in addition to the user pointer passed at hash table creation. */
+  unsigned (*hash_function) (void *userptr, hash_table_entry_t el_ptr);
   /* Pointer to function for test on equality of hash table elements (two
-     parameter of type hash_table_entry_t. */
-  int (*eq_function) (hash_table_entry_t el1_ptr,
+     parameter of type hash_table_entry_t in addition to the user pointer
+     passed at hash table creation). */
+  int (*eq_function) (void *userptr, hash_table_entry_t el1_ptr,
                       hash_table_entry_t el2_ptr);
   /* Table itself */
   hash_table_entry_t *entries;
   /* Allocator */
   YaepAllocator * alloc;
+  /* User pointer passed verbatim to hash_function and eq_function. */
+  void *userptr;
 
   /* The following variable is used for debugging. Its value is number
      of all calls of `find_hash_table_entry' for all hash tables. */
@@ -194,14 +207,22 @@ class hash_table
 public:
 
   /* Constructor. */
-  hash_table( YaepAllocator * allocator, size_t size, unsigned int ( *hash_function )( hash_table_entry_t el_ptr ), int ( *eq_function )( hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr ) );
+  hash_table(
+          void *userptr,
+          YaepAllocator * allocator,
+          size_t size,
+          unsigned int (*hash_function) (void *userptr,
+                  hash_table_entry_t el_ptr),
+          int (*eq_function) (void *userptr,
+                  hash_table_entry_t el1_ptr, hash_table_entry_t el2_ptr)
+  );
   /* Destructor. */
   ~hash_table (void);
 
   void empty (void);
 
   hash_table_entry_t *find_entry (hash_table_entry_t element, int reserve);
-  
+
   void remove_element_from_entry (hash_table_entry_t element);
 
   /* The following function returns current size of given hash
@@ -219,7 +240,7 @@ public:
     {
       return number_of_elements - number_of_deleted_elements;
     }
-  
+
   /* The following function returns number of searches during all work
      with given hash table. */
 
@@ -238,7 +259,7 @@ public:
 
   /* The following function returns number of searches
      during all work with all hash tables. */
-  
+
   static inline int get_all_searches (void)
     {
       return all_searches;
@@ -246,7 +267,7 @@ public:
 
   /* The following function returns number of occurred collisions
      during all work with all hash tables. */
-  
+
   static inline int get_all_collisions (void)
     {
       return all_collisions;
