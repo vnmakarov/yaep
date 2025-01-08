@@ -26,6 +26,7 @@
 
 %{
 #define YYSTYPE string_t
+int yyerror(char* s);
 %}
 
 %token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
@@ -471,8 +472,7 @@ identifier
 extern int column;
 extern int line;
 
-yyerror(s)
-char *s;
+int yyerror(char* s)
 {
    fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
 }

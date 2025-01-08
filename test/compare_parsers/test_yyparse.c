@@ -40,6 +40,7 @@ static int level = 0;
 
 #include "test_common.c"
 
+extern int get_lex (void);
 #define yylex get_lex
 #include "y.tab.c"
 #undef yylex
@@ -100,7 +101,7 @@ static void store_lexs( YaepAllocator * alloc ) {
   }
 }
 
-main()
+int main()
 {
   ticker_t t;
   int code;

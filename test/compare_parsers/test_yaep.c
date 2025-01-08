@@ -827,7 +827,7 @@ static const char *description =
 #include <unistd.h>
 #endif
 
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
   ticker_t t;
   int code, ambiguous_p;
