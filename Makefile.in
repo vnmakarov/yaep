@@ -100,7 +100,9 @@ SED=sed
 ETAGS=etags
 
 # Obligatory compiler options
-OPTIONS=-Isrc -I$(srcdir)/src
+OPTIONS=-Isrc -I$(srcdir)/src \
+	-Isrc/unicode -I$(srcdir)/src/unicode \
+	-Ithird_party/utf8proc -I$(srcdir)/third_party/utf8proc
 
 # C compiler and its flag used for compilation of C files.
 CC = @CC@
@@ -143,10 +145,15 @@ top_srcdir = @top_srcdir@
 # All hand written source files of the packages.
 source = $(srcdir)/src/allocate.h $(srcdir)/src/allocate.c \
 	 $(srcdir)/src/vlobject.h $(srcdir)/src/vlobject.c $(srcdir)/src/vlobject.cpp\
-         $(srcdir)/src/objstack.h $(srcdir)/src/objstack.c $(srcdir)/src/objstack.cpp\
+		 $(srcdir)/src/objstack.h $(srcdir)/src/objstack.c $(srcdir)/src/objstack.cpp\
 	 $(srcdir)/src/hashtab.h $(srcdir)/src/hashtab.c $(srcdir)/src/hashtab.cpp\
-         $(srcdir)/src/yaep.h $(srcdir)/src/yaep.c $(srcdir)/src/sgramm.y\
-	 $(srcdir)/src/yaep.cpp $(srcdir)/src/Makefile.in $(srcdir)/src/CMakeLists.txt
+		 $(srcdir)/src/yaep.h $(srcdir)/src/yaep.c $(srcdir)/src/sgramm.y\
+	 $(srcdir)/src/yaep.cpp $(srcdir)/src/Makefile.in $(srcdir)/src/CMakeLists.txt \
+	 $(srcdir)/src/unicode/yaep_unicode.h $(srcdir)/src/unicode/yaep_unicode.c \
+	 $(srcdir)/third_party/utf8proc/utf8proc.h \
+	 $(srcdir)/third_party/utf8proc/utf8proc.c \
+	 $(srcdir)/third_party/utf8proc/utf8proc_data.c \
+	 $(srcdir)/third_party/utf8proc/CMakeLists.txt
 
 additional_files = README.md LICENSE install-sh Makefile.in CMakeLists.txt configure.ac configure
 
@@ -191,11 +198,13 @@ additional_doc_files = yaep.sgml.in yaep_part.sgml.in\
                        yaep++.sgml.in yaep_part++.sgml.in 
 
 # All C object files
-Cobjects = $(Cdir)/allocate.o  $(Cdir)/vlobject.o  $(Cdir)/objstack.o $(Cdir)/hashtab.o 
+Cobjects = $(Cdir)/allocate.o  $(Cdir)/vlobject.o  $(Cdir)/objstack.o $(Cdir)/hashtab.o \
+	$(Cdir)/yaep_unicode.o $(Cdir)/utf8proc.o
 Callobjects = $(Cobjects) $(Cdir)/yaep.o
 
 # All C++ object files
-Cppobjects = $(Cxxdir)/allocate.o  $(Cxxdir)/vlobject.o  $(Cxxdir)/objstack.o $(Cxxdir)/hashtab.o
+Cppobjects = $(Cxxdir)/allocate.o  $(Cxxdir)/vlobject.o  $(Cxxdir)/objstack.o $(Cxxdir)/hashtab.o \
+	$(Cxxdir)/yaep_unicode.o $(Cxxdir)/utf8proc.o
 Cppallobjects = $(Cppobjects) $(Cxxdir)/yaep.o
 
 # C Library
@@ -220,6 +229,12 @@ src/$(Clibrary): $(Callobjects)
 
 $(Cxxdir)/allocate.o: $(Cxxdir) $(Cdir)/allocate.o
 	cp $(Cdir)/allocate.o $(Cxxdir)
+
+$(Cxxdir)/yaep_unicode.o: $(Cxxdir) $(Cdir)/yaep_unicode.o
+	cp $(Cdir)/yaep_unicode.o $(Cxxdir)
+
+$(Cxxdir)/utf8proc.o: $(Cxxdir) $(Cdir)/utf8proc.o
+	cp $(Cdir)/utf8proc.o $(Cxxdir)
 
 src/$(Cpplibrary): $(Cppallobjects)
 	rm -f src/$(Cpplibrary)
@@ -335,11 +350,17 @@ create-distdir:
 	mkdir $(distdir)/test/C
 	mkdir $(distdir)/test/C++
 	mkdir $(distdir)/test/compare_parsers
+	mkdir $(distdir)/third_party
 
 # Copying distribution files into `distdir'.
 dist-copy: create-distdir
 	for i in $(additional_files);do cp $(srcdir)/$$i $(distdir);done
-	for i in $(source);do cp $$i $(distdir)/src;done
+	for i in $(source);do \
+		rel=$${i#$(srcdir)/}; \
+		dir=`dirname $$rel`; \
+		if test "$$dir" != "."; then mkdir -p "$(distdir)/$$dir"; fi; \
+		cp $$i "$(distdir)/$$rel"; \
+	done
 	for i in $(doc_files);do cp $(srcdir)/doc/$$i $(distdir)/doc;done
 	for i in $(test_files);do cp $(srcdir)/test/$$i $(distdir)/test;done
 	for i in $(test_c_files);do cp $(srcdir)/test/C/$$i $(distdir)/test/C;done
@@ -499,6 +520,10 @@ src/C/objstack.o: $(top_srcdir)/src/objstack.c  $(top_srcdir)/src/allocate.h  $(
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/objstack.c
 src/C/hashtab.o: $(top_srcdir)/src/hashtab.c  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/hashtab.h
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/hashtab.c
+src/C/yaep_unicode.o: $(top_srcdir)/src/unicode/yaep_unicode.c  $(top_srcdir)/src/unicode/yaep_unicode.h  $(top_srcdir)/third_party/utf8proc/utf8proc.h
+	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/unicode/yaep_unicode.c
+src/C/utf8proc.o: $(top_srcdir)/third_party/utf8proc/utf8proc.c  $(top_srcdir)/third_party/utf8proc/utf8proc.h  $(top_srcdir)/third_party/utf8proc/utf8proc_data.c
+	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/third_party/utf8proc/utf8proc.c
 src/C/yaep.o: $(top_srcdir)/src/yaep.c  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/hashtab.h  $(top_srcdir)/src/vlobject.h  $(top_srcdir)/src/objstack.h  $(top_srcdir)/src/yaep.h src/sgramm.c
 	$(CC) -c $(CFLAGS) -o $@ $(top_srcdir)/src/yaep.c
 src/C++/vlobject.o: $(top_srcdir)/src/vlobject.cpp  $(top_srcdir)/src/allocate.h  $(top_srcdir)/src/vlobject.h

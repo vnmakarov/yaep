@@ -70,12 +70,13 @@ static void initiate_typedefs( YaepAllocator * alloc ) {
 }
 
 /* Now we ignore level */
-static
+static inline
 void add_typedef (const char *id, int level)
 {
   hash_table_entry_t *entry_ptr;
 
   assert (level == 0);
+  (void)level;
   entry_ptr = table->find_entry (id, 1);
   if (*entry_ptr == NULL)
     *entry_ptr = (hash_table_entry_t) id;
@@ -86,14 +87,12 @@ void add_typedef (const char *id, int level)
 #endif
 }
 
-#ifdef __GNUC__
-inline
-#endif
-static
+static inline
 int find_typedef (const char *id, int level)
 {
   hash_table_entry_t *entry_ptr;
 
+  (void)level;
   entry_ptr = table->find_entry (id, 0);
 #ifdef DEBUG
   if (*entry_ptr != NULL)
@@ -178,6 +177,8 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
 		   int start_ignored_tok_num, void *start_ignored_tok_attr,
 		   int start_recovered_tok_num, void *start_recovered_tok_attr)
 {
+  (void)start_ignored_tok_attr;
+  (void)start_recovered_tok_attr;
   if (start_ignored_tok_num < 0)
     fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
   else
@@ -824,7 +825,7 @@ int
 main (int argc, char **argv)
 {
   ticker_t *t;
-  int code, ambiguous_p;
+  int ambiguous_p;
   struct yaep_tree_node *root;
   yaep *e;
 
@@ -872,5 +873,5 @@ main (int argc, char **argv)
   printf ("all time %.2f\n", t->active_time ());
   delete mem_os;
   yaep_alloc_del( alloc );
-  exit (0);
+  return 0;
 }

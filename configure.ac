@@ -15,6 +15,96 @@ AC_PROG_LEX
 AC_PROG_SED
 AC_PROG_EGREP
 
+AC_ARG_ENABLE([legacy-c99],
+  AS_HELP_STRING([--enable-legacy-c99],[build using -std=c99 instead of -std=c11]),
+  [yaep_legacy_c99=$enableval],
+  [yaep_legacy_c99=no])
+
+AC_ARG_ENABLE([strict-warnings],
+  AS_HELP_STRING([--disable-strict-warnings],[do not enable additional compiler warnings]),
+  [yaep_strict_warnings=$enableval],
+  [yaep_strict_warnings=yes])
+
+yaep_candidate_standards=""
+if test "x$yaep_legacy_c99" = xyes; then
+  yaep_candidate_standards="c99"
+else
+  yaep_candidate_standards="c11 c99"
+fi
+
+yaep_selected_std=""
+yaep_std_flag=""
+for yaep_std in $yaep_candidate_standards; do
+  case "$CC" in
+    cl*|*cl.exe)
+      yaep_try_flag="/std:$yaep_std"
+      ;;
+    *)
+      yaep_try_flag="-std=$yaep_std"
+      ;;
+  esac
+  AC_MSG_CHECKING([whether $CC accepts $yaep_try_flag])
+  yaep_save_cflags="$CFLAGS"
+  CFLAGS="$CFLAGS $yaep_try_flag"
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])
+     yaep_selected_std="$yaep_std"
+     yaep_std_flag="$yaep_try_flag"
+     break],
+    [AC_MSG_RESULT([no])
+     CFLAGS="$yaep_save_cflags"])
+done
+
+if test "x$yaep_selected_std" = x; then
+  AC_MSG_ERROR([compiler does not support the requested C standard])
+fi
+
+if test "$yaep_selected_std" = c99 && test "x$yaep_legacy_c99" != xyes; then
+  AC_MSG_WARN([Falling back to C99 because the compiler lacks C11 support. Use --enable-legacy-c99 to skip the warning.])
+fi
+
+yaep_cxx_candidate_standards="c++14 c++11"
+yaep_selected_cxx_std=""
+AC_LANG_PUSH([C++])
+for yaep_cxx_std in $yaep_cxx_candidate_standards; do
+  case "$CXX" in
+    cl*|*cl.exe)
+      yaep_try_cxx_flag="/std:$yaep_cxx_std"
+      ;;
+    *)
+      yaep_try_cxx_flag="-std=$yaep_cxx_std"
+      ;;
+  esac
+  AC_MSG_CHECKING([whether $CXX accepts $yaep_try_cxx_flag])
+  yaep_save_cxxflags="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS $yaep_try_cxx_flag"
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[])],
+    [AC_MSG_RESULT([yes])
+     yaep_selected_cxx_std="$yaep_cxx_std"
+     break],
+    [AC_MSG_RESULT([no])
+     CXXFLAGS="$yaep_save_cxxflags"])
+done
+AC_LANG_POP([C++])
+
+if test "x$yaep_selected_cxx_std" = x; then
+  AC_MSG_ERROR([C++ compiler does not support the required standard (need at least C++11).])
+fi
+
+if test "x$yaep_strict_warnings" != xno; then
+  if test "x$GCC" = xyes; then
+    CFLAGS="$CFLAGS -Wall -Wextra -Wpedantic"
+    CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wpedantic"
+  else
+    case "$CC" in
+      cl*|*cl.exe)
+        CFLAGS="$CFLAGS /W4 /permissive-"
+        CXXFLAGS="$CXXFLAGS /W4 /permissive-"
+        ;;
+    esac
+  fi
+fi
+
 AC_AIX
 AC_FUNC_GETMNTENT
 AC_ISC_POSIX

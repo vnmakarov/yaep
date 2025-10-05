@@ -60,17 +60,17 @@ eq (hash_table_entry_t el1, hash_table_entry_t el2)
   return strcmp ((char *) el1, (char *) el2) == 0;
 }
 
-static void initiate_typedefs( YaepAllocator * alloc ) {
+static inline void initiate_typedefs( YaepAllocator * alloc ) {
   table = create_hash_table( alloc, 50000, hash, eq );
 }
 
 /* Now we ignore level */
-static
-void add_typedef (const char *id, int level)
+static inline void add_typedef (const char *id, int level)
 {
   hash_table_entry_t *entry_ptr;
 
   assert (level == 0);
+  (void)level;
   entry_ptr = find_hash_table_entry (table, id, 1);
   if (*entry_ptr == NULL)
     *entry_ptr = (hash_table_entry_t) id;
@@ -81,14 +81,11 @@ void add_typedef (const char *id, int level)
 #endif
 }
 
-#ifdef __GNUC__
-inline
-#endif
-static
-int find_typedef (const char *id, int level)
+static inline int find_typedef (const char *id, int level)
 {
   hash_table_entry_t *entry_ptr;
 
+  (void)level;
   entry_ptr = find_hash_table_entry (table, id, 0);
 #ifdef DEBUG
   if (*entry_ptr != NULL)

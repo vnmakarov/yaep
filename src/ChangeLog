@@ -1,3 +1,44 @@
+2025-10-04  GitHub Copilot  <copilot@example.com>
+
+	* src/sgramm.y: Preserve UTF-8 bytes for character literals, recover the
+	decoded scalar from appended metadata, accept combining-mark
+	identifiers, and expand number parsing to all Nd digits with
+	mixed-script detection.  Validate grammar text with detailed UTF-8
+	diagnostics before lexing.
+	* src/unicode/yaep_unicode.c, src/unicode/yaep_unicode.h: Broaden identifier
+	continuation categories, expose yaep_utf8_digit_value, and enrich the
+	validator API with offset/error reporting.
+	* src/yaep.h: Reserve YAEP_INVALID_UTF8 for preflight validation failures.
+	* test/C/test_utf8.c, test/C++/test_utf8.cpp: Extend regression
+	grammars to cover π literals, combining-mark identifiers, and
+	Arabic-Indic digit assignments.
+	* test/C/test_utf8_invalid.c, test/C++/test_utf8_invalid.cpp: New
+	sanity checks that malformed UTF-8 is rejected before lexing.
+	* test/C/CMakeLists.txt, test/C++/CMakeLists.txt: Wire new UTF-8 tests
+	into the suite.
+	* doc/unicode_support.md: Document Unicode handling policy, including
+	normalisation guidance and helper snippets.
+	* README.md: Link to the Unicode support guide for quick discovery.
+
+2025-10-04  gitrdm  <gitrdm@example.com>
+
+	* yaep.c: Document parser list allocator tracking and explain stale
+	pointer fix.  Ensure allocator is remembered even after grammar
+	teardown to avoid double free when loading multiple grammars.
+	* src/unicode/yaep_unicode.c, src/unicode/yaep_unicode.h: Describe UTF-8 helper
+	utilities enabling code point iteration and classification with
+	ASCII fast paths.  (New in-tree UTF-8 plumbing.)
+	* sgramm.y: Lexer now consumes UTF-8 code points safely, fixing
+	identifier lookahead on multi-byte characters.
+	* test/C/test_utf8.c, test/C++/test_utf8.cpp: Keep regression that
+	reloads an ASCII grammar after a UTF-8 parse, ensuring parser list
+	state resets cleanly.
+	* CMakeLists.txt, Makefile.in: Wire utf8proc and unicode sources into
+	all build variants.
+	* test/C/test_utf8_simple.c, test/C/test_utf8_double.c: Exercise
+	multi-script grammars and repeated parser creation to stress UTF-8
+	and allocator fixes.
+
 2018-11-02  Vladimir Makarov  <vmakarov@gcc.gnu.org>
 
 	* src/yape.c (traverse_pruned_translation): Process next alt node

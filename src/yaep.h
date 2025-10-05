@@ -34,9 +34,22 @@
 
 #include <limits.h>
 
+/* Encoding expectations
+   ---------------------
+   YAEP expects UTF-8 encoded input for public string APIs such as grammar
+   descriptions, symbol names and abstract node labels. The project contains
+   helpers and a small wrapper around utf8proc in `src/unicode/yaep_unicode.*`
+   that can be used to validate, classify, truncate and normalize UTF-8
+   strings. If invalid UTF-8 is encountered in a call that requires valid
+   UTF-8, YAEP uses the error code `YAEP_INVALID_UTF8` (see below).
+*/
+
 /* The following is a forward declaration of grammar formed by function
    yaep_read_grammar. */
 struct grammar;
+
+/* (internal) per-parse context is private to src/yaep.c and not exposed
+   in the public header. */
 
 /* The following value is reserved to be designation of empty node for
    translation.  It should be positive number which is not intersected
@@ -62,6 +75,7 @@ struct grammar;
 #define YAEP_NONTERM_DERIVATION            15
 #define YAEP_LOOP_NONTERM                  16
 #define YAEP_INVALID_TOKEN_CODE            17
+#define YAEP_INVALID_UTF8                  18
 
 /* The following describes the type of parse tree node. */
 enum yaep_tree_node_type

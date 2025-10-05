@@ -33,7 +33,7 @@
 
 #include"yaep.h"
 
-static void *
+static inline void *
 test_parse_alloc (int size)
 {
   void * result;
@@ -45,18 +45,21 @@ test_parse_alloc (int size)
   return result;
 }
 
-static void
+static inline void
 test_parse_free (void * mem)
 {
   free( mem );
 }
 
 /* Printing syntax error. */
-static void
+static inline void
 test_syntax_error (int err_tok_num, void *err_tok_attr,
 		   int start_ignored_tok_num, void *start_ignored_tok_attr,
 		   int start_recovered_tok_num, void *start_recovered_tok_attr)
 {
+  (void)err_tok_attr;
+  (void)start_ignored_tok_attr;
+  (void)start_recovered_tok_attr;
   if (start_ignored_tok_num < 0)
     fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
   else
@@ -71,7 +74,7 @@ static const char *input;
 static const char *description;
 
 /* The following function imported by YAEP (see comments in the interface file). */
-static int
+static inline int
 test_read_token (void **attr)
 {
   static int ntok = 0;
@@ -87,7 +90,7 @@ test_read_token (void **attr)
     }
 }
 
-static void
+static inline void
 test_standard_parse (void)
 {
   struct grammar *g;
@@ -114,7 +117,7 @@ test_standard_parse (void)
   yaep_free_grammar (g);
 }
 
-static void
+static inline void
 test_standard_read
   (const char *(*read_terminal) (int *),
    const char *(*read_rule) (const char ***, const char **, int *, int **))
@@ -143,7 +146,7 @@ test_standard_read
   yaep_free_grammar (g);
 }
 
-static void
+static inline void
 test_complex_parse
   (int one_parse, int ambiguous, int print_cost, int recovery_match,
    int argc, char **argv)

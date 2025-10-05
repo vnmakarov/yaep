@@ -90,7 +90,29 @@ static void parse (void)
        ;
 ``` 
   * For more details, please see the documentation in directory ``src/``,
+    the Unicode notes in ``doc/unicode_support.md``,
     or the YAEP examples in files ``test*.c`` in directories ``test/C`` or ``test/C++``.
+
+  ## Encoding / Unicode
+
+  YAEP expects UTF-8 encoded input for grammar descriptions, symbol names,
+  terminal names, abstract node labels, and other public string APIs. Strings
+  passed to YAEP (for example, the `description` argument to
+  `yaep_parse_grammar`) must be valid UTF-8. The project includes a small
+  Unicode wrapper and uses the vendored `utf8proc` library to validate and
+  normalize UTF-8 where appropriate (see `src/unicode/yaep_unicode.*`).
+
+  Notes for callers:
+  - YAEP stores strings as UTF-8 byte buffers; stored lengths are byte counts,
+    not code point counts.
+  - YAEP performs NFC normalization on names in some symbol-insertion paths.
+    Callers that need canonicalization may also call the helpers in
+    `src/unicode/yaep_unicode.h`.
+  - If YAEP encounters invalid UTF-8 in a grammar description or symbol name,
+    it will report the error code `YAEP_INVALID_UTF8` (see `src/yaep.h`).
+
+  If you need to work in a different encoding, convert text to UTF-8 before
+  calling YAEP.
 
 # Installing:
   * ``mkdir build``
@@ -172,6 +194,58 @@ static void parse (void)
     up to **200** times less memory.
   * Still, it is **2.5** - **6** times slower (**1.6** - **3** times when
      taking the scanner into account) than YACC.
+
+## Recent measurements (Oct 2025)
+
+The benchmark tables above are historical and were produced by the original
+maintainer on the machines listed.  To provide a lightly-updated snapshot we
+ran the repository's `test/compare_parsers/compare_parsers.sh` harness on both
+the `master` branch and a development branch (`unicode-feature`) on Oct 4, 2025.
+These measurements are intended as a reproducible snapshot (medians over 10
+runs) and are not meant to supplant the historical tables above.
+
+### Test machine and environment
+
+The measurements in the Recent measurements section above were produced on the
+following machine and environment (UTC):
+
+```
+OS: Ubuntu 24.04.3 LTS
+Kernel: Linux 6.14.0-32-generic
+CPU: AMD Ryzen 9 9950X 16-Core Processor (32 logical cores)
+Cores: 32
+Memory: 249 GiB
+GCC: gcc (Ubuntu 13.3.0) 13.3.0
+Python3: 3.13.5
+Git branch used for the snapshot: unicode-feature
+Date (UTC): 2025-10-04T23:24:43Z
+```
+
+Small (parse-only) medians from our run:
+
+| Test case | master median (s) | unicode median (s) | master RSS (KB) | unicode RSS (KB) |
+|----------:|-----------------:|-------------------:|---------------:|-----------------:|
+| YACC (small) | 0.040 | 0.040 | ~21264 | ~21176 |
+| Bison (small) | 0.040 | 0.040 | ~21251 | ~21251 |
+| YAEP static (small) | 0.080 | 0.080 | ~57235 | ~57235 |
+
+Large (parse-only) medians from our run:
+
+| Test case | master median (s) | unicode median (s) | master RSS (KB) | unicode RSS (KB) |
+|----------:|-----------------:|-------------------:|---------------:|-----------------:|
+| YACC (big) | 0.230 | 0.230 | ~121274 | ~121274 |
+| Bison (big) | 0.240 | 0.230 | ~121299 | ~121299 |
+| YAEP static (big) | 0.745 | 0.740 | ~397006 | ~397006 |
+
+Summary: in our runs the `unicode-feature` branch showed no material
+performance regressions compared with `master` (median deltas within a few
+percent and RSS differences negligible).  Results will vary by machine,
+compiler and build flags; see `test/compare_parsers/` for the exact harness and
+raw logs (`test/compare_parsers/logs_master` and
+`test/compare_parsers/logs_unicode`).
+
+If you reproduce these tests please report machine, compiler and exact
+commands used so we can keep the benchmark data useful to others.
 
 # Future directions
   * Implement YACC-style description syntax for operator precedence and associativity.

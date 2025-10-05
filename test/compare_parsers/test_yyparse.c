@@ -41,9 +41,14 @@ static int level = 0;
 #include "test_common.c"
 
 #define yylex get_lex
+/* Prototypes expected by the generated parser. Declare them before
+  including `y.tab.c` so the generated references do not produce
+  implicit-declaration warnings. The parser defines `yyerror` with an
+  `int` return type; match that signature here. */
+int get_lex(void);
+int yyerror(const char *msg);
 #include "y.tab.c"
 #undef yylex
-
 int
 get_lex (void)
 {
@@ -100,7 +105,7 @@ static void store_lexs( YaepAllocator * alloc ) {
   }
 }
 
-main()
+int main(void)
 {
   ticker_t t;
   int code;
@@ -129,3 +134,4 @@ main()
   yaep_alloc_del( alloc );
   exit (code);
 }
+

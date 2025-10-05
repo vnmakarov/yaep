@@ -31,9 +31,22 @@ E			[Ee][+-]?{D}+
 FS			(f|F|l|L)
 IS			(u|U|l|L)*
 
+%top{
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
+}
+
 %{
 #include <stdio.h>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 #include "ansic.h"
+
+int fileno (FILE *);
 
 #ifdef ECHO
 #undef ECHO
@@ -173,22 +186,19 @@ yywrap()
 }
 
 void
-comment(void)
+comment (void)
 {
-	char c, c1;
+  char c, c1;
 
 loop:
-	while ((c = input()) != '*' && c != 0)
-		/*putchar(c)*/;
+  while ((c = input()) != '*' && c != 0)
+    /*putchar(c)*/;
 
-	if ((c1 = input()) != '/' && c != 0)
-	{
-		unput(c1);
-		goto loop;
-	}
-
-	if (c != 0)
-		/*putchar(c1)*/;
+  if ((c1 = input()) != '/' && c != 0)
+  {
+    unput(c1);
+    goto loop;
+  }
 }
 
 void

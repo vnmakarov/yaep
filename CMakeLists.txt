@@ -21,16 +21,39 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-cmake_minimum_required( VERSION 3.0 )
+cmake_minimum_required( VERSION 3.5 )
 
 project( yaep )
 enable_testing()
 
-set( CMAKE_C_STANDARD 90 )
-set( CMAKE_CXX_STANDARD 11 )
+option( YAEP_LEGACY_C99 "Build YAEP with C99 instead of C11" OFF )
+option( YAEP_ENABLE_STRICT_WARNINGS "Enable extra compiler warnings" ON )
+
+if( YAEP_LEGACY_C99 )
+	set( CMAKE_C_STANDARD 99 )
+else()
+	set( CMAKE_C_STANDARD 11 )
+endif()
+set( CMAKE_C_STANDARD_REQUIRED ON )
+set( CMAKE_C_EXTENSIONS OFF )
+
+set( CMAKE_CXX_STANDARD 14 )
+set( CMAKE_CXX_STANDARD_REQUIRED ON )
+set( CMAKE_CXX_EXTENSIONS OFF )
+
+if( YAEP_ENABLE_STRICT_WARNINGS )
+	if( MSVC )
+		add_compile_options( /W4 /permissive- )
+	else()
+		add_compile_options( -Wall -Wextra -Wpedantic )
+	endif()
+endif()
 
 include( GNUInstallDirs )
 
+
+# Add utf8proc as a third-party dependency
+add_subdirectory( third_party/utf8proc )
 add_subdirectory( src )
 add_subdirectory( test )
 add_subdirectory( doc )

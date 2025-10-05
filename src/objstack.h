@@ -290,7 +290,10 @@ typedef struct
     assert (_temp_os->os_top_object_start != NULL);\
     if (_temp_os->os_top_object_free >= _temp_os->os_boundary)\
       _OS_expand_memory (_temp_os, 1);\
-    *_temp_os->os_top_object_free++ = (b);\
+    /* Store as unsigned char to avoid sign-extension on platforms where
+       `char' is signed. This makes subsequent byte-wise operations and
+       hashing stable and platform-independent. */\
+    *_temp_os->os_top_object_free++ = (char) ((unsigned char) (b));\
   }\
   while (0)
 
@@ -482,7 +485,9 @@ public:
     assert (os_top_object_start != NULL);
     if (os_top_object_free >= os_boundary)
       _OS_expand_memory (1);
-    *os_top_object_free++ = b;
+    /* Store as unsigned char to avoid sign-extension when `char` is
+       signed on some platforms; this preserves byte-level representation. */
+    *os_top_object_free++ = (char) ((unsigned char) b);
   }
 
   /* This function adds memory bytes to the end of variable length

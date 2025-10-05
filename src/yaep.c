@@ -45,13 +45,41 @@
 #include <setjmp.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "allocate.h"
 #include "hashtab.h"
 #include "vlobject.h"
 #include "objstack.h"
 #include "yaep.h"
+#include "yaep_unicode.h"
 
+
+/* Definition of per-parse context. Kept minimal: only fields that must
+   survive across a setjmp/longjmp are stored here. Allocation is done
+   via the grammar allocator. */
+struct parse_ctx {
+  struct symb *start;
+  /* Flags that describe initialized subsystems during a parse. These
+     fields must survive across a longjmp so store them in the heap
+     allocated parse context which is created before calling setjmp. */
+  int tok_init_p;
+  int parse_init_p;
+};
+
+/* Thread-local slot for the current parse context. See comments in the
+  main edit where we allocate the context before calling setjmp to
+  avoid -Wclobbered diagnostics. */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+static _Thread_local struct parse_ctx *yaep_current_parse_ctx = NULL;
+#else
+#ifdef __GNUC__
+static __thread struct parse_ctx *yaep_current_parse_ctx = NULL;
+#else
+static struct parse_ctx *yaep_current_parse_ctx = NULL;
+#endif
+#endif
+
 
 
 #ifndef NO_INLINE
@@ -86,7 +114,7 @@
 #endif
 
 #ifndef YAEP_MAX_ERROR_MESSAGE_LENGTH
-#define YAEP_MAX_ERROR_MESSAGE_LENGTH 200
+#define YAEP_MAX_ERROR_MESSAGE_LENGTH 1024
 #endif
 
 /* Define if you don't want to use hash table: symb code -> code.  It
@@ -118,6 +146,18 @@
 static const unsigned jauquet_prime_mod32 = 2053222611;
 /* Shift used for hash calculations.  */
 static const unsigned hash_shift = 611;
+
+/* Note on signedness: many hash accumulation sites in this file
+  operate on values that are already integer-typed (for example
+  `int`, `long int` / `term_set_el_t`, or explicit `(unsigned)`
+  casts).  Therefore the operands being added/multiplied are not
+  raw `char` bytes and no additional `(unsigned char)` promotion is
+  required here.  For places that do iterate over raw string bytes
+  we normalize to `unsigned char` (see `yaep_utf8_hash` and the
+  byte-storage normalization in `objstack.h` / `vlobject.h`) to
+  avoid platform-dependent sign-extension.  Keep this rationale in
+  mind when changing hashing code paths.
+*/
 
 
 /* The following is major structure which stores information about
@@ -185,6 +225,9 @@ struct grammar
   struct term_sets *term_sets_ptr;
   /* Allocator. */
   YaepAllocator *alloc;
+  /* (no per-grammar parse_ctx field: use a per-call heap-backed
+    context allocated within yaep_read_grammar to support concurrent
+    parses on the same grammar.) */
 };
 
 /* The following variable value is the reference for the current
@@ -223,6 +266,7 @@ void yaep_free_grammar (struct grammar *g);
 
 /* Expand VLO to contain N_ELS integers.  Initilize the new elements
    as zero. Return TRUE if we really made an expansion.  */
+#ifdef TRANSITIVE_TRANSITION
 static int
 expand_int_vlo (vlo_t * vlo, int n_els)
 {
@@ -246,6 +290,7 @@ expand_int_vlo (vlo_t * vlo, int n_els)
   return TRUE;
 #endif
 }
+#endif /* #ifdef TRANSITIVE_TRANSITION */
 
 
 
@@ -352,17 +397,22 @@ struct symbs
 #endif
 };
 
-/* Hash of symbol representation. */
+/* Hash of symbol representation.
+ * 
+ * This function computes a hash value for symbol names (identifiers).
+ * It uses the UTF-8-safe hashing function to ensure that high-bit bytes
+ * in multi-byte UTF-8 sequences are treated as unsigned, avoiding
+ * sign-extension artifacts that would cause hash instability.
+ *
+ * The hash quality doesn't need to be cryptographic, but it should
+ * distribute common grammar symbols (ASCII identifiers) reasonably well
+ * to minimize collisions in the symbol table.
+ */
 static unsigned
 symb_repr_hash (hash_table_entry_t s)
 {
-  unsigned result = jauquet_prime_mod32;
   const char *str = ((struct symb *) s)->repr;
-  int i;
-
-  for (i = 0; str[i] != '\0'; i++)
-    result = result * hash_shift + (unsigned) str[i];
-  return result;
+  return yaep_utf8_hash(str);
 }
 
 /* Equality of symbol representations. */
@@ -470,7 +520,28 @@ symb_add_term (const char *name, int code)
   struct symb symb, *result;
   hash_table_entry_t *repr_entry, *code_entry;
 
-  symb.repr = name;
+  /* Normalize symbol name to NFC before storing. This ensures that
+     canonically equivalent Unicode strings map to the same internal
+     representation. Normalization is performed using the central
+     unicode wrapper and the result is allocated via the grammar's
+     allocator to preserve ownership conventions. If normalization
+     fails for any reason, we fall back to the original input name.
+  */
+  char *norm_name = NULL;
+  if (grammar != NULL && grammar->alloc != NULL) {
+    if (yaep_utf8_normalize_nfc(name, &norm_name, grammar->alloc) != 1) {
+      /* Normalization failed; leave norm_name NULL and use original name */
+      norm_name = NULL;
+    }
+  } else {
+    /* No allocator available; attempt normalization but keep utf8proc malloc
+       ownership if it succeeds (safe, read-only use). */
+    if (yaep_utf8_normalize_nfc(name, &norm_name, NULL) != 1) {
+      norm_name = NULL;
+    }
+  }
+
+  symb.repr = norm_name != NULL ? norm_name : name;
   symb.term_p = TRUE;
   symb.num = symbs_ptr->n_nonterms + symbs_ptr->n_terms;
   symb.u.term.code = code;
@@ -482,7 +553,19 @@ symb_add_term (const char *name, int code)
   code_entry =
     find_hash_table_entry (symbs_ptr->code_to_symb_tab, &symb, TRUE);
   assert (*code_entry == NULL);
-  OS_TOP_ADD_STRING (symbs_ptr->symbs_os, name);
+  /* Copy the chosen representation (normalized if available, otherwise
+    the original name) into the object-stack so the stored symbol's
+    repr pointer refers to the persistent bytes used for hashing and
+    comparisons. Using `name' here would incorrectly persist the
+    pre-normalized bytes when normalization occurred. */
+  OS_TOP_ADD_STRING (symbs_ptr->symbs_os, symb.repr);
+  /* OS_TOP_ADD_STRING copies the bytes into the object-stack top, which
+    makes a persistent copy. If we normalized into allocator-managed memory
+    above, `name` points into allocator memory; OS_TOP_ADD_STRING will copy
+    those bytes into the OS and the allocator-owned normalized buffer may
+    be freed by the allocator at grammar teardown. If `norm_name` is NULL
+    (fallback to original `name`), we copy the original bytes instead.
+  */
   symb.repr = (char *) OS_TOP_BEGIN (symbs_ptr->symbs_os);
   OS_TOP_FINISH (symbs_ptr->symbs_os);
   OS_TOP_ADD_MEMORY (symbs_ptr->symbs_os, &symb, sizeof (struct symb));
@@ -492,6 +575,15 @@ symb_add_term (const char *name, int code)
   *code_entry = (hash_table_entry_t) result;
   VLO_ADD_MEMORY (symbs_ptr->symbs_vlo, &result, sizeof (struct symb *));
   VLO_ADD_MEMORY (symbs_ptr->terms_vlo, &result, sizeof (struct symb *));
+
+  /* If we allocated a temporary normalized string but OS_TOP copied it
+     into persistent storage, we don't need the allocator copy any more.
+     The allocator will free it during grammar teardown; no action here.
+     If we used utf8proc's malloc (no allocator provided), free it now
+     because OS_TOP holds the persistent copy. */
+  if (norm_name != NULL && grammar != NULL && grammar->alloc == NULL) {
+    free(norm_name);
+  }
   return result;
 }
 
@@ -504,7 +596,20 @@ symb_add_nonterm (const char *name)
   struct symb symb, *result;
   hash_table_entry_t *entry;
 
-  symb.repr = name;
+  /* Normalize nonterminal name to NFC at insertion time (same rationale
+     as for terminals). Fall back to original `name' on failure. */
+  char *norm_name = NULL;
+  if (grammar != NULL && grammar->alloc != NULL) {
+    if (yaep_utf8_normalize_nfc(name, &norm_name, grammar->alloc) != 1) {
+      norm_name = NULL;
+    }
+  } else {
+    if (yaep_utf8_normalize_nfc(name, &norm_name, NULL) != 1) {
+      norm_name = NULL;
+    }
+  }
+
+  symb.repr = norm_name != NULL ? norm_name : name;
   symb.term_p = FALSE;
   symb.num = symbs_ptr->n_nonterms + symbs_ptr->n_terms;
   symb.u.nonterm.rules = NULL;
@@ -512,7 +617,9 @@ symb_add_nonterm (const char *name)
   symb.u.nonterm.nonterm_num = symbs_ptr->n_nonterms++;
   entry = find_hash_table_entry (symbs_ptr->repr_to_symb_tab, &symb, TRUE);
   assert (*entry == NULL);
-  OS_TOP_ADD_STRING (symbs_ptr->symbs_os, name);
+  /* Same rationale as for terminals: persist the actual representation
+    we used (normalized or original). */
+  OS_TOP_ADD_STRING (symbs_ptr->symbs_os, symb.repr);
   symb.repr = (char *) OS_TOP_BEGIN (symbs_ptr->symbs_os);
   OS_TOP_FINISH (symbs_ptr->symbs_os);
   OS_TOP_ADD_MEMORY (symbs_ptr->symbs_os, &symb, sizeof (struct symb));
@@ -521,6 +628,10 @@ symb_add_nonterm (const char *name)
   *entry = (hash_table_entry_t) result;
   VLO_ADD_MEMORY (symbs_ptr->symbs_vlo, &result, sizeof (struct symb *));
   VLO_ADD_MEMORY (symbs_ptr->nonterms_vlo, &result, sizeof (struct symb *));
+
+  if (norm_name != NULL && grammar != NULL && grammar->alloc == NULL) {
+    free(norm_name);
+  }
   return result;
 }
 
@@ -904,7 +1015,7 @@ INLINE
 static term_set_el_t *
 term_set_from_table (int num)
 {
-  assert (num < VLO_LENGTH (term_sets_ptr->tab_term_set_vlo)
+  assert ((size_t)num < VLO_LENGTH (term_sets_ptr->tab_term_set_vlo)
 	  / sizeof (struct tab_term_set *));
   return ((struct tab_term_set **)
 	  VLO_BEGIN (term_sets_ptr->tab_term_set_vlo))[num]->set;
@@ -2093,6 +2204,7 @@ static void
 set_print (FILE * f, struct set *set, int set_dist, int nonstart_p,
 	   int lookahead_p)
 {
+  (void) set_dist;
   int i;
   int num, n_start_sits, n_sits, n_all_dists;
   struct sit **sits;
@@ -2120,7 +2232,7 @@ set_print (FILE * f, struct set *set, int set_dist, int nonstart_p,
       parent_indexes = set->core->parent_indexes;
       n_start_sits = set->core->n_start_sits;
     }
-  fprintf (f, "  Set core = %d\n", num);
+  fprintf (f, "  Set core = %d (dist = %d)\n", num, set_dist);
   for (i = 0; i < n_sits; i++)
     {
       fprintf (f, "    ");
@@ -2170,17 +2282,31 @@ set_fin (void)
 
 /* This page is abstract data `parser list'. */
 
-/* The following two variables represents Earley's parser list.  The
-   values of pl_curr and array *pl can be read and modified
-   externally. */
+/* The following three variables represent Earley's parser list.  The
+  legacy code assumed that the allocator owning the list stayed valid
+  until program termination.  When we started creating and freeing
+  multiple grammar objects (for example, the UTF-8 regression tests
+  parse a Unicode grammar and then an ASCII grammar in the same
+  process) we began reusing this storage.  If `pl` was left pointing
+  at memory that had already been returned to the first grammar's
+  allocator, the second grammar would attempt to free it again and we
+  would hit a double free.  We therefore remember both the pointer
+  and the allocator that owns it so we can release the storage
+  exactly once and then reset the state before the next grammar runs. */
 static struct set **pl;
 static int pl_curr;
+static YaepAllocator *pl_allocator;
 
 /* Initialize work with the parser list. */
 static void
 pl_init (void)
 {
+  /* Ensure stale parser list state from a previous grammar does not leak
+    into the next parse.  This mirrors pl_fin, but is also called before
+    the very first use. */
   pl = NULL;
+  pl_curr = -1;
+  pl_allocator = NULL;
 }
 
 /* The following function creates Earley's parser list. */
@@ -2194,6 +2320,10 @@ pl_create (void)
     yaep_malloc (grammar->alloc, sizeof (struct set *) * (toks_len + 1) * 2);
   pl = (struct set **) mem;
   pl_curr = -1;
+  /* Remember which allocator owns this storage so we can safely dispose of
+    it even if `grammar` later becomes NULL (for example once the grammar
+    object is freed). */
+  pl_allocator = grammar != NULL ? grammar->alloc : NULL;
 }
 
 /* Finalize work with the parser list. */
@@ -2201,7 +2331,20 @@ static void
 pl_fin (void)
 {
   if (pl != NULL)
-    yaep_free (grammar->alloc, pl);
+    {
+      YaepAllocator *alloc = pl_allocator;
+
+      /* Fall back to the currently active grammar only if we do not have
+         a remembered allocator.  This preserves the historical behaviour
+         while preventing a dangling allocator pointer from being reused. */
+      if (alloc == NULL && grammar != NULL)
+        alloc = grammar->alloc;
+      if (alloc != NULL)
+        yaep_free (alloc, pl);
+    }
+  pl = NULL;
+  pl_curr = -1;
+  pl_allocator = NULL;
 }
 
 
@@ -2977,8 +3120,17 @@ core_symb_vect_fin (void)
 
 
 
-/* Jump buffer for processing errors. */
+/* Jump buffer for processing errors. Make it thread-local so concurrent
+  parses on different threads do not clobber each other's jump buffers. */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+static _Thread_local jmp_buf error_longjump_buff;
+#else
+#ifdef __GNUC__
+static __thread jmp_buf error_longjump_buff;
+#else
 static jmp_buf error_longjump_buff;
+#endif
+#endif
 
 /* The following function stores error CODE and MESSAGE.  The function
    makes long jump after that.  So the function is designed to process
@@ -2990,9 +3142,44 @@ yaep_error (int code, const char *format, ...)
 
   grammar->error_code = code;
   va_start (arguments, format);
-  vsprintf (grammar->error_message, format, arguments);
-  va_end (arguments);
-  assert (strlen (grammar->error_message) < YAEP_MAX_ERROR_MESSAGE_LENGTH);
+  /* Format into a temporary buffer first. This avoids partial writes
+     into the grammar->error_message in case of formatting errors and
+     lets us apply UTF-8-safe truncation. */
+  {
+    /* Local temporary buffer sized larger than the destination so we
+       can detect truncation scenarios reliably for long messages. */
+    size_t tmp_size = YAEP_MAX_ERROR_MESSAGE_LENGTH * 2;
+    char *tmp = (char *) malloc (tmp_size);
+    if (tmp == NULL)
+      {
+        va_end (arguments);
+        strncpy (grammar->error_message, "<formatting error>",
+                 sizeof (grammar->error_message));
+        grammar->error_message[sizeof (grammar->error_message) - 1] = '\0';
+        longjmp (error_longjump_buff, code);
+      }
+
+    int n = vsnprintf (tmp, tmp_size, format, arguments);
+    va_end (arguments);
+
+    if (n < 0)
+      {
+        /* Formatting error: produce a minimal fallback message. */
+        strncpy (grammar->error_message, "<formatting error>",
+                 sizeof (grammar->error_message));
+        grammar->error_message[sizeof (grammar->error_message) - 1] = '\0';
+        free (tmp);
+        longjmp (error_longjump_buff, code);
+      }
+
+    /* Use UTF-8-safe truncation to copy into grammar->error_message.
+       The helper appends "..." only when truncation occurred and
+       guarantees that the destination is valid UTF-8 and NUL-terminated. */
+    yaep_utf8_truncate_safe (tmp, grammar->error_message,
+                             sizeof (grammar->error_message));
+
+    free (tmp);
+  }
   longjmp (error_longjump_buff, code);
 }
 
@@ -3324,7 +3511,18 @@ yaep_read_grammar (struct grammar *g, int strict_p,
 					     int *anode_cost, int **transl))
 {
   const char *name, *lhs, **rhs, *anode;
-  struct symb *symb, *start;
+  struct symb *symb;
+  /* Allocate a small per-parse context on the heap so values that must
+     survive a longjmp do not live in automatic locals. This enables
+     concurrent parses of the same grammar: each call gets its own
+     context. The context is allocated from the grammar allocator and
+     published into the thread-local slot `yaep_current_parse_ctx`. */
+  {
+    struct parse_ctx *tmp = (struct parse_ctx *) yaep_malloc (g->alloc, sizeof *tmp);
+    if (tmp != NULL)
+      tmp->start = NULL;
+    yaep_current_parse_ctx = tmp;
+  }
   struct rule *rule;
   int anode_cost;
   int *transl;
@@ -3335,8 +3533,18 @@ yaep_read_grammar (struct grammar *g, int strict_p,
   symbs_ptr = g->symbs_ptr;
   term_sets_ptr = g->term_sets_ptr;
   rules_ptr = g->rules_ptr;
+  /* Allocate a small per-parse context from the grammar allocator.
+     We intentionally allocate the context before setjmp so the local
+     pointer `ctx` is assigned prior to setjmp and not modified later;
+     only `ctx->start` (the heap pointee) will be assigned after
+     setjmp, which avoids -Wclobbered on compilers that analyze setjmp
+     usage. */
+  /* Local uses below will access grammar->parse_ctx->start */
   if ((code = setjmp (error_longjump_buff)) != 0)
     {
+      if (yaep_current_parse_ctx != NULL)
+        yaep_free (g->alloc, yaep_current_parse_ctx);
+      yaep_current_parse_ctx = NULL;
       return code;
     }
   if (!grammar->undefined_p)
@@ -3346,14 +3554,70 @@ yaep_read_grammar (struct grammar *g, int strict_p,
       if (code < 0)
 	yaep_error (YAEP_NEGATIVE_TERM_CODE,
 		    "term `%s' has negative code", name);
-      symb = symb_find_by_repr (name);
+      /* Attempt to NFC-normalize the terminal name for lookup/insertion.
+         We prefer allocating the normalized buffer with the grammar's
+         allocator when available to avoid extra copies; when no allocator
+         is available we accept utf8proc's malloc buffer and will free it
+         after insertion. */
+      char *norm_name = NULL;
+      if (grammar != NULL && grammar->alloc != NULL) {
+        if (yaep_utf8_normalize_nfc(name, &norm_name, grammar->alloc) != 1)
+          norm_name = NULL;
+      } else {
+        if (yaep_utf8_normalize_nfc(name, &norm_name, NULL) != 1)
+          norm_name = NULL;
+      }
+
+      const char *lookup_name = norm_name != NULL ? norm_name : name;
+
+      /* Check for repeated declaration using the (possibly) normalized
+         bytes so canonically equivalent names are detected as duplicates. */
+      symb = symb_find_by_repr (lookup_name);
       if (symb != NULL)
-	yaep_error (YAEP_REPEATED_TERM_DECL,
-		    "repeated declaration of term `%s'", name);
+ 	yaep_error (YAEP_REPEATED_TERM_DECL,
+ 		    "repeated declaration of term `%s'", lookup_name);
       if (symb_find_by_code (code) != NULL)
-	yaep_error (YAEP_REPEATED_TERM_CODE,
-		    "repeated code %d in term `%s'", code, name);
-      symb_add_term (name, code);
+ 	yaep_error (YAEP_REPEATED_TERM_CODE,
+ 		    "repeated code %d in term `%s'", code, lookup_name);
+
+      /* Insert symbol using the chosen representation so the hashtable
+         and persisted object-stack use identical bytes. This mirrors
+         symb_add_term's behavior but operates on the already-normalized
+         bytes when available to ensure duplicate detection. */
+      {
+        struct symb tmp_symb, *result_symb;
+        hash_table_entry_t *repr_entry, *code_entry;
+
+        tmp_symb.repr = (char *) lookup_name;
+        tmp_symb.term_p = TRUE;
+        tmp_symb.num = symbs_ptr->n_nonterms + symbs_ptr->n_terms;
+        tmp_symb.u.term.code = code;
+        tmp_symb.u.term.term_num = symbs_ptr->n_terms++;
+        tmp_symb.empty_p = FALSE;
+
+        repr_entry = find_hash_table_entry (symbs_ptr->repr_to_symb_tab, &tmp_symb, TRUE);
+        assert (*repr_entry == NULL);
+        code_entry = find_hash_table_entry (symbs_ptr->code_to_symb_tab, &tmp_symb, TRUE);
+        assert (*code_entry == NULL);
+
+        OS_TOP_ADD_STRING (symbs_ptr->symbs_os, tmp_symb.repr);
+        tmp_symb.repr = (char *) OS_TOP_BEGIN (symbs_ptr->symbs_os);
+        OS_TOP_FINISH (symbs_ptr->symbs_os);
+        OS_TOP_ADD_MEMORY (symbs_ptr->symbs_os, &tmp_symb, sizeof (struct symb));
+        result_symb = (struct symb *) OS_TOP_BEGIN (symbs_ptr->symbs_os);
+        OS_TOP_FINISH (symbs_ptr->symbs_os);
+        *repr_entry = (hash_table_entry_t) result_symb;
+        *code_entry = (hash_table_entry_t) result_symb;
+        VLO_ADD_MEMORY (symbs_ptr->symbs_vlo, &result_symb, sizeof (struct symb *));
+        VLO_ADD_MEMORY (symbs_ptr->terms_vlo, &result_symb, sizeof (struct symb *));
+
+        /* If normalization returned a malloc()-ed buffer (no allocator),
+           free it since OS_TOP copied the bytes. If allocation was made
+           with the grammar allocator, it will be freed at grammar teardown. */
+        if (norm_name != NULL && grammar != NULL && grammar->alloc == NULL) {
+          free(norm_name);
+        }
+      }
     }
 
   /* Adding error symbol. */
@@ -3379,12 +3643,13 @@ yaep_read_grammar (struct grammar *g, int strict_p,
       if (anode != NULL && anode_cost < 0)
 	yaep_error (YAEP_NEGATIVE_COST,
 		    "translation for `%s' has negative cost", lhs);
-      if (grammar->axiom == NULL)
-	{
-	  /* We made this here becuase we want that the start rule has
-	     number 0. */
-	  /* Add axiom and end marker. */
-	  start = symb;
+  if (grammar->axiom == NULL)
+  {
+   /* We made this here becuase we want that the start rule has
+     number 0. */
+   /* Add axiom and end marker. */
+  if (yaep_current_parse_ctx != NULL)
+   yaep_current_parse_ctx->start = symb;
 	  grammar->axiom = symb_find_by_repr (AXIOM_NAME);
 	  if (grammar->axiom != NULL)
 	    yaep_error (YAEP_FIXED_NAME_USAGE,
@@ -3444,9 +3709,9 @@ yaep_read_grammar (struct grammar *g, int strict_p,
     }
   if (grammar->axiom == NULL)
     yaep_error (YAEP_NO_RULES, "grammar does not contains rules");
-  assert (start != NULL);
+  assert (yaep_current_parse_ctx != NULL && yaep_current_parse_ctx->start != NULL);
   /* Adding axiom : error $eof if it is neccessary. */
-  for (rule = start->u.nonterm.rules; rule != NULL; rule = rule->lhs_next)
+  for (rule = yaep_current_parse_ctx->start->u.nonterm.rules; rule != NULL; rule = rule->lhs_next)
     if (rule->rhs[0] == grammar->term_error)
       break;
   if (rule == NULL)
@@ -3491,6 +3756,11 @@ yaep_read_grammar (struct grammar *g, int strict_p,
     }
 #endif
   grammar->undefined_p = FALSE;
+  if (yaep_current_parse_ctx != NULL)
+    {
+      yaep_free (g->alloc, yaep_current_parse_ctx);
+      yaep_current_parse_ctx = NULL;
+    }
   return 0;
 }
 
@@ -5263,8 +5533,8 @@ static vlo_t *tnodes_vlo;
 static struct yaep_tree_node *
 prune_to_minimal (struct yaep_tree_node *node, int *cost)
 {
-  struct yaep_tree_node *child, *alt, *next_alt, *result;
-  int i, min_cost;
+  struct yaep_tree_node *child, *alt, *next_alt, *result = NULL;
+  int i, min_cost = INT_MAX;
 
   assert (node != NULL);
   switch (node->type)
@@ -5323,7 +5593,7 @@ prune_to_minimal (struct yaep_tree_node *node, int *cost)
 static void
 traverse_pruned_translation (struct yaep_tree_node *node)
 {
-  struct yaep_tree_node *child, *alt;
+  struct yaep_tree_node *child;
   hash_table_entry_t *entry;
   int i;
 
@@ -5431,11 +5701,14 @@ make_parse (int *ambiguous_p)
   struct yaep_tree_node *parent_anode, *anode, root_anode;
   int parent_disp;
   int saved_one_parse_p;
-  struct yaep_tree_node **term_node_array;
+  struct yaep_tree_node **term_node_array = NULL;
 #ifndef __cplusplus
-  vlo_t stack, orig_states;
+  /* zero-initialize VLO descriptors to avoid "may be used
+     uninitialized" warnings from aggressive compilers. They will be
+     properly created by VLO_CREATE before use. */
+  vlo_t stack = {0}, orig_states = {0};
 #else
-  vlo_t *stack, *orig_states;
+  vlo_t *stack = NULL, *orig_states = NULL;
 #endif
 
   n_parse_term_nodes = n_parse_abstract_nodes = n_parse_alt_nodes = 0;
@@ -5977,17 +6250,21 @@ static
 #endif
 int
 yaep_parse (struct grammar *g,
-	    int (*read) (void **attr),
-	    void (*error) (int err_tok_num, void *err_tok_attr,
-			   int start_ignored_tok_num,
-			   void *start_ignored_tok_attr,
-			   int start_recovered_tok_num,
-			   void *start_recovered_tok_attr),
-	    void *(*alloc) (int nmemb),
-	    void (*free) (void *mem),
-	    struct yaep_tree_node **root, int *ambiguous_p)
+    int (*read) (void **attr),
+    void (*error) (int err_tok_num, void *err_tok_attr,
+      int start_ignored_tok_num,
+      void *start_ignored_tok_attr,
+      int start_recovered_tok_num,
+      void *start_recovered_tok_attr),
+    void *(*alloc) (int nmemb),
+    void (*free) (void *mem),
+    struct yaep_tree_node **root, int *ambiguous_p)
 {
-  int code, tok_init_p, parse_init_p;
+  int code;
+  /* Per-parse heap context. We allocate it before setjmp and publish
+     it into the thread-local slot `yaep_current_parse_ctx` (declared
+     near the top of this file). This avoids holding an automatic
+     pointer across setjmp which can trigger -Wclobbered. */
   int tab_collisions, tab_searches;
 
   /* Set up parse allocation */
@@ -6015,24 +6292,44 @@ yaep_parse (struct grammar *g,
   *root = NULL;
   *ambiguous_p = FALSE;
   pl_init ();
-  tok_init_p = parse_init_p = FALSE;
+  /* Allocate parse context with the grammar allocator if available
+     so we avoid introducing a new runtime allocator. The context is
+     intentionally allocated before the setjmp call to ensure compilers
+     that analyze setjmp do not warn about clobbered automatic locals. */
+  {
+    struct parse_ctx *tmp = (struct parse_ctx *) yaep_malloc (g->alloc, sizeof *tmp);
+    if (tmp != NULL)
+      {
+        tmp->start = NULL;
+        tmp->tok_init_p = FALSE;
+        tmp->parse_init_p = FALSE;
+      }
+    /* Publish into the thread-local slot. */
+    yaep_current_parse_ctx = tmp;
+  }
+
   if ((code = setjmp (error_longjump_buff)) != 0)
     {
       pl_fin ();
-      if (parse_init_p)
-	yaep_parse_fin ();
-      if (tok_init_p)
-	tok_fin ();
+      if (yaep_current_parse_ctx != NULL && yaep_current_parse_ctx->parse_init_p)
+    yaep_parse_fin ();
+      if (yaep_current_parse_ctx != NULL && yaep_current_parse_ctx->tok_init_p)
+    tok_fin ();
+      if (yaep_current_parse_ctx != NULL)
+    yaep_free (g->alloc, yaep_current_parse_ctx);
+      yaep_current_parse_ctx = NULL;
       return code;
     }
   if (grammar->undefined_p)
     yaep_error (YAEP_UNDEFINED_OR_BAD_GRAMMAR, "undefined or bad grammar");
   n_goto_successes = 0;
   tok_init ();
-  tok_init_p = TRUE;
+  if (yaep_current_parse_ctx != NULL)
+    yaep_current_parse_ctx->tok_init_p = TRUE;
   read_toks ();
   yaep_parse_init (toks_len);
-  parse_init_p = TRUE;
+  if (yaep_current_parse_ctx != NULL)
+    yaep_current_parse_ctx->parse_init_p = TRUE;
   pl_create ();
 #ifndef __cplusplus
   tab_collisions = get_all_collisions ();
@@ -6303,6 +6600,10 @@ yaep_free_tree (struct yaep_tree_node *root, void (*parse_free) (void *),
 
 #ifdef YAEP_TEST
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* All parse_alloc memory is contained here. */
 #ifndef __cplusplus
 static os_t mem_os;
@@ -6431,7 +6732,7 @@ test_read_token (void **attr)
 
   ntok++;
   *attr = NULL;
-  if (ntok < sizeof (input))
+  if ((size_t)ntok < sizeof (input))
     return input[ntok - 1];
   else
     return -1;
@@ -6444,6 +6745,11 @@ test_syntax_error (int err_tok_num, void *err_tok_attr,
 		   int start_recovered_tok_num,
 		   void *start_recovered_tok_attr)
 {
+  /* Unused parameters - required by callback signature */
+  (void)err_tok_attr;
+  (void)start_ignored_tok_attr;
+  (void)start_recovered_tok_attr;
+  
   if (start_ignored_tok_num < 0)
     fprintf (stderr, "Syntax error on token %d\n", err_tok_num);
   else
@@ -6551,6 +6857,7 @@ use_description (int argc, char **argv)
 }
 #endif
 
+#ifndef __cplusplus
 int
 main (int argc, char **argv)
 {
@@ -6566,5 +6873,10 @@ main (int argc, char **argv)
     use_functions (argc - 1, argv + 1);
   exit (0);
 }
+#endif /* #ifndef __cplusplus */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* #ifdef YAEP_TEST */

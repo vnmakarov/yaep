@@ -52,12 +52,6 @@
 #define delete_hash_table(tab) delete tab
 #define find_hash_table_entry(tab, el, res_p) (tab)->find_entry(el, res_p)
 
-#ifdef YAEP_TEST
-/* Forward declarations: */
-static void use_functions (int argc, char **argv);
-static void use_description (int argc, char **argv);
-#endif
-
 #include "yaep.c"
 
 yaep::yaep (void)
@@ -255,6 +249,22 @@ use_description (int argc, char **argv)
   delete e;
   OS_DELETE (mem_os);
   yaep_alloc_del (alloc);
+}
+
+int
+main (int argc, char **argv)
+{
+  /* Don't expect the same statistics output because the order of
+     situations in sets may be different in different calls because of
+     memory allocations/freeing (we use situation address to order
+     situations in sets) . */
+  if (argc <= 1)
+    use_description (argc, argv);
+  else if (atoi (argv[1]))
+    use_description (argc - 1, argv + 1);
+  else
+    use_functions (argc - 1, argv + 1);
+  exit (0);
 }
 
 #endif /* #ifdef YAEP_TEST */

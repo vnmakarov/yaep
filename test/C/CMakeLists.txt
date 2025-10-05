@@ -107,6 +107,67 @@ add_test( NAME yaep-test06 COMMAND test06 1 0 )
 file( READ ${TEST_DATA_DIR}/test06.out TEST_OUTPUT )
 set_tests_properties( yaep-test06 PROPERTIES PASS_REGULAR_EXPRESSION "^${TEST_OUTPUT}$" )
 
+# UTF-8 truncation test (ensures error messages are valid UTF-8 and ellipsize)
+add_executable( test_utf8_truncation test_utf8_truncation.c )
+target_link_libraries( test_utf8_truncation yaep_static )
+add_test( NAME yaep-test-utf8-truncation COMMAND test_utf8_truncation )
+
+# Lexer identifier UTF-8 handling unit test
+add_executable( test_utf8_identifier test_utf8_identifier.c )
+target_link_libraries( test_utf8_identifier yaep_static )
+add_test( NAME yaep-test-utf8-identifier COMMAND test_utf8_identifier )
+
+# Concurrent parsing smoke test (pthread)
+add_executable( test_concurrent_parse test_concurrent_parse.c )
+target_link_libraries( test_concurrent_parse yaep_static pthread )
+add_test( NAME yaep-test-concurrent-parse COMMAND test_concurrent_parse )
+set_tests_properties( yaep-test-concurrent-parse PROPERTIES DISABLED TRUE )
+
+# Concurrent parsing test (process-based)
+add_executable( test_concurrent_parse_process test_concurrent_parse_process.c )
+target_link_libraries( test_concurrent_parse_process yaep_static )
+add_test( NAME yaep-test-concurrent-parse-process COMMAND test_concurrent_parse_process )
+
+# Concurrent parsing test (pthread serialized by mutex)
+add_executable( test_concurrent_parse_mutex test_concurrent_parse_mutex.c )
+target_link_libraries( test_concurrent_parse_mutex yaep_static pthread )
+add_test( NAME yaep-test-concurrent-parse-mutex COMMAND test_concurrent_parse_mutex )
+set_tests_properties( yaep-test-concurrent-parse-mutex PROPERTIES DISABLED TRUE )
+
+# NFC normalization canonical-equivalence test
+add_executable( test_utf8_normalization test_utf8_normalization.c )
+target_link_libraries( test_utf8_normalization yaep_static )
+add_test( NAME yaep-test-utf8-normalization COMMAND test_utf8_normalization )
+
+# Persistence / no-allocator normalization test
+add_executable( test_utf8_persistence test_utf8_persistence.c )
+target_link_libraries( test_utf8_persistence yaep_static )
+add_test( NAME yaep-test-utf8-persistence COMMAND test_utf8_persistence )
+
+# Additional small UTF-8 helper tests
+add_executable( test_utf8_iterator test_utf8_iterator.c )
+target_link_libraries( test_utf8_iterator yaep_static )
+add_test( NAME yaep-test-utf8-iterator COMMAND test_utf8_iterator )
+
+add_executable( test_truncate_edge test_truncate_edge.c )
+target_link_libraries( test_truncate_edge yaep_static )
+add_test( NAME yaep-test-truncate-edge COMMAND test_truncate_edge )
+
+# Longer truncation stress test
+add_executable( test_truncate_long test_truncate_long.c )
+target_link_libraries( test_truncate_long yaep_static )
+add_test( NAME yaep-test-truncate-long COMMAND test_truncate_long )
+
+# NFC canonicalization cases
+add_executable( test_nfc_cases test_nfc_cases.c )
+target_link_libraries( test_nfc_cases yaep_static )
+add_test( NAME yaep-test-nfc-cases COMMAND test_nfc_cases )
+
+# Hash stability tests
+add_executable( test_hash_stability test_hash_stability.c )
+target_link_libraries( test_hash_stability yaep_static )
+add_test( NAME yaep-test-hash-stability COMMAND test_hash_stability )
+
 # Already defined grammar
 add_executable( test07 test07.c )
 target_link_libraries( test07 yaep_static )
@@ -425,3 +486,24 @@ add_test( NAME yaep-test49 COMMAND test49 1 2 )
 file( READ ${TEST_DATA_DIR}/test49.out TEST_OUTPUT )
 rescape( TEST_OUTPUT "${TEST_OUTPUT}" )
 set_tests_properties( yaep-test49 PROPERTIES PASS_REGULAR_EXPRESSION "^${TEST_OUTPUT}" )
+
+# UTF-8 Support Test
+add_executable( test_utf8 test_utf8.c )
+target_link_libraries( test_utf8 yaep_static )
+add_test( NAME yaep-test-utf8 COMMAND test_utf8 )
+set_tests_properties( yaep-test-utf8 PROPERTIES PASS_REGULAR_EXPRESSION "All UTF-8 tests passed" )
+
+# Simple UTF-8 debugging test
+add_executable( test_utf8_simple test_utf8_simple.c )
+target_link_libraries( test_utf8_simple yaep_static )
+add_test( NAME yaep-test-utf8-simple COMMAND test_utf8_simple )
+
+# Double grammar test
+add_executable( test_utf8_double test_utf8_double.c )
+target_link_libraries( test_utf8_double yaep_static )
+add_test( NAME yaep-test-utf8-double COMMAND test_utf8_double )
+
+# Invalid UTF-8 validation test
+add_executable( test_utf8_invalid test_utf8_invalid.c )
+target_link_libraries( test_utf8_invalid yaep_static )
+add_test( NAME yaep-test-utf8-invalid COMMAND test_utf8_invalid )

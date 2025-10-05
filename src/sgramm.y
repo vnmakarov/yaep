@@ -32,8 +32,11 @@
 %{
 
 #include <ctype.h>
+#include <string.h>
 
 #include <assert.h>
+
+#include "yaep_unicode.h"
 
 /* The following is necessary if we use YAEP with byacc/bison/msta
    parser. */
@@ -196,7 +199,16 @@ seq : seq IDENT
 	  struct sterm term;
 	  
 	  term.repr = (char *) $2;
-	  term.code = term.repr [1];
+	  {
+	    size_t repr_len = strlen (term.repr);
+	    yaep_codepoint_t literal_cp;
+	    /* yylex appends the decoded code point directly after the NUL
+	       terminator so we can recover it without maintaining a side table. */
+	    memcpy (&literal_cp,
+		    term.repr + repr_len + 1,
+		    sizeof (literal_cp));
+	    term.code = (int) literal_cp;
+	  }
           term.num = VLO_LENGTH (sterms) / sizeof (term);
 	  VLO_ADD_MEMORY (sterms, &term, sizeof (term));
 	  OS_TOP_ADD_MEMORY (srhs, &term.repr, sizeof (term.repr));
@@ -267,117 +279,342 @@ static os_t *stoks;
    read. */
 static int nsterm, nsrule;
 
-/* The following implements lexical analyzer for yacc code. */
+/* The following implements lexical analyzer for yacc code.
+ * 
+ * This lexer has been updated to support UTF-8 encoded grammar descriptions.
+ * It uses yaep_utf8_next() to iterate through code points rather than bytes,
+ * and yaep_utf8_isalpha/isalnum/isdigit for character classification.
+ *
+ * ASCII Fast Path: The UTF-8 functions are optimized for ASCII, so there
+ * is minimal overhead for typical (ASCII-only) grammars.
+ *
+ * Error Handling: Invalid UTF-8 sequences are detected and reported as
+ * lexical errors with appropriate diagnostic messages.
+ */
 int
 yylex (void)
 {
-  int c;
+  yaep_codepoint_t cp;
+  const char *tok_start;
   int n_errs = 0;
 
   for (;;)
     {
-      c = *curr_ch++;
-      switch (c)
+      /* Save the position before reading the next code point,
+       * in case we need to report errors at this location. */
+      tok_start = curr_ch;
+      cp = yaep_utf8_next(&curr_ch);
+      
+      /* Check for UTF-8 decoding errors */
+      if (cp == YAEP_CODEPOINT_INVALID)
 	{
-	case '\0':
-	  return 0;
-	case '\n':
-	  ln++;
-	case '\t':
-	case ' ':
-	  break;
-	case '/':
-	  c = *curr_ch++;
-	  if (c != '*' && n_errs == 0)
+	  if (n_errs == 0)
 	    {
+	      yyerror ("invalid UTF-8 sequence in grammar");
 	      n_errs++;
-	      curr_ch--;
-	      yyerror ("invalid input character /");
 	    }
-	  for (;;)
+	  continue;
+	}
+      
+      /* End of string */
+      if (cp == YAEP_CODEPOINT_EOS)
+	return 0;
+      
+      /* Handle ASCII characters that map directly to single-byte checks.
+       * For these, the code point value equals the byte value. */
+      if (cp < 128)
+	{
+	  switch (cp)
 	    {
-	      c = *curr_ch++;
-	      if (c == '\0')
-		yyerror ("unfinished comment");
-	      if (c == '\n')
-		ln++;
-	      if (c == '*')
+	    case '\n':
+	      ln++;
+	    case '\t':
+	    case ' ':
+	      break;
+	    case '/':
+	      /* Comment handling */
+	      cp = yaep_utf8_next(&curr_ch);
+	      if (cp != '*' && n_errs == 0)
 		{
-		  c = *curr_ch++;
-		  if (c == '/')
-		    break;
-		  curr_ch--;
+		  n_errs++;
+		  curr_ch = tok_start + 1; /* Back up to after the '/' */
+		  yyerror ("invalid input character /");
 		}
-	    }
-	  break;
-	case '=':
-	case '#':
-	case '|':
-	case ';':
-	case '-':
-	case '(':
-	case ')':
-	  return c;
-	case '\'':
-	  OS_TOP_ADD_BYTE (stoks, '\'');
-	  yylval.num = *curr_ch++;
-	  OS_TOP_ADD_BYTE (stoks, yylval.num);
-	  if (*curr_ch++ != '\'')
-	    yyerror ("invalid character");
-	  OS_TOP_ADD_BYTE (stoks, '\'');
-	  OS_TOP_ADD_BYTE (stoks, '\0');
-	  yylval.ref = OS_TOP_BEGIN (stoks);
-	  OS_TOP_FINISH (stoks);
-	  return CHAR;
-	default:
-	  if (isalpha (c) || c == '_')
-	    {
-	      OS_TOP_ADD_BYTE (stoks, c);
-	      while ((c = *curr_ch++) != '\0' && (isalnum (c) || c == '_'))
-		OS_TOP_ADD_BYTE (stoks, c);
-	      curr_ch--;
-	      OS_TOP_ADD_BYTE (stoks, '\0');
-	      yylval.ref = OS_TOP_BEGIN (stoks);
-	      if (strcmp ((char *) yylval.ref, "TERM") == 0)
+	      for (;;)
 		{
-		  OS_TOP_NULLIFY (stoks);
-		  return TERM;
-		}
-	      OS_TOP_FINISH (stoks);
-	      while ((c = *curr_ch++) != '\0')
-		if (c == '\n')
-		  ln++;
-		else if (c != '\t' && c != ' ')
-		  break;
-	      if (c != ':')
-		curr_ch--;
-	      return (c == ':' ? SEM_IDENT : IDENT);
-	    }
-	  else if (isdigit (c))
-	    {
-	      yylval.num = c - '0';
-	      while ((c = *curr_ch++) != '\0' && isdigit (c))
-		yylval.num = yylval.num * 10 + (c - '0');
-	      curr_ch--;
-	      return NUMBER;
-	    }
-	  else
-	    {
-	      n_errs++;
-	      if (n_errs == 1)
-		{
-		  char str[100];
-
-		  if (isprint (c))
+		  cp = yaep_utf8_next(&curr_ch);
+		  if (cp == YAEP_CODEPOINT_EOS)
+		    yyerror ("unfinished comment");
+		  if (cp == YAEP_CODEPOINT_INVALID)
 		    {
-		      sprintf (str, "invalid input character '%c'", c);
-		      yyerror (str);
+		      if (n_errs == 0)
+			{
+			  yyerror ("invalid UTF-8 in comment");
+			  n_errs++;
+			}
+		      continue;
 		    }
-		  else
-		    yyerror ("invalid input character");
+		  if (cp == '\n')
+		    ln++;
+		  if (cp == '*')
+		    {
+		      const char *star_pos = curr_ch;
+		      cp = yaep_utf8_next(&curr_ch);
+		      if (cp == '/')
+			break;
+		      curr_ch = star_pos; /* Back up if not end of comment */
+		    }
 		}
+	      break;
+	    case '=':
+	    case '#':
+	    case '|':
+	    case ';':
+	    case '-':
+	    case '(':
+	    case ')':
+	      return (int)cp;
+			case '\'':
+				{
+					/* Character literal: 'x' where x can be any single Unicode scalar.
+						 We preserve the exact UTF-8 bytes so downstream consumers see the
+						 literal exactly as authored, and we append the decoded code point
+						 after the NUL terminator for later retrieval. */
+					const char *repr_start = tok_start;
+					yaep_codepoint_t literal_cp;
+					yaep_codepoint_t closing_cp;
+
+					literal_cp = yaep_utf8_next (&curr_ch);
+					if (literal_cp == YAEP_CODEPOINT_EOS || literal_cp == YAEP_CODEPOINT_INVALID)
+						{
+							yyerror ("invalid character literal");
+							break;
+						}
+
+					closing_cp = yaep_utf8_next (&curr_ch);
+					if (closing_cp != '\'')
+						{
+							yyerror ("unterminated character literal");
+							break;
+						}
+
+					{
+						size_t repr_len = curr_ch - repr_start;
+						yaep_codepoint_t stored_cp = literal_cp;
+
+						OS_TOP_ADD_MEMORY (stoks, repr_start, repr_len);
+						OS_TOP_ADD_BYTE (stoks, '\0');
+						OS_TOP_ADD_MEMORY (stoks, &stored_cp, sizeof (stored_cp));
+						yylval.ref = OS_TOP_BEGIN (stoks);
+						OS_TOP_FINISH (stoks);
+					}
+
+					return CHAR;
+				}
+	    default:
+	      /* Check if this is the start of an identifier (ASCII fast path) */
+	      if ((cp >= 'A' && cp <= 'Z') || (cp >= 'a' && cp <= 'z') || cp == '_')
+		goto identifier;
+		/* Check if this is the start of a number (ASCII fast path) */
+		if (cp >= '0' && cp <= '9')
+		goto number;
+	      /* Otherwise, this is an error */
+	      goto error;
 	    }
 	}
+      else
+	{
+	  /* Non-ASCII code point: classify using Unicode predicates. */
+	  if (yaep_utf8_isdigit (cp))
+	    goto number;
+	  if (yaep_utf8_isalpha (cp))
+	    goto identifier;
+	  /* Otherwise, it's an invalid token */
+	  goto error;
+	}
+      continue;
+
+    identifier:
+      /* Identifier: starts with letter or underscore, continues with
+       * alphanumeric or underscore. Now supports full Unicode identifiers. */
+      {
+	const char *id_start = tok_start;
+	int id_byte_len;
+
+	/*
+	 * Iterate with `yaep_utf8_next_with_len` which returns the decoded
+	 * code point and the number of bytes consumed.  This lets the lexer
+	 * advance and remember byte boundaries without reparsing from the
+	 * token start.  The previous implementation re-parsed from
+	 * `id_start` to back up when a non-identifier character was found;
+	 * that was correct but redundant and costlier.  Using the _with_len
+	 * helper makes the code simpler and more efficient while preserving
+	 * exact byte-level semantics.
+	 */
+	{
+	  const char *p = curr_ch;
+	  const char *last_good = id_start; /* last pointer just after a valid cp */
+	  size_t bytes_len = 0;
+	  yaep_codepoint_t test_cp;
+
+	  /* The first code point was already validated as a start character; mark it */
+	  last_good = curr_ch;
+
+	  while ((test_cp = yaep_utf8_next_with_len(&p, &bytes_len)) != YAEP_CODEPOINT_EOS &&
+	         test_cp != YAEP_CODEPOINT_INVALID)
+	    {
+	      if (!yaep_utf8_isalnum(test_cp) && test_cp != '_')
+	        break;
+	      /* Advance last_good to the byte position after this code point */
+	      last_good = p;
+	    }
+
+		/* Set curr_ch to the last byte position that is still part of the identifier */
+		curr_ch = last_good;
+		}
+
+		/* Now compute byte length for copying */
+	id_byte_len = curr_ch - id_start;
+	for (int i = 0; i < id_byte_len; i++)
+	  /* Ensure bytes are treated as unsigned when stored: avoid
+	     platform-dependent sign-extension later during hashing or
+	     byte-wise operations. Store each source byte as an
+	     unsigned char value. */
+	  OS_TOP_ADD_BYTE (stoks, (unsigned char) id_start[i]);
+	OS_TOP_ADD_BYTE (stoks, '\0');
+	yylval.ref = OS_TOP_BEGIN (stoks);
+	
+	/* Check for keyword "TERM" */
+	if (strcmp ((char *) yylval.ref, "TERM") == 0)
+	  {
+	    OS_TOP_NULLIFY (stoks);
+	    return TERM;
+	  }
+	OS_TOP_FINISH (stoks);
+	
+	/* Skip whitespace and check for ':' to distinguish identifiers.
+	 * We need to look ahead past whitespace to see if there's a ':' character.
+	 * If not, we need to back up curr_ch to before the first non-whitespace char.
+	 */
+	const char *before_nonws = curr_ch; /* Position before any whitespace */
+	while ((cp = yaep_utf8_next(&curr_ch)) != YAEP_CODEPOINT_EOS)
+	  {
+	    if (cp == YAEP_CODEPOINT_INVALID)
+	      {
+		if (n_errs == 0)
+		  {
+		    yyerror ("invalid UTF-8 after identifier");
+		    n_errs++;
+		  }
+		continue;
+	      }
+	    if (cp == '\n')
+	      {
+		ln++;
+		before_nonws = curr_ch;
+	      }
+	    else if (yaep_utf8_isspace(cp))
+	      {
+		before_nonws = curr_ch;
+	      }
+	    else
+	      {
+		/* Found non-whitespace character. If it's not ':', back up. */
+		if (cp != ':')
+		  curr_ch = before_nonws;
+		break;
+	      }
+	  }
+	
+	return (cp == ':' ? SEM_IDENT : IDENT);
+      }
+
+			number:
+				{
+					/* Number: sequence of Unicode decimal digits (Nd).  We track the
+						 originating block so that scripts cannot be mixed within a single
+						 literal, mirroring guidance from UAX #31. */
+					int digit_value;
+					yaep_codepoint_t digit_block;
+					const char *digit_boundary;
+
+				if (!yaep_utf8_digit_value (cp, &digit_value, &digit_block))
+					{
+						if (n_errs == 0)
+							{
+								yyerror ("invalid digit in number literal");
+								n_errs++;
+							}
+						return NUMBER;
+					}
+
+				yylval.num = digit_value;
+
+				for (;;)
+					{
+						digit_boundary = curr_ch;
+						yaep_codepoint_t next_cp = yaep_utf8_next (&curr_ch);
+
+						if (next_cp == YAEP_CODEPOINT_EOS)
+							break;
+
+						if (next_cp == YAEP_CODEPOINT_INVALID)
+							{
+								if (n_errs == 0)
+									{
+										yyerror ("invalid UTF-8 in number literal");
+										n_errs++;
+									}
+								break;
+							}
+
+						int next_digit;
+						yaep_codepoint_t next_block;
+						if (!yaep_utf8_digit_value (next_cp, &next_digit, &next_block))
+							{
+								curr_ch = digit_boundary;
+								break;
+							}
+
+						if (next_block != digit_block)
+							{
+								if (n_errs == 0)
+									{
+										yyerror ("mixed-digit Unicode number literal");
+										n_errs++;
+									}
+								curr_ch = digit_boundary;
+								break;
+							}
+
+						yylval.num = yylval.num * 10 + next_digit;
+					}
+
+				return NUMBER;
+			}
+
+    error:
+      /* Invalid character encountered */
+      n_errs++;
+			if (n_errs == 1)
+		{
+			char str[YAEP_MAX_ERROR_MESSAGE_LENGTH / 2];
+			int written = 0;
+
+			if (cp < 128 && isprint((int)cp))
+				written = snprintf (str, sizeof (str), "invalid input character '%c'", (char)cp);
+			else if (cp >= 0)
+				written = snprintf (str, sizeof (str), "invalid input character U+%04X", cp);
+			else
+				written = snprintf (str, sizeof (str), "invalid UTF-8 sequence");
+
+			/* Ensure NUL termination and pass to yyerror */
+			if (written < 0)
+				str[0] = '\0';
+			else
+				str[sizeof (str) - 1] = '\0';
+			yyerror (str);
+		}
     }
 }
 
@@ -387,6 +624,7 @@ yylex (void)
 int
 yyerror (const char *str)
 {
+  (void) str;
   yaep_error (YAEP_DESCRIPTION_SYNTAX_ERROR_CODE,
 	      "description syntax error on ln %d", ln);
   return 0;
@@ -522,15 +760,26 @@ sread_rule (const char ***rhs, const char **abs_node, int *anode_cost,
 }
 
 /* The following function parses grammar desrciption. */
-#ifdef __cplusplus
-static
-#endif
-  int
+int
 yaep_parse_grammar (struct grammar *g, int strict_p, const char *description)
 {
-  int code;
+	int code;
+	size_t error_offset = 0;
+	int validation_error = 0;
 
-  assert (g != NULL);
+	assert (g != NULL);
+	grammar = g;
+	if (!yaep_utf8_validate (description, NULL,
+													 &error_offset, &validation_error))
+		{
+			const char *msg = yaep_utf8_error_message (validation_error);
+
+			g->error_code = YAEP_INVALID_UTF8;
+			snprintf (g->error_message, sizeof (g->error_message),
+								"invalid UTF-8 in grammar description at byte %zu: %s",
+								error_offset, msg);
+			return YAEP_INVALID_UTF8;
+		}
   if ((code = set_sgrammar (g, description)) != 0)
     return code;
   code = yaep_read_grammar (g, strict_p, sread_terminal, sread_rule);

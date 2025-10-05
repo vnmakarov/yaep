@@ -105,7 +105,7 @@ add_executable( ansic-yaep test_yaep.c )
 add_dependencies( ansic-yaep ansic_c )
 target_link_libraries( ansic-yaep
 	ticker
-	yaep
+	yaep_static
 )
 add_test( ansic-test-yaep-no-lookahead ${SHELL} -c "${TIMER} ${CMAKE_CURRENT_BINARY_DIR}/ansic-yaep 0 0 < ${TEST_DATA}" )
 add_test( ansic-test-yaep-static-lookahead ${SHELL} -c "${TIMER} ${CMAKE_CURRENT_BINARY_DIR}/ansic-yaep 1 0 < ${TEST_DATA}" )

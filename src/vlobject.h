@@ -251,7 +251,10 @@ typedef struct
     assert (_temp_vlo->vlo_start != NULL);\
     if (_temp_vlo->vlo_free >= _temp_vlo->vlo_boundary)\
       _VLO_expand_memory (_temp_vlo, 1);\
-    *_temp_vlo->vlo_free++ = (b);\
+   /* Store as unsigned char to avoid sign-extension on platforms where */\
+   /* `char' is signed. This keeps byte semantics stable for hashing */\
+   /* and byte-wise comparisons. */\
+   *_temp_vlo->vlo_free++ = (char) ((unsigned char) (b));\
   }\
   while (0)
 
@@ -426,7 +429,9 @@ public:
     assert (vlo_start != NULL);
     if (vlo_free >= vlo_boundary)
       _VLO_expand_memory (1);
-    *vlo_free++ = b;
+    /* Store as unsigned char to avoid sign-extension on platforms where
+       `char' is signed. Keep the stored value in a `char' buffer. */
+    *vlo_free++ = (char) ((unsigned char) b);
   }
 
 

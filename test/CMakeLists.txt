@@ -26,6 +26,7 @@ set( TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}" )
 include_directories(
 	${PROJECT_SOURCE_DIR}/src
 	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/common
 )
 
 # ANSI-C tokenizer

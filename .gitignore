@@ -4,3 +4,24 @@
 
 # Build directories
 /build*
+
+# Local build artifacts
+# object files
+*.o
+# static libraries
+*.a
+# compiled YAEP libraries in repo tree
+src/*.a
+src/**/*.a
+
+# Executables and temporary outputs
+a.out
+*/a.out
+
+# Logs from compare_parsers
+test/compare_parsers/logs/
+
+# Misc
+*.log
+.vscode/
+.idea/

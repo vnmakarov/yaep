@@ -471,8 +471,10 @@ identifier
 extern int column;
 extern int line;
 
-yyerror(s)
-char *s;
+int
+yyerror (const char *s)
 {
-   fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
+	(void)s;
+	fprintf (stderr, "syntax error line - %d, column - %d\n", line, column + 1);
+	return 0;
 }

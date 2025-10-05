@@ -89,10 +89,6 @@ read_rule (const char ***rhs, const char **anode, int *anode_cost, int **transl)
     }
 }
 
-/* The following variable is the current number of next input
-   token. */
-static int ntok;
-
 static const char *input = "a+a*(a*a+a)";
 
 int
